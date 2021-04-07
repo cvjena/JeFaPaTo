@@ -1,7 +1,7 @@
 import sys
 import os
 import numpy as np
-import dlib
+#import dlib
 import cv2
 
 
@@ -18,7 +18,7 @@ class tabdemo(QTabWidget):
         self.setWindowTitle("JeFaPaTo - Jena Facial Palsy Tool")
         self.window().showMaximized()
 
-        self.tab1 = view_eye_blinking()
+        self.tab1 = view_eye_blinking(camera_id=0)
         self.tab2 = view_landmark_distances()
         self.tab3 = view_emotion_recognition()
 

@@ -1,5 +1,5 @@
 import numpy as np
-import dlib
+#import dlib
 
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
