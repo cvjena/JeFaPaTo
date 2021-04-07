@@ -15,32 +15,26 @@ class view_eye_blinking(QWidget):
     def __init__(self, camera_id):
         super().__init__()
 
-        layout = QVBoxLayout()
+        layout = QGridLayout()
         self.setLayout(layout)
 
-        self.current_image = None
+        ## PROBERTIES
 
+        self.current_image = None
+        self.video_file_path = ''
+        self.extract_folder = os.path.join('', 'tmp')
+        self.image_paths = []
         #self.camera_id = camera_id
+
+        # ==============================================================================================================
+
+        ## GUI ELEMENTS
 
         #self.live_view_button = QRadioButton("Live View")
         #self.live_view_button.toggled.connect(self.check_view_mode)
         #self.video_view_button = QRadioButton("Video View")
         #layout.addWidget(self.live_view_button)
         #layout.addWidget(self.video_view_button)
-
-        # video view
-        self.disply_width = 640
-        self.display_height = 480
-        # create the label that holds the image
-        self.image_label = QLabel(self)
-        self.image_label.resize(self.disply_width, self.display_height)
-         # create a vertical box layout and add the two labels
-        layout.addWidget(self.image_label)
-
-        self.positionSlider = QSlider(Qt.Horizontal)
-        self.positionSlider.setRange(0, 0)
-        self.positionSlider.sliderMoved.connect(self.set_position)
-        layout.addWidget(self.positionSlider)
 
         self.openButton = QPushButton("Open Video")
         self.openButton.setToolTip("Open Video File")
@@ -50,12 +44,42 @@ class view_eye_blinking(QWidget):
         self.openButton.setFont(QFont("Noto Sans", 8))
         self.openButton.setIcon(QIcon.fromTheme("document-open", QIcon("./")))
         self.openButton.clicked.connect(self.load_video)
-        layout.addWidget(self.openButton)
+        layout.addWidget(self.openButton, 0, 0)
 
-        self.video_file_path = ''
-        self.extract_folder = os.path.join('','tmp')
-        self.image_paths = []
+        # video view
+        self.disply_width = 640
+        self.display_height = 480
+        # create the label that holds the image
+        self.image_label = QLabel(self)
+        self.image_label.resize(self.disply_width, self.display_height)
+         # create a vertical box layout and add the two labels
+        layout.addWidget(self.image_label, 1,0)
 
+        self.positionSlider = QSlider(Qt.Horizontal)
+        self.positionSlider.setRange(2, 0)
+        self.positionSlider.setToolTip(str(self.positionSlider.value()))
+        self.positionSlider.sliderMoved.connect(self.set_position)
+        layout.addWidget(self.positionSlider)
+
+        self.label_slider_value = QLabel('0')
+        layout.addWidget(self.label_slider_value, 3, 0)
+
+        # PLOTTING
+        self.plot_image_label = QLabel(self)
+        self.plot_image_label.resize(self.disply_width, self.display_height)
+        # create a vertical box layout and add the two labels
+        layout.addWidget(self.plot_image_label, 4, 0)
+
+        label_threshold = QLabel('Threshold:')
+        layout.addWidget(label_threshold,1,1)
+
+        edit_threshold = QLineEdit('0')
+        layout.addWidget(edit_threshold,1 ,2 )
+
+
+        # ==============================================================================================================
+
+        ## INITIALIZATION ROUTINES
 
 
         if os.path.isfile(os.path.join(self.extract_folder,"frame_00000000.png")):
@@ -65,7 +89,6 @@ class view_eye_blinking(QWidget):
             self.positionSlider.setRange(0, len(self.image_paths))
 
     def set_position(self):
-        print('set new image ...')
         self.show_image(self.positionSlider.value())
 
 
@@ -89,11 +112,11 @@ class view_eye_blinking(QWidget):
         self.thread.start()
 
     def show_image(self, image_id = 0):
-        print('show images ...')
-        self.image_paths = glob.glob(os.path.join(self.extract_folder,'./*.png'))
+        self.image_paths = glob.glob(os.path.join(self.extract_folder, './*.png'))
         self.image_paths.sort()
 
-        #for i_idx, image_path in enumerate(self.image_paths):
+        self.label_slider_value.setText("Frame Number:\t" + str(image_id))
+
         cv_img = cv2.imread(self.image_paths[image_id])
         qt_img = self.convert_cv_qt(cv_img)
         self.image_label.setPixmap(qt_img)

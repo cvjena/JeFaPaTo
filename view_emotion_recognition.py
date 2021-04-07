@@ -10,9 +10,9 @@ class view_emotion_recognition(QWidget):
         super().__init__()
 
         layout = QHBoxLayout()
-        layout.addWidget(QLabel("subjects"))
-        layout.addWidget(QCheckBox("Physics"))
-        layout.addWidget(QCheckBox("Maths"))
+        #layout.addWidget(QLabel("subjects"))
+        #layout.addWidget(QCheckBox("Physics"))
+        #layout.addWidget(QCheckBox("Maths"))
 
         self.setLayout(layout)
 

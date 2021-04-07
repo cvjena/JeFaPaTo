@@ -16,7 +16,7 @@ class tabdemo(QTabWidget):
     def __init__(self, parent=None):
         super(tabdemo, self).__init__(parent)
         self.setWindowTitle("JeFaPaTo - Jena Facial Palsy Tool")
-        self.window().showMaximized()
+        #self.window().showMaximized()
 
         self.tab1 = view_eye_blinking(camera_id=0)
         self.tab2 = view_landmark_distances()
