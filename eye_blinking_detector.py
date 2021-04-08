@@ -10,8 +10,8 @@ import imutils
 from imutils import face_utils
 
 
-class view_eye_blinking():
-    def __init__(self):
+class EyeBlinkingDetector():
+    def __init__(self, threshold):
         super().__init__()
 
         # initialize dlib's face detector (HOG-based) and then create
@@ -20,7 +20,7 @@ class view_eye_blinking():
         self.detector = dlib.get_frontal_face_detector()
         self.predictor = dlib.shape_predictor(self.shape_predictor_file)
 
-        self.threshold = 2.0
+        self.threshold = threshold
 
         self.left_closed = False
         self.right_closed = False
@@ -52,11 +52,14 @@ class view_eye_blinking():
 
             # calculate eye distance
             eye_distance = self.calculate_eye_distance(shape)
-            print(eye_distance)
+            #print(eye_distance)
 
             # calculate eye regions
             region_left, region_right = self.calculate_eye_regions(shape)
-            print(str(region_left) + '\t' + str(region_right))
+            #print(str(region_left) + '\t' + str(region_right))
+
+            #print(self.threshold * eye_distance)
+            #print(region_left)
 
             if region_left < self.threshold * eye_distance:
                 self.left_closed = True
@@ -66,6 +69,8 @@ class view_eye_blinking():
                 self.right_closed = True
             else:
                 self.right_closed = False
+
+        return self.left_closed, self.right_closed
 
     def calculate_eye_regions(self, landmark_list):
         region_left = 0

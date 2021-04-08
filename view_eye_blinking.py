@@ -11,6 +11,8 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtMultimedia import *
 
+from eye_blinking_detector import EyeBlinkingDetector
+
 class view_eye_blinking(QWidget):
     def __init__(self, camera_id):
         super().__init__()
@@ -20,10 +22,14 @@ class view_eye_blinking(QWidget):
 
         ## PROBERTIES
 
+        self.left_closed = False
+        self.right_closed = False
+
         self.current_image = None
         self.video_file_path = ''
         self.extract_folder = os.path.join('', 'tmp')
         self.image_paths = []
+
         #self.camera_id = camera_id
 
         # ==============================================================================================================
@@ -71,15 +77,35 @@ class view_eye_blinking(QWidget):
         layout.addWidget(self.plot_image_label, 4, 0)
 
         label_threshold = QLabel('Threshold:')
-        layout.addWidget(label_threshold,1,1)
+        layout.addWidget(label_threshold,0,1)
+        self.edit_threshold = QLineEdit('5')
+        layout.addWidget(self.edit_threshold,0 ,2 )
 
-        edit_threshold = QLineEdit('0')
-        layout.addWidget(edit_threshold,1 ,2 )
+        self.openButton = QPushButton("Start Analysis")
+        self.openButton.setToolTip("Start Analysis")
+        self.openButton.setStatusTip("Start Analysis")
+        self.openButton.setFixedHeight(24)
+        self.openButton.setIconSize(QSize(16, 16))
+        self.openButton.setFont(QFont("Noto Sans", 8))
+        self.openButton.setIcon(QIcon.fromTheme("document-open", QIcon("./")))
+        self.openButton.clicked.connect(self.start_anaysis)
+        layout.addWidget(self.openButton, 1, 1)
 
+        label_left_eye_closed = QLabel('Left Eye:')
+        layout.addWidget(label_left_eye_closed, 2, 1)
+        self.edit_left_eye_closed = QLineEdit('open')
+        layout.addWidget(self.edit_left_eye_closed, 2, 2)
+
+        label_right_eye_closed = QLabel('Right Eye:')
+        layout.addWidget(label_right_eye_closed, 3, 1)
+        self.edit_right_eye_closed = QLineEdit('open')
+        layout.addWidget(self.edit_right_eye_closed, 3, 2)
 
         # ==============================================================================================================
 
         ## INITIALIZATION ROUTINES
+
+        self.eye_blinking_detector = EyeBlinkingDetector(float(self.edit_threshold.text()))
 
 
         if os.path.isfile(os.path.join(self.extract_folder,"frame_00000000.png")):
@@ -88,8 +114,29 @@ class view_eye_blinking(QWidget):
             # set slider
             self.positionSlider.setRange(0, len(self.image_paths))
 
+    def start_anaysis(self):
+        print('analyze all images ...')
+        for i_idx, image in enumerate(self.image_paths):
+            self.show_image(i_idx)
+            self.positionSlider.setValue(i_idx)
+            self.analyze_current_image()
+
+    def analyze_current_image(self):
+        #print('analyze current image ...')
+        self.left_closed, self.right_closed = self.eye_blinking_detector.detect_eye_blinking_in_image(self.current_image)
+        if(self.left_closed):
+            self.edit_left_eye_closed.setText("closed")
+        else:
+            self.edit_left_eye_closed.setText("open")
+
+        if (self.right_closed):
+            self.edit_right_eye_closed.setText("closed")
+        else:
+            self.edit_right_eye_closed.setText("open")
+
     def set_position(self):
         self.show_image(self.positionSlider.value())
+        self.analyze_current_image()
 
 
     def load_video(self,):
