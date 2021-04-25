@@ -1,10 +1,9 @@
 import os
 import numpy as np
-#import dlib
+# import dlib
 import cv2
 import shutil
 import glob
-
 
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
@@ -13,34 +12,40 @@ from PyQt5.QtMultimedia import *
 
 from eye_blinking_detector import EyeBlinkingDetector
 
+
 class view_eye_blinking(QWidget):
-    def __init__(self, camera_id):
+    def __init__(self):
         super().__init__()
+
+        # VIEW LAYOUT
 
         layout = QGridLayout()
         self.setLayout(layout)
 
-        ## PROBERTIES
+        # ==============================================================================================================
+
+        # PROBERTIES
 
         self.left_closed = False
         self.right_closed = False
+        self.left_norm_distance = -1
+        self.right_norm_distance = -1
+        self.left_eye_closing_norm_area = -1
+        self.right_eye_closing_norm_area = -1
 
         self.current_image = None
-        self.video_file_path = ''
+        self.video_file_path = None
         self.extract_folder = os.path.join('', 'tmp')
         self.image_paths = []
+        self.video_fps = None
 
-        #self.camera_id = camera_id
+        self.results_file = None
+        self.results_file_path = './results.csv'
+        self.results_file_header = 'closed_left;closed_right;norm_eye_area_left;norm_eye_area_right\n'
 
         # ==============================================================================================================
 
         ## GUI ELEMENTS
-
-        #self.live_view_button = QRadioButton("Live View")
-        #self.live_view_button.toggled.connect(self.check_view_mode)
-        #self.video_view_button = QRadioButton("Video View")
-        #layout.addWidget(self.live_view_button)
-        #layout.addWidget(self.video_view_button)
 
         self.openButton = QPushButton("Open Video")
         self.openButton.setToolTip("Open Video File")
@@ -58,13 +63,14 @@ class view_eye_blinking(QWidget):
         # create the label that holds the image
         self.image_label = QLabel(self)
         self.image_label.resize(self.disply_width, self.display_height)
-         # create a vertical box layout and add the two labels
-        layout.addWidget(self.image_label, 1,0)
+        # create a vertical box layout and add the two labels
+        layout.addWidget(self.image_label, 1, 0)
 
         self.positionSlider = QSlider(Qt.Horizontal)
         self.positionSlider.setRange(2, 0)
         self.positionSlider.setToolTip(str(self.positionSlider.value()))
         self.positionSlider.sliderMoved.connect(self.set_position)
+        self.positionSlider.sliderPressed.connect(self.set_position)
         layout.addWidget(self.positionSlider)
 
         self.label_slider_value = QLabel('0')
@@ -77,19 +83,20 @@ class view_eye_blinking(QWidget):
         layout.addWidget(self.plot_image_label, 4, 0)
 
         label_threshold = QLabel('Threshold:')
-        layout.addWidget(label_threshold,0,1)
-        self.edit_threshold = QLineEdit('5')
-        layout.addWidget(self.edit_threshold,0 ,2 )
+        layout.addWidget(label_threshold, 0, 1)
+        self.edit_threshold = QLineEdit('8.75')
+        self.edit_threshold.textChanged.connect(self.change_threshold)
+        layout.addWidget(self.edit_threshold, 0, 2)
 
-        self.openButton = QPushButton("Start Analysis")
-        self.openButton.setToolTip("Start Analysis")
-        self.openButton.setStatusTip("Start Analysis")
-        self.openButton.setFixedHeight(24)
-        self.openButton.setIconSize(QSize(16, 16))
-        self.openButton.setFont(QFont("Noto Sans", 8))
-        self.openButton.setIcon(QIcon.fromTheme("document-open", QIcon("./")))
-        self.openButton.clicked.connect(self.start_anaysis)
-        layout.addWidget(self.openButton, 1, 1)
+        self.startAnalysisButton = QPushButton("Start Analysis")
+        self.startAnalysisButton.setToolTip("Start Analysis")
+        self.startAnalysisButton.setStatusTip("Start Analysis")
+        self.startAnalysisButton.setFixedHeight(24)
+        self.startAnalysisButton.setIconSize(QSize(16, 16))
+        self.startAnalysisButton.setFont(QFont("Noto Sans", 8))
+        self.startAnalysisButton.setIcon(QIcon.fromTheme("document-open", QIcon("./")))
+        self.startAnalysisButton.clicked.connect(self.start_anaysis)
+        layout.addWidget(self.startAnalysisButton, 1, 1)
 
         label_left_eye_closed = QLabel('Left Eye:')
         layout.addWidget(label_left_eye_closed, 2, 1)
@@ -107,24 +114,47 @@ class view_eye_blinking(QWidget):
 
         self.eye_blinking_detector = EyeBlinkingDetector(float(self.edit_threshold.text()))
 
-
-        if os.path.isfile(os.path.join(self.extract_folder,"frame_00000000.png")):
+        if os.path.isfile(os.path.join(self.extract_folder, "frame_00000000.png")):
             self.show_image()
 
             # set slider
-            self.positionSlider.setRange(0, len(self.image_paths))
+            self.positionSlider.setRange(0, len(self.image_paths) - 1)
+            self.positionSlider.setSliderPosition(0)
 
+    #@pyqtSlot(list)
     def start_anaysis(self):
         print('analyze all images ...')
+
+        # open results output file and write header
+        self.results_file = open(self.results_file_path, 'w')
+        self.results_file.write(self.results_file_header)
+
         for i_idx, image in enumerate(self.image_paths):
             self.show_image(i_idx)
             self.positionSlider.setValue(i_idx)
             self.analyze_current_image()
 
+            # write results to file
+            self.results_file.write(self.edit_left_eye_closed.text() + ';'
+                                   + self.edit_right_eye_closed.text() + ';'
+                                   + str(self.left_eye_closing_norm_area) + ';'
+                                   + str(self.right_eye_closing_norm_area)
+                                   + '\n'
+                                   )
+
+        self.results_file.close()
+
+    def calc_frequency(self):
+        # calculates the frequency based on the number of eye closings and time
+        frequency = 0
+
+        return frequency
+
     def analyze_current_image(self):
-        #print('analyze current image ...')
-        self.left_closed, self.right_closed = self.eye_blinking_detector.detect_eye_blinking_in_image(self.current_image)
-        if(self.left_closed):
+        # print('analyze current image ...')
+        self.left_closed, self.right_closed, self.left_eye_closing_norm_area, self.right_eye_closing_norm_area = self.eye_blinking_detector.detect_eye_blinking_in_image(
+            self.current_image)
+        if (self.left_closed):
             self.edit_left_eye_closed.setText("closed")
         else:
             self.edit_left_eye_closed.setText("open")
@@ -134,12 +164,16 @@ class view_eye_blinking(QWidget):
         else:
             self.edit_right_eye_closed.setText("open")
 
+    def change_threshold(self):
+        if not self.edit_threshold.text() == '':
+            self.eye_blinking_detector.set_threshold(float(self.edit_threshold.text()))
+            self.analyze_current_image()
+
     def set_position(self):
         self.show_image(self.positionSlider.value())
         self.analyze_current_image()
 
-
-    def load_video(self,):
+    def load_video(self, ):
         print('load video from file')
         fileName, _ = QFileDialog.getOpenFileName(self, "Select video file",
                                                   ".", "Video Files (*.mp4 *.flv *.ts *.mts *.avi)")
@@ -158,7 +192,7 @@ class view_eye_blinking(QWidget):
         self.thread.image_paths_signal.connect(self.show_image)
         self.thread.start()
 
-    def show_image(self, image_id = 0):
+    def show_image(self, image_id=0):
         self.image_paths = glob.glob(os.path.join(self.extract_folder, './*.png'))
         self.image_paths.sort()
 
@@ -178,32 +212,20 @@ class view_eye_blinking(QWidget):
         p = convert_to_Qt_format.scaled(self.disply_width, self.display_height, Qt.KeepAspectRatio)
         return QPixmap.fromImage(p)
 
-'''
-    def check_view_mode(self):
-        if self.live_view_button.isChecked() == True:
-            print('Start Live View ...')
-            # create the video capture thread
-            self.thread = VideoThread(self.camera_id)
-            # connect its signal to the update_image slot
-            self.thread.change_pixmap_signal.connect(self.update_live_image)
-            # start the thread
-            self.thread.start()
 
-        elif self.live_view_button.isChecked() == False:
-            print('Stop Live View ...')
-            self.thread.quit()
-            self.thread.exit()
+class EyeBlinkingAnalyzer(QThread):
+    def __init__(self, image_paths, threshold):
+        super().__init__()
+        self.image_paths = image_paths
+        self.threshold = threshold
 
-    @pyqtSlot(np.ndarray)
-    def update_live_image(self, cv_img):
-        """Updates the image_label with a new opencv image"""
-        qt_img = self.convert_cv_qt(cv_img)
-        self.image_label.setPixmap(qt_img)
-        self.current_image = cv_img
+    def run(self):
+        print('run eye blinkning analysis ...')
 
-'''
-class ExtractImagesThread (QThread):
+
+class ExtractImagesThread(QThread):
     image_paths_signal = pyqtSignal(list)
+
     def __init__(self, openButton, video_file_path, image_paths, extract_folder):
         super().__init__()
         self.openButton = openButton
@@ -212,7 +234,6 @@ class ExtractImagesThread (QThread):
         self.extract_folder = extract_folder
 
     def run(self):
-
         vidcap = cv2.VideoCapture(self.video_file_path)
         success, image = vidcap.read()
         count = 0
@@ -226,21 +247,3 @@ class ExtractImagesThread (QThread):
             count += 1
         self.openButton.setText('Open Video')
         self.image_paths.sort()
-        # show images
-'''
-class VideoThread(QThread):
-    change_pixmap_signal = pyqtSignal(np.ndarray)
-    def __init__(self, camera_id):
-
-        super().__init__()
-        self.camera_id = camera_id
-    def run(self):
-        # capture from web cam
-        cap = cv2.VideoCapture(self.camera_id)
-        if not cap:
-            print("check camera parameter")
-        while True:
-            ret, cv_img = cap.read()
-            if ret:
-                self.change_pixmap_signal.emit(cv_img)
-'''

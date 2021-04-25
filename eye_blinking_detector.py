@@ -25,6 +25,12 @@ class EyeBlinkingDetector():
         self.left_closed = False
         self.right_closed = False
 
+        self.left_eye_closing_norm_area = -1
+        self.right_eye_closing_norm_area = -1
+
+    def set_threshold(self, threshold):
+        self.threshold = threshold
+
     def detect_eye_blinking_in_image(self, image):
         # image = imutils.resize(image, width=500)
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -70,7 +76,10 @@ class EyeBlinkingDetector():
             else:
                 self.right_closed = False
 
-        return self.left_closed, self.right_closed
+        self.left_eye_closing_norm_area = region_left / eye_distance
+        self.right_eye_closing_norm_area = region_right / eye_distance
+
+        return self.left_closed, self.right_closed, self.left_eye_closing_norm_area, self.right_eye_closing_norm_area
 
     def calculate_eye_regions(self, landmark_list):
         region_left = 0

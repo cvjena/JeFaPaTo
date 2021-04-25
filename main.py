@@ -12,13 +12,15 @@ from view_eye_blinking import view_eye_blinking
 from view_landmark_distances import view_landmark_distances
 from view_emotion_recognition import view_emotion_recognition
 
-class tabdemo(QTabWidget):
+class jefapato(QTabWidget):
     def __init__(self, parent=None):
-        super(tabdemo, self).__init__(parent)
+        super(jefapato, self).__init__(parent)
         self.setWindowTitle("JeFaPaTo - Jena Facial Palsy Tool")
         #self.window().showMaximized()
 
-        self.tab1 = view_eye_blinking(camera_id=0)
+        self.VERSION = '2021.04.25'
+
+        self.tab1 = view_eye_blinking()
         self.tab2 = view_landmark_distances()
         self.tab3 = view_emotion_recognition()
 
@@ -29,7 +31,7 @@ class tabdemo(QTabWidget):
 
 def main(argv):
     app = QApplication(sys.argv)
-    ex = tabdemo()
+    ex = jefapato()
     ex.show()
     sys.exit(app.exec_())
 
