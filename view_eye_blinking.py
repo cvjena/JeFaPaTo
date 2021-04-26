@@ -10,6 +10,12 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtMultimedia import *
 
+import matplotlib
+matplotlib.use('Qt5Agg')
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from matplotlib.figure import Figure
+
 from eye_blinking_detector import EyeBlinkingDetector
 
 
@@ -108,6 +114,10 @@ class view_eye_blinking(QWidget):
         self.edit_right_eye_closed = QLineEdit('open')
         layout.addWidget(self.edit_right_eye_closed, 3, 2)
 
+        # evaluation view
+        self.evaluation_plot = MplCanvas(self, width=10, height=5, dpi=100)
+        self.evaluation_plot.axes.plot([], [])
+        layout.addWidget(self.evaluation_plot, 4, 0)
         # ==============================================================================================================
 
         ## INITIALIZATION ROUTINES
@@ -121,7 +131,7 @@ class view_eye_blinking(QWidget):
             self.positionSlider.setRange(0, len(self.image_paths) - 1)
             self.positionSlider.setSliderPosition(0)
 
-    #@pyqtSlot(list)
+
     def start_anaysis(self):
         print('analyze all images ...')
 
@@ -129,10 +139,20 @@ class view_eye_blinking(QWidget):
         self.results_file = open(self.results_file_path, 'w')
         self.results_file.write(self.results_file_header)
 
+        areas_left = []
+        areas_right = []
+
+        # set the range of the slider
+        # self.positionSlider.setRange(0, len(self.image_paths) - 1)
+
         for i_idx, image in enumerate(self.image_paths):
+            print('image: ' + str(i_idx+1)+'/'+str(len(self.image_paths)))
             self.show_image(i_idx)
             self.positionSlider.setValue(i_idx)
             self.analyze_current_image()
+
+            areas_left.append(self.left_eye_closing_norm_area)
+            areas_right.append(self.right_eye_closing_norm_area)
 
             # write results to file
             self.results_file.write(self.edit_left_eye_closed.text() + ';'
@@ -143,6 +163,9 @@ class view_eye_blinking(QWidget):
                                    )
 
         self.results_file.close()
+
+        self.evaluation_plot.axes.plot(list(range(0,len(areas_left))), areas_left)
+
 
     def calc_frequency(self):
         # calculates the frequency based on the number of eye closings and time
@@ -172,6 +195,7 @@ class view_eye_blinking(QWidget):
     def set_position(self):
         self.show_image(self.positionSlider.value())
         self.analyze_current_image()
+        plt.axvline(x=self.positionSlider.value())
 
     def load_video(self, ):
         print('load video from file')
@@ -180,6 +204,10 @@ class view_eye_blinking(QWidget):
 
         if fileName != '':
             self.video_file_path = fileName
+            print('remove existing files ... ')
+            existing_files = glob.glob(self.extract_folder+'/*')
+            for f in existing_files:
+                os.remove(f)
             self.extract_video()
 
     @pyqtSlot(list)
@@ -188,12 +216,12 @@ class view_eye_blinking(QWidget):
             shutil.rmtree(self.extract_folder, ignore_errors=True)
             os.mkdir(self.extract_folder)
 
-        self.thread = ExtractImagesThread(self.openButton, self.video_file_path, self.image_paths, self.extract_folder)
-        self.thread.image_paths_signal.connect(self.show_image)
-        self.thread.start()
+        self.extract_thread = ExtractImagesThread(self)
+        self.extract_thread.image_paths_signal.connect(self.show_image)
+        self.extract_thread.start()
 
     def show_image(self, image_id=0):
-        self.image_paths = glob.glob(os.path.join(self.extract_folder, './*.png'))
+        self.image_paths = glob.glob(os.path.join(self.extract_folder, '*.png'))
         self.image_paths.sort()
 
         self.label_slider_value.setText("Frame Number:\t" + str(image_id))
@@ -213,27 +241,29 @@ class view_eye_blinking(QWidget):
         return QPixmap.fromImage(p)
 
 
-class EyeBlinkingAnalyzer(QThread):
-    def __init__(self, image_paths, threshold):
-        super().__init__()
-        self.image_paths = image_paths
-        self.threshold = threshold
+class MplCanvas(FigureCanvasQTAgg):
 
-    def run(self):
-        print('run eye blinkning analysis ...')
+    def __init__(self, parent=None, width=5, height=4, dpi=100):
+        fig = Figure(figsize=(width, height), dpi=dpi)
+        self.axes = fig.add_subplot(111)
+        super(MplCanvas, self).__init__(fig)
 
 
 class ExtractImagesThread(QThread):
     image_paths_signal = pyqtSignal(list)
 
-    def __init__(self, openButton, video_file_path, image_paths, extract_folder):
+    def __init__(self, view_eye_blinking):
         super().__init__()
-        self.openButton = openButton
-        self.video_file_path = video_file_path
-        self.image_paths = image_paths
-        self.extract_folder = extract_folder
+        self.openButton = view_eye_blinking.openButton
+        self.video_file_path = view_eye_blinking.video_file_path
+        self.image_paths = view_eye_blinking.image_paths
+        self.extract_folder = view_eye_blinking.extract_folder
+        self.startAnalysisButton = view_eye_blinking.startAnalysisButton
+        self.positionSlider = view_eye_blinking.positionSlider
 
     def run(self):
+        self.startAnalysisButton.setDisabled(True)
+
         vidcap = cv2.VideoCapture(self.video_file_path)
         success, image = vidcap.read()
         count = 0
@@ -247,3 +277,6 @@ class ExtractImagesThread(QThread):
             count += 1
         self.openButton.setText('Open Video')
         self.image_paths.sort()
+        self.startAnalysisButton.setDisabled(False)
+        # set the range of the slider
+        self.positionSlider.setRange(0, len(self.image_paths) - 1)

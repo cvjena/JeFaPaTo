@@ -90,11 +90,11 @@ class EyeBlinkingDetector():
         t_l2_id = [43, 44, 47]
         t_l3_id = [44, 46, 47]
         t_l4_id = [44, 45, 46]
-        # eye triangles left
-        t_r1_id = [42, 43, 47]
-        t_r2_id = [43, 44, 47]
-        t_r3_id = [44, 46, 47]
-        t_r4_id = [44, 45, 46]
+        # eye triangles right
+        t_r1_id = [36, 38, 41]
+        t_r2_id = [37, 38, 41]
+        t_r3_id = [38, 40, 41]
+        t_r4_id = [38, 39, 40]
 
         a_l1 = self.calculate_area_of_triangle(landmark_list[t_l1_id[0]], landmark_list[t_l1_id[1]],
                                           landmark_list[t_l1_id[2]])
