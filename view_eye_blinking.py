@@ -1,6 +1,6 @@
 import os
 import numpy as np
-# import dlib
+import dlib
 import cv2
 import shutil
 import glob
@@ -210,6 +210,7 @@ class view_eye_blinking(QWidget):
 
         if fileName != '':
             self.video_file_path = fileName
+
             print('remove existing files ... ')
             existing_files = glob.glob(self.extract_folder+'/*')
             for f in existing_files:
@@ -270,12 +271,17 @@ class ExtractImagesThread(QThread):
         self.extract_folder = view_eye_blinking.extract_folder
         self.startAnalysisButton = view_eye_blinking.startAnalysisButton
         self.positionSlider = view_eye_blinking.positionSlider
+        self.video_fps = -1
 
     def run(self):
         self.startAnalysisButton.setDisabled(True)
 
         vidcap = cv2.VideoCapture(self.video_file_path)
         success, image = vidcap.read()
+
+        self.video_fps = vidcap.get(cv2.CAP_PROP_FPS)
+        print("Frames per second: " + self.video_fps)
+
         count = 0
         while success:
             self.openButton.setText(str(count))
