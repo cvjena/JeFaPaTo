@@ -38,6 +38,7 @@ class view_eye_blinking(QWidget):
         self.right_norm_distance = -1
         self.left_eye_closing_norm_area = -1
         self.right_eye_closing_norm_area = -1
+        self.eye_distance_threshold_ratio = -1
 
         self.current_image = None
         self.video_file_path = None
@@ -141,6 +142,7 @@ class view_eye_blinking(QWidget):
 
         areas_left = []
         areas_right = []
+        eye_distance_threshold_ratios = []
 
         # set the range of the slider
         # self.positionSlider.setRange(0, len(self.image_paths) - 1)
@@ -153,6 +155,7 @@ class view_eye_blinking(QWidget):
 
             areas_left.append(self.left_eye_closing_norm_area)
             areas_right.append(self.right_eye_closing_norm_area)
+            eye_distance_threshold_ratios.append(self.eye_distance_threshold_ratio)
 
             # write results to file
             self.results_file.write(self.edit_left_eye_closed.text() + ';'
@@ -164,7 +167,10 @@ class view_eye_blinking(QWidget):
 
         self.results_file.close()
 
-        self.evaluation_plot.axes.plot(list(range(0,len(areas_left))), areas_left)
+        self.evaluation_plot.plot(list(range(0,len(areas_left))), areas_left)
+        self.evaluation_plot.plot(list(range(0,len(areas_right))), areas_right)
+        #self.evaluation_plot.plot(list(range(0,len(eye_distance_threshold_ratios))), eye_distance_threshold_ratios)
+        #self.evaluation_plot.redraw()
 
 
     def calc_frequency(self):
@@ -175,7 +181,7 @@ class view_eye_blinking(QWidget):
 
     def analyze_current_image(self):
         # print('analyze current image ...')
-        self.left_closed, self.right_closed, self.left_eye_closing_norm_area, self.right_eye_closing_norm_area = self.eye_blinking_detector.detect_eye_blinking_in_image(
+        self.left_closed, self.right_closed, self.left_eye_closing_norm_area, self.right_eye_closing_norm_area, self.eye_distance_threshold_ratio = self.eye_blinking_detector.detect_eye_blinking_in_image(
             self.current_image)
         if (self.left_closed):
             self.edit_left_eye_closed.setText("closed")
@@ -247,6 +253,10 @@ class MplCanvas(FigureCanvasQTAgg):
         fig = Figure(figsize=(width, height), dpi=dpi)
         self.axes = fig.add_subplot(111)
         super(MplCanvas, self).__init__(fig)
+
+    def plot(self, l1, l2):
+        self.axes.plot(l1, l2)
+        self.draw()
 
 
 class ExtractImagesThread(QThread):
