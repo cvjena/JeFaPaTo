@@ -66,6 +66,11 @@ class EyeBlinkingDetector():
 
         self.scale_factor = 0.3
 
+        self.face_imge: np.ndarray = np.ones((100, 100, 3), dtype=np.uint8)
+
+        self.eye_left_slice: slice = slice(36, 42)
+        self.eye_right_slice: slice = slice(42, 48)
+
     def set_threshold(self, threshold):
         self.threshold = threshold
 
@@ -84,6 +89,19 @@ class EyeBlinkingDetector():
             # array
             shape = self.predictor(gray, rect)
             shape = face_utils.shape_to_np(shape)
+
+            # draw the shapes into the face
+            # TODO check if the color is correct because of either RGB or BGR image...
+            self.face_imge = np.copy(image)
+            for (x, y) in shape[self.eye_left_slice]:
+                # left in blue color
+                cv2.circle(self.face_imge, (x, y), 1, (0, 0, 255), -1)
+            for (x, y) in shape[self.eye_right_slice]:
+                # right eye in red color
+                cv2.circle(self.face_imge, (x, y), 1, (255, 0, 0), -1)
+            # crop to the region containing the face
+            self.face_imge = self.face_imge[rect.top():rect.bottom(), rect.left():rect.right()]
+
             # convert dlib's rectangle to a OpenCV-style bounding box
             # [i.e., (x, y, w, h)], then draw the face bounding box
             (x, y, w, h) = face_utils.rect_to_bb(rect)

@@ -62,6 +62,11 @@ class view_eye_blinking(QWidget):
         self.openButton.clicked.connect(self.load_video)
         layout.addWidget(self.openButton, 0, 0)
 
+        # image and their layout
+
+        layout_images = QGridLayout()
+        layout.addLayout(layout_images, 1, 0)
+        
         # video view
         self.disply_width = 640
         self.display_height = 480
@@ -69,14 +74,21 @@ class view_eye_blinking(QWidget):
         self.image_label = QLabel(self)
         self.image_label.resize(self.disply_width, self.display_height)
         # create a vertical box layout and add the two labels
-        layout.addWidget(self.image_label, 1, 0)
+        layout_images.addWidget(self.image_label, 0, 0)
+
+        # face preview
+        self.face_width = 30
+        self.face_height = 30
+        self.face_label = QLabel(self)
+        self.face_label.resize(self.face_width, self.face_height)
+        layout_images.addWidget(self.face_label, 0, 1)
 
         self.positionSlider = QSlider(Qt.Horizontal)
         self.positionSlider.setRange(2, 0)
         self.positionSlider.setToolTip(str(self.positionSlider.value()))
         self.positionSlider.sliderMoved.connect(self.set_position)
         self.positionSlider.sliderPressed.connect(self.set_position)
-        layout.addWidget(self.positionSlider)
+        layout.addWidget(self.positionSlider, 2, 0)
 
         self.label_slider_value = QLabel('0')
         layout.addWidget(self.label_slider_value, 3, 0)
@@ -231,6 +243,10 @@ class view_eye_blinking(QWidget):
         qt_img = self.convert_cv_qt(cv_img)
         self.image_label.setPixmap(qt_img)
         self.current_image = cv_img
+
+        face_img = self.convert_cv_qt(self.eye_blinking_detector.face_imge)
+        self.face_label.setPixmap(face_img)
+
 
     def convert_cv_qt(self, cv_img):
         """Convert from an opencv image to QPixmap"""
