@@ -280,7 +280,7 @@ class ExtractImagesThread(QThread):
         success, image = vidcap.read()
 
         self.video_fps = vidcap.get(cv2.CAP_PROP_FPS)
-        print("Frames per second: " + self.video_fps)
+        print(f"Frames per second: {self.video_fps:5.2f}")
 
         count = 0
         while success:
