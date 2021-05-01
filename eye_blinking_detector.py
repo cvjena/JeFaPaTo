@@ -62,6 +62,7 @@ class EyeBlinkingDetector():
 
         self.left_eye_closing_norm_area = -1
         self.right_eye_closing_norm_area = -1
+        self.eye_distance_threshold_ratio = -1
 
         self.scale_factor = 0.3
 
@@ -106,16 +107,11 @@ class EyeBlinkingDetector():
             #print(self.threshold * eye_distance)
             #print(region_left)
 
-            eye_distance_threshold_ratio = self.threshold * eye_distance
-
-            if region_left < self.threshold * eye_distance:
-                self.left_closed = True
-            else:
-                self.left_closed = False
-            if region_right < self.threshold * eye_distance:
-                self.right_closed = True
-            else:
-                self.right_closed = False
+            self.eye_distance_threshold_ratio = self.threshold * eye_distance
+            
+            # set closed to true if condition applies, else it will be false
+            self.left_closed = region_left < (self.threshold * eye_distance)
+            self.right_closed = region_right < (self.threshold * eye_distance)
 
         self.left_eye_closing_norm_area = region_left / eye_distance
         self.right_eye_closing_norm_area = region_right / eye_distance
@@ -124,7 +120,7 @@ class EyeBlinkingDetector():
         eye_info["right_closed"] = self.right_closed
         eye_info["left_eye_closing_norm_area"] = self.left_eye_closing_norm_area
         eye_info["right_eye_closing_norm_area"] = self.right_eye_closing_norm_area
-        eye_info["eye_distance_threshold_ratio"] = eye_distance_threshold_ratio
+        eye_info["eye_distance_threshold_ratio"] = self.eye_distance_threshold_ratio
 
 
     def calculate_eye_regions(self, landmark_list):
