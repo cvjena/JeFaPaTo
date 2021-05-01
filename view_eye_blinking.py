@@ -31,17 +31,8 @@ class view_eye_blinking(QWidget):
         self.setLayout(layout)
 
         # ==============================================================================================================
-
-        # PROBERTIES
-        self.eye_info = {
-            "left_closed" : False,
-            "right_closed" : False,
-            "left_norm_distance" : -1,
-            "right_norm_distance" : -1,
-            "left_eye_closing_norm_area" : -1,
-            "right_eye_closing_norm_area" : -1,
-            "eye_distance_threshold_ratio" : -1,
-        }
+        
+        ## PROPERTIES
 
         self.current_image: np.ndarray = None
         self.video_file_path: Path = None
@@ -160,15 +151,15 @@ class view_eye_blinking(QWidget):
             self.positionSlider.setValue(i_idx)
             self.analyze_current_image()
 
-            areas_left.append(self.eye_info["left_eye_closing_norm_area"])
-            areas_right.append(self.eye_info["right_eye_closing_norm_area"])
-            eye_distance_threshold_ratios.append(self.eye_info["eye_distance_threshold_ratio"])
+            areas_left.append(self.eye_blinking_detector.left_eye_closing_norm_area)
+            areas_right.append(self.eye_blinking_detector.right_eye_closing_norm_area)
+            eye_distance_threshold_ratios.append(self.eye_blinking_detector.eye_distance_threshold_ratio)
 
             # write results to file
             self.results_file.write(self.edit_left_eye_closed.text() + ';'
                                    + self.edit_right_eye_closed.text() + ';'
-                                   + str(self.eye_info["left_eye_closing_norm_area"]) + ';'
-                                   + str(self.eye_info["right_eye_closing_norm_area"])
+                                   + str(self.eye_blinking_detector.left_eye_closing_norm_area) + ';'
+                                   + str(self.eye_blinking_detector.right_eye_closing_norm_area)
                                    + '\n'
                                    )
 
@@ -188,10 +179,10 @@ class view_eye_blinking(QWidget):
 
     def analyze_current_image(self):
         # print('analyze current image ...')
-        self.eye_blinking_detector.detect_eye_blinking_in_image(self.current_image, self.eye_info)
+        self.eye_blinking_detector.detect_eye_blinking_in_image(self.current_image)
 
-        self.edit_left_eye_closed.setText("closed" if self.eye_info["left_closed"] else "open")
-        self.edit_right_eye_closed.setText("closed" if self.eye_info["right_closed"] else "open")
+        self.edit_left_eye_closed.setText("closed" if self.eye_blinking_detector.left_closed else "open")
+        self.edit_right_eye_closed.setText("closed" if self.eye_blinking_detector.right_closed else "open")
 
     def change_threshold(self):
         if not self.edit_threshold.text() == '':
