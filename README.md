@@ -11,8 +11,8 @@
   - [ ] extract fps from video after opening
 
 - result file:
-  - [ ] result.csv becomes video_name.csv
-  - [ ] save to video directory
+  - [X] result.csv becomes video_name.csv
+  - [X] save to video directory
 
 - [ ] extra view with eyes
 

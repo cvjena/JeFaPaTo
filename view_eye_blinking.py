@@ -43,7 +43,7 @@ class view_eye_blinking(QWidget):
         self.eye_distance_threshold_ratio = -1
 
         self.current_image = None
-        self.video_file_path = None
+        self.video_file_path: Path = None
 
         # create the tmp folder if it does not exists
         self.extract_folder = Path("tmp")
@@ -53,7 +53,7 @@ class view_eye_blinking(QWidget):
         self.video_fps = None
 
         self.results_file = None
-        self.results_file_path = Path("results.csv")
+        self.results_file_path: Path = None
         self.results_file_header = 'closed_left;closed_right;norm_eye_area_left;norm_eye_area_right\n'
 
         # ==============================================================================================================
@@ -215,7 +215,8 @@ class view_eye_blinking(QWidget):
                                                   ".", "Video Files (*.mp4 *.flv *.ts *.mts *.avi)")
 
         if fileName != '':
-            self.video_file_path = fileName
+            self.video_file_path = Path(fileName)
+            self.results_file_path = self.video_file_path.parent / (self.video_file_path.stem + ".csv")
 
             print('remove existing files ... ')
             existing_files = self.extract_folder.glob('*')
@@ -285,7 +286,7 @@ class ExtractImagesThread(QThread):
         self.image_paths = []
         self.startAnalysisButton.setDisabled(True)
 
-        vidcap = cv2.VideoCapture(self.video_file_path)
+        vidcap = cv2.VideoCapture(self.video_file_path.as_posix())
         success, image = vidcap.read()
 
         self.video_fps = vidcap.get(cv2.CAP_PROP_FPS)
