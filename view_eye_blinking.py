@@ -11,6 +11,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtMultimedia import *
+from PyQt5 import uic
 
 import matplotlib
 matplotlib.use('Qt5Agg')
@@ -24,12 +25,6 @@ from eye_blinking_detector import EyeBlinkingDetector
 class view_eye_blinking(QWidget):
     def __init__(self):
         super().__init__()
-
-        # VIEW LAYOUT
-
-        layout = QGridLayout()
-        self.setLayout(layout)
-
         # ==============================================================================================================
         
         ## PROPERTIES
@@ -40,7 +35,7 @@ class view_eye_blinking(QWidget):
         # create the tmp folder if it does not exists
         self.extract_folder = Path("tmp")
         self.extract_folder.mkdir(parents=True, exist_ok=True)
-        
+
         self.image_paths = []
         self.video_fps = None
 
@@ -48,87 +43,46 @@ class view_eye_blinking(QWidget):
         self.results_file_path: Path = Path("results.csv")
         self.results_file_header = 'closed_left;closed_right;norm_eye_area_left;norm_eye_area_right\n'
 
+        self.disply_width = 640
+        self.display_height = 480
         # ==============================================================================================================
 
         ## GUI ELEMENTS
+        uic.loadUi("ui/view_eye_blinking.ui", self)
 
-        self.openButton = QPushButton("Open Video")
-        self.openButton.setToolTip("Open Video File")
-        self.openButton.setStatusTip("Open Video File")
-        self.openButton.setFixedHeight(24)
-        self.openButton.setIconSize(QSize(16, 16))
-        self.openButton.setFont(QFont("Noto Sans", 8))
-        self.openButton.setIcon(QIcon.fromTheme("document-open", QIcon("./")))
-        self.openButton.clicked.connect(self.load_video)
-        layout.addWidget(self.openButton, 0, 0)
+        # label
+        self.label_eye_left  = self.findChild(QLabel, "label_eye_left")
+        self.label_eye_right = self.findChild(QLabel, "label_eye_right")
+        self.label_framenumber = self.findChild(QLabel, "label_framenumber")
 
-        # image and their layout
+        # edits
+        self.edit_threshold = self.findChild(QLineEdit, "edit_threshhold")
 
-        layout_images = QGridLayout()
-        layout.addLayout(layout_images, 1, 0)
+        # buttons
+        self.button_video_load = self.findChild(QPushButton, "button_video_load")
+        self.button_video_analyze = self.findChild(QPushButton, "button_video_analyze")
+
+        self.button_video_load.clicked.connect(self.load_video)
+        self.button_video_analyze.clicked.connect(self.start_anaysis)
+
+        # sliders
+        self.slider_framenumber = self.findChild(QSlider, "slider_framenumber")
+        self.slider_framenumber.sliderMoved.connect(self.set_position)
+        self.slider_framenumber.sliderPressed.connect(self.set_position)
+
+        # images
+        self.view_video = self.findChild(QLabel, "view_video")
+        self.view_face  = self.findChild(QLabel, "view_face")
+        self.view_eye_left  = self.findChild(QLabel, "view_eye_left")
+        self.view_eye_right = self.findChild(QLabel, "view_eye_right")
         
-        # video view
-        self.disply_width = 640
-        self.display_height = 480
-        # create the label that holds the image
-        self.image_label = QLabel(self)
-        self.image_label.resize(self.disply_width, self.display_height)
-        # create a vertical box layout and add the two labels
-        layout_images.addWidget(self.image_label, 0, 0)
-
-        # face preview
-        self.face_width = 30
-        self.face_height = 30
-        self.face_label = QLabel(self)
-        self.face_label.resize(self.face_width, self.face_height)
-        layout_images.addWidget(self.face_label, 0, 1)
-
-        self.positionSlider = QSlider(Qt.Horizontal)
-        self.positionSlider.setRange(2, 0)
-        self.positionSlider.setToolTip(str(self.positionSlider.value()))
-        self.positionSlider.sliderMoved.connect(self.set_position)
-        self.positionSlider.sliderPressed.connect(self.set_position)
-        layout.addWidget(self.positionSlider, 2, 0)
-
-        self.label_slider_value = QLabel('0')
-        layout.addWidget(self.label_slider_value, 3, 0)
-
-        # PLOTTING
-        self.plot_image_label = QLabel(self)
-        self.plot_image_label.resize(self.disply_width, self.display_height)
-        # create a vertical box layout and add the two labels
-        layout.addWidget(self.plot_image_label, 4, 0)
-
-        label_threshold = QLabel('Threshold:')
-        layout.addWidget(label_threshold, 0, 1)
-        self.edit_threshold = QLineEdit('8.75')
-        self.edit_threshold.textChanged.connect(self.change_threshold)
-        layout.addWidget(self.edit_threshold, 0, 2)
-
-        self.startAnalysisButton = QPushButton("Start Analysis")
-        self.startAnalysisButton.setToolTip("Start Analysis")
-        self.startAnalysisButton.setStatusTip("Start Analysis")
-        self.startAnalysisButton.setFixedHeight(24)
-        self.startAnalysisButton.setIconSize(QSize(16, 16))
-        self.startAnalysisButton.setFont(QFont("Noto Sans", 8))
-        self.startAnalysisButton.setIcon(QIcon.fromTheme("document-open", QIcon("./")))
-        self.startAnalysisButton.clicked.connect(self.start_anaysis)
-        layout.addWidget(self.startAnalysisButton, 1, 1)
-
-        label_left_eye_closed = QLabel('Left Eye:')
-        layout.addWidget(label_left_eye_closed, 2, 1)
-        self.edit_left_eye_closed = QLineEdit('open')
-        layout.addWidget(self.edit_left_eye_closed, 2, 2)
-
-        label_right_eye_closed = QLabel('Right Eye:')
-        layout.addWidget(label_right_eye_closed, 3, 1)
-        self.edit_right_eye_closed = QLineEdit('open')
-        layout.addWidget(self.edit_right_eye_closed, 3, 2)
-
-        # evaluation view
+        # plotting
         self.evaluation_plot = MplCanvas(self, width=10, height=5, dpi=100)
         self.evaluation_plot.axes.plot([], [])
-        layout.addWidget(self.evaluation_plot, 4, 0)
+
+        self.vlayout_left = self.findChild(QVBoxLayout, "vlayout_left")
+        self.vlayout_left.addWidget(self.evaluation_plot)
+
         # ==============================================================================================================
 
         ## INITIALIZATION ROUTINES
@@ -139,8 +93,8 @@ class view_eye_blinking(QWidget):
             self.show_image()
 
             # set slider
-            self.positionSlider.setRange(0, len(self.image_paths) - 1)
-            self.positionSlider.setSliderPosition(0)
+            self.slider_framenumber.setRange(0, len(self.image_paths) - 1)
+            self.slider_framenumber.setSliderPosition(0)
 
 
     def start_anaysis(self):
@@ -160,7 +114,7 @@ class view_eye_blinking(QWidget):
         for i_idx, image in enumerate(self.image_paths):
             print('image: ' + str(i_idx+1)+'/'+str(len(self.image_paths)))
             self.show_image(i_idx)
-            self.positionSlider.setValue(i_idx)
+            self.slider_framenumber.setValue(i_idx)
             self.analyze_current_image()
 
             areas_left.append(self.eye_blinking_detector.left_eye_closing_norm_area)
@@ -168,8 +122,8 @@ class view_eye_blinking(QWidget):
             eye_distance_threshold_ratios.append(self.eye_blinking_detector.eye_distance_threshold_ratio)
 
             # write results to file
-            self.results_file.write(self.edit_left_eye_closed.text() + ';'
-                                   + self.edit_right_eye_closed.text() + ';'
+            self.results_file.write(self.label_eye_left.text() + ';'
+                                   + self.label_eye_right.text() + ';'
                                    + str(self.eye_blinking_detector.left_eye_closing_norm_area) + ';'
                                    + str(self.eye_blinking_detector.right_eye_closing_norm_area)
                                    + '\n'
@@ -193,8 +147,8 @@ class view_eye_blinking(QWidget):
         # print('analyze current image ...')
         self.eye_blinking_detector.detect_eye_blinking_in_image(self.current_image)
 
-        self.edit_left_eye_closed.setText("closed" if self.eye_blinking_detector.left_closed else "open")
-        self.edit_right_eye_closed.setText("closed" if self.eye_blinking_detector.right_closed else "open")
+        self.label_eye_left.setText("closed" if self.eye_blinking_detector.left_closed else "open")
+        self.label_eye_right.setText("closed" if self.eye_blinking_detector.right_closed else "open")
 
     def change_threshold(self):
         if not self.edit_threshold.text() == '':
@@ -202,9 +156,9 @@ class view_eye_blinking(QWidget):
             self.analyze_current_image()
 
     def set_position(self):
-        self.show_image(self.positionSlider.value())
+        self.show_image(self.slider_framenumber.value())
         self.analyze_current_image()
-        plt.axvline(x=self.positionSlider.value())
+        plt.axvline(x=self.slider_framenumber.value())
 
     def load_video(self, ):
         print('load video from file')
@@ -237,24 +191,24 @@ class view_eye_blinking(QWidget):
         if len(self.image_paths) == 0:
             self.image_paths = sorted(self.extract_folder.glob('*.png'))
         
-        self.label_slider_value.setText("Frame Number:\t" + str(image_id))
+        self.label_framenumber.setText(f"Frame Number:\t {image_id:10d}")
 
         cv_img: np.ndarray = cv2.imread(self.image_paths[image_id].as_posix())
-        qt_img = self.convert_cv_qt(cv_img)
-        self.image_label.setPixmap(qt_img)
+        qt_img = self.convert_cv_qt(cv_img, self.disply_width, self.display_height)
+        self.view_video.setPixmap(qt_img)
         self.current_image = cv_img
 
-        face_img = self.convert_cv_qt(self.eye_blinking_detector.face_imge)
-        self.face_label.setPixmap(face_img)
+        face_img = self.convert_cv_qt(self.eye_blinking_detector.face_imge, 200, 200)
+        self.view_face.setPixmap(face_img)
 
 
-    def convert_cv_qt(self, cv_img):
+    def convert_cv_qt(self, cv_img, width, height):
         """Convert from an opencv image to QPixmap"""
         rgb_image = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB)
         h, w, ch = rgb_image.shape
         bytes_per_line = ch * w
         convert_to_Qt_format = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888)
-        p = convert_to_Qt_format.scaled(self.disply_width, self.display_height, Qt.KeepAspectRatio)
+        p = convert_to_Qt_format.scaled(width, height, Qt.KeepAspectRatio)
         return QPixmap.fromImage(p)
 
 
