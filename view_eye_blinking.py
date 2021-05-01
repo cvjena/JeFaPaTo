@@ -33,16 +33,17 @@ class view_eye_blinking(QWidget):
         # ==============================================================================================================
 
         # PROBERTIES
+        self.eye_info = {
+            "left_closed" : False,
+            "right_closed" : False,
+            "left_norm_distance" : -1,
+            "right_norm_distance" : -1,
+            "left_eye_closing_norm_area" : -1,
+            "right_eye_closing_norm_area" : -1,
+            "eye_distance_threshold_ratio" : -1,
+        }
 
-        self.left_closed = False
-        self.right_closed = False
-        self.left_norm_distance = -1
-        self.right_norm_distance = -1
-        self.left_eye_closing_norm_area = -1
-        self.right_eye_closing_norm_area = -1
-        self.eye_distance_threshold_ratio = -1
-
-        self.current_image = None
+        self.current_image: np.ndarray = None
         self.video_file_path: Path = None
 
         # create the tmp folder if it does not exists
@@ -159,15 +160,15 @@ class view_eye_blinking(QWidget):
             self.positionSlider.setValue(i_idx)
             self.analyze_current_image()
 
-            areas_left.append(self.left_eye_closing_norm_area)
-            areas_right.append(self.right_eye_closing_norm_area)
-            eye_distance_threshold_ratios.append(self.eye_distance_threshold_ratio)
+            areas_left.append(self.eye_info["left_eye_closing_norm_area"])
+            areas_right.append(self.eye_info["right_eye_closing_norm_area"])
+            eye_distance_threshold_ratios.append(self.eye_info["eye_distance_threshold_ratio"])
 
             # write results to file
             self.results_file.write(self.edit_left_eye_closed.text() + ';'
                                    + self.edit_right_eye_closed.text() + ';'
-                                   + str(self.left_eye_closing_norm_area) + ';'
-                                   + str(self.right_eye_closing_norm_area)
+                                   + str(self.eye_info["left_eye_closing_norm_area"]) + ';'
+                                   + str(self.eye_info["right_eye_closing_norm_area"])
                                    + '\n'
                                    )
 
@@ -187,17 +188,10 @@ class view_eye_blinking(QWidget):
 
     def analyze_current_image(self):
         # print('analyze current image ...')
-        self.left_closed, self.right_closed, self.left_eye_closing_norm_area, self.right_eye_closing_norm_area, self.eye_distance_threshold_ratio = self.eye_blinking_detector.detect_eye_blinking_in_image(
-            self.current_image)
-        if (self.left_closed):
-            self.edit_left_eye_closed.setText("closed")
-        else:
-            self.edit_left_eye_closed.setText("open")
+        self.eye_blinking_detector.detect_eye_blinking_in_image(self.current_image, self.eye_info)
 
-        if (self.right_closed):
-            self.edit_right_eye_closed.setText("closed")
-        else:
-            self.edit_right_eye_closed.setText("open")
+        self.edit_left_eye_closed.setText("closed" if self.eye_info["left_closed"] else "open")
+        self.edit_right_eye_closed.setText("closed" if self.eye_info["right_closed"] else "open")
 
     def change_threshold(self):
         if not self.edit_threshold.text() == '':
@@ -242,7 +236,7 @@ class view_eye_blinking(QWidget):
         
         self.label_slider_value.setText("Frame Number:\t" + str(image_id))
 
-        cv_img = cv2.imread(self.image_paths[image_id].as_posix())
+        cv_img: np.ndarray = cv2.imread(self.image_paths[image_id].as_posix())
         qt_img = self.convert_cv_qt(cv_img)
         self.image_label.setPixmap(qt_img)
         self.current_image = cv_img

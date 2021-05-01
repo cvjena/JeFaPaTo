@@ -1,5 +1,6 @@
 import os
 import sys
+from typing import Mapping
 import numpy as np
 import dlib
 import cv2
@@ -31,7 +32,7 @@ class EyeBlinkingDetector():
     def set_threshold(self, threshold):
         self.threshold = threshold
 
-    def detect_eye_blinking_in_image(self, image):
+    def detect_eye_blinking_in_image(self, image: np.ndarray, eye_info: Mapping):
         # image = imutils.resize(image, width=500)
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         # detect faces in the grayscale image
@@ -81,7 +82,12 @@ class EyeBlinkingDetector():
         self.left_eye_closing_norm_area = region_left / eye_distance
         self.right_eye_closing_norm_area = region_right / eye_distance
 
-        return self.left_closed, self.right_closed, self.left_eye_closing_norm_area, self.right_eye_closing_norm_area, eye_distance_threshold_ratio
+        eye_info["left_closed"] = self.left_closed
+        eye_info["right_closed"] = self.right_closed
+        eye_info["left_eye_closing_norm_area"] = self.left_eye_closing_norm_area
+        eye_info["right_eye_closing_norm_area"] = self.right_eye_closing_norm_area
+        eye_info["eye_distance_threshold_ratio"] = eye_distance_threshold_ratio
+
 
     def calculate_eye_regions(self, landmark_list):
         region_left = 0
