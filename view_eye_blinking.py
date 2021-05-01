@@ -173,8 +173,8 @@ class view_eye_blinking(QWidget):
 
         self.results_file.close()
 
-        self.evaluation_plot.plot(list(range(0,len(areas_left))), areas_left)
-        self.evaluation_plot.plot(list(range(0,len(areas_right))), areas_right)
+        self.evaluation_plot.plot(list(range(0,len(areas_left))), areas_left, color="blue")
+        self.evaluation_plot.plot(list(range(0,len(areas_right))), areas_right, color="red")
         #self.evaluation_plot.plot(list(range(0,len(eye_distance_threshold_ratios))), eye_distance_threshold_ratios)
         #self.evaluation_plot.redraw()
 
@@ -263,8 +263,8 @@ class MplCanvas(FigureCanvasQTAgg):
         self.axes = fig.add_subplot(111)
         super(MplCanvas, self).__init__(fig)
 
-    def plot(self, l1, l2):
-        self.axes.plot(l1, l2)
+    def plot(self, l1, l2, color):
+        self.axes.plot(l1, l2, c=color)
         self.draw()
 
 
