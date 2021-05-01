@@ -3,7 +3,9 @@ import numpy as np
 import dlib
 import cv2
 import shutil
-import glob
+import sys
+
+from pathlib import Path
 
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
@@ -42,12 +44,16 @@ class view_eye_blinking(QWidget):
 
         self.current_image = None
         self.video_file_path = None
-        self.extract_folder = os.path.join('', 'tmp')
+
+        # create the tmp folder if it does not exists
+        self.extract_folder = Path("tmp")
+        self.extract_folder.mkdir(parents=True, exist_ok=True)
+        
         self.image_paths = []
         self.video_fps = None
 
         self.results_file = None
-        self.results_file_path = './results.csv'
+        self.results_file_path = Path("results.csv")
         self.results_file_header = 'closed_left;closed_right;norm_eye_area_left;norm_eye_area_right\n'
 
         # ==============================================================================================================
@@ -125,7 +131,7 @@ class view_eye_blinking(QWidget):
 
         self.eye_blinking_detector = EyeBlinkingDetector(float(self.edit_threshold.text()))
 
-        if os.path.isfile(os.path.join(self.extract_folder, "frame_00000000.png")):
+        if (self.extract_folder / "frame_00000000.png").is_file():
             self.show_image()
 
             # set slider
@@ -212,7 +218,7 @@ class view_eye_blinking(QWidget):
             self.video_file_path = fileName
 
             print('remove existing files ... ')
-            existing_files = glob.glob(self.extract_folder+'/*')
+            existing_files = self.extract_folder.glob('*')
             for f in existing_files:
                 os.remove(f)
             self.extract_video()
@@ -228,12 +234,14 @@ class view_eye_blinking(QWidget):
         self.extract_thread.start()
 
     def show_image(self, image_id=0):
-        self.image_paths = glob.glob(os.path.join(self.extract_folder, '*.png'))
-        self.image_paths.sort()
 
+        # load the extracted frames as no new video has been loaded yet
+        if len(self.image_paths) == 0:
+            self.image_paths = sorted(self.extract_folder.glob('*.png'))
+        
         self.label_slider_value.setText("Frame Number:\t" + str(image_id))
 
-        cv_img = cv2.imread(self.image_paths[image_id])
+        cv_img = cv2.imread(self.image_paths[image_id].as_posix())
         qt_img = self.convert_cv_qt(cv_img)
         self.image_label.setPixmap(qt_img)
         self.current_image = cv_img
@@ -274,6 +282,7 @@ class ExtractImagesThread(QThread):
         self.video_fps = -1
 
     def run(self):
+        self.image_paths = []
         self.startAnalysisButton.setDisabled(True)
 
         vidcap = cv2.VideoCapture(self.video_file_path)
@@ -285,12 +294,14 @@ class ExtractImagesThread(QThread):
         count = 0
         while success:
             self.openButton.setText(str(count))
-            image_path = os.path.join(self.extract_folder, "frame_%08d.png" % count)
+            image_path = self.extract_folder / f"frame_{count:08d}.png"
             self.image_paths.append(image_path)
-            cv2.imwrite(image_path, image)
+            cv2.imwrite(image_path.as_posix(), image)
             success, image = vidcap.read()
             # print('Read a new frame: ', success)
             count += 1
+
+        print("Loaded all frames")
         self.openButton.setText('Open Video')
         self.image_paths.sort()
         self.startAnalysisButton.setDisabled(False)
