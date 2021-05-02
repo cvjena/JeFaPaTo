@@ -58,7 +58,8 @@ class view_eye_blinking(QWidget):
 
         # edits
         self.edit_threshold = self.findChild(QLineEdit, "edit_threshhold")
-
+        self.edit_threshold.editingFinished.connect(self.change_threshold)
+        
         # buttons
         self.button_video_load = self.findChild(QPushButton, "button_video_load")
         self.button_video_analyze = self.findChild(QPushButton, "button_video_analyze")
@@ -118,9 +119,12 @@ class view_eye_blinking(QWidget):
         return frequency
 
     def change_threshold(self):
-        if not self.edit_threshold.text() == '':
-            self.eye_blinking_detector.set_threshold(float(self.edit_threshold.text()))
-            self.analyze_current_image()
+        try:
+            input_value = float(self.edit_threshold.text())
+            self.eye_blinking_detector.set_threshold(input_value)
+            self.button_video_analyze.setText("Erneut Analysieren")
+        except ValueError:
+            self.edit_threshold.setText("Ungültige Zahl")
 
     def set_position(self):
         self.show_image(self.slider_framenumber.value())

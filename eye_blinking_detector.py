@@ -71,7 +71,7 @@ class EyeBlinkingDetector():
         self.eye_left_slice: slice = slice(36, 42)
         self.eye_right_slice: slice = slice(42, 48)
 
-    def set_threshold(self, threshold):
+    def set_threshold(self, threshold: float):
         self.threshold = threshold
 
     def get_eye_left(self) -> str:
