@@ -282,8 +282,8 @@ class AnalyzeImagesThread(QThread):
 
             # fancy String literal concatenation¶
             line = (
-                f"{self.detector.get_eye_left};"
-                f"{self.detector.get_eye_right};"
+                f"{self.detector.get_eye_left()};"
+                f"{self.detector.get_eye_right()};"
                 f"{self.detector.left_eye_closing_norm_area};"
                 f"{self.detector.right_eye_closing_norm_area}"
                 f"\n"
