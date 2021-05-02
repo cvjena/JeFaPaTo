@@ -93,7 +93,7 @@ class view_eye_blinking(QWidget):
         ## INITIALIZATION ROUTINES
 
         self.eye_blinking_detector = EyeBlinkingDetector(float(self.edit_threshold.text()))
-        self.analyzer = Analyzer(self.eye_blinking_detector)
+        self.analyzer = Analyzer(self, self.eye_blinking_detector)
 
         # load the default value for the threshhold
         # check is not necessary as we have set the value in the 
@@ -155,6 +155,7 @@ class view_eye_blinking(QWidget):
             self.video_file_path = Path(fileName)
             self.results_file_path = self.video_file_path.parent / (self.video_file_path.stem + ".csv")
 
+            self.analyzer.reset()
             print('remove existing files ... ')
             existing_files = self.extract_folder.glob('*')
             for f in existing_files:
@@ -204,7 +205,8 @@ class view_eye_blinking(QWidget):
 
 
 class Analyzer():
-    def __init__(self, detector: EyeBlinkingDetector) -> None:
+    def __init__(self, veb: view_eye_blinking, detector: EyeBlinkingDetector) -> None:
+        self.veb = veb
         self.detector = detector
         
         self.left_closed = []
@@ -218,6 +220,7 @@ class Analyzer():
         self.run_once = False
 
     def reset(self):
+        self.run_once = False
         self.left_closed = []
         self.right_closed = []
 
@@ -257,6 +260,23 @@ class Analyzer():
 
     def has_run(self):
         return self.run_once
+
+    def save_results(self):
+        # open results output file and write header
+        self.results_file = open(self.veb.results_file_path, 'w')
+        self.results_file.write(self.veb.results_file_header)
+        for i in range(len(self.left_closed)):
+            # fancy String literal concatenation
+            line = (
+                    f"{'closed' if self.left_closed[i] else 'open'};"
+                    f"{'closed' if self.left_closed[i] else 'open'};"
+                    f"{self.areas_left[i]};"
+                    f"{self.areas_right[i]}"
+                    f"\n"
+                )
+            self.results_file.write(line)
+        self.results_file.close()
+
 
 class MplCanvas(FigureCanvasQTAgg):
 
@@ -314,38 +334,21 @@ class AnalyzeImagesThread(QThread):
         self.wait()
 
     def run(self):
-        print('analyze all images ...')
-
         if self.veb.checkbox_analysis.isChecked() or not self.analyzer.has_run():
             # reset the values inside the analyzer
             self.analyzer.reset()
 
-            # open results output file and write header
-            self.results_file = open(self.veb.results_file_path, 'w')
-            self.results_file.write(self.veb.results_file_header)
-
             for i_idx, image in enumerate(self.veb.image_paths):
-                print('image: ' + str(i_idx+1)+'/'+str(len(self.veb.image_paths)))
+                #print('image: ' + str(i_idx+1)+'/'+str(len(self.veb.image_paths)))
                 self.veb.show_image(i_idx)
                 self.veb.slider_framenumber.setValue(i_idx)
-                
+
                 self.analyzer.analyze(self.veb.current_image)
                 self.analyzer.append_values()
+
                 self.veb.update_eye_labels()
-
-                # fancy String literal concatenation¶
-                line = (
-                    f"{self.detector.get_eye_left()};"
-                    f"{self.detector.get_eye_right()};"
-                    f"{self.detector.left_eye_closing_norm_area};"
-                    f"{self.detector.right_eye_closing_norm_area}"
-                    f"\n"
-                )
                 self.veb.update_plot()
-                # write results to file
-                self.results_file.write(line)
 
-            self.results_file.close()
             self.analyzer.set_run()
 
         else:
@@ -356,7 +359,9 @@ class AnalyzeImagesThread(QThread):
                 self.analyzer.analyze_closing(i_idx)
                 self.veb.update_eye_labels()
 
-            
+        self.analyzer.save_results()
+        self.veb.button_video_analyze.setText("Video Analysieren")
+
 
 class ExtractImagesThread(QThread):
     image_paths_signal = pyqtSignal(list)
