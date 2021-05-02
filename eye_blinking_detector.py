@@ -74,6 +74,12 @@ class EyeBlinkingDetector():
     def set_threshold(self, threshold):
         self.threshold = threshold
 
+    def get_eye_left(self) -> str:
+        return "closed" if self.left_closed else "open"
+
+    def get_eye_right(self) -> str:
+        return "closed" if self.right_closed else "open"
+
     def detect_eye_blinking_in_image(self, image: np.ndarray):
         # image = imutils.resize(image, width=500)
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
