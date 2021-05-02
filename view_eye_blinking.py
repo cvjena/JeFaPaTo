@@ -172,8 +172,13 @@ class view_eye_blinking(QWidget):
         self.view_video.setPixmap(qt_img)
         self.current_image = cv_img
 
-        face_img = self.convert_cv_qt(self.eye_blinking_detector.face_imge, 200, 200)
-        self.view_face.setPixmap(face_img)
+        img_face: QPixmap      = self.convert_cv_qt(self.eye_blinking_detector.img_face, 200, 200)
+        img_eye_left: QPixmap  = self.convert_cv_qt(self.eye_blinking_detector.img_eye_left, 100, 100)
+        img_eye_right: QPixmap = self.convert_cv_qt(self.eye_blinking_detector.img_eye_right, 100, 100)
+
+        self.view_face.setPixmap(img_face)
+        self.view_eye_left.setPixmap(img_eye_left)
+        self.view_eye_right.setPixmap(img_eye_right)
 
 
     def convert_cv_qt(self, cv_img, width, height):

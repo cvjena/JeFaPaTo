@@ -1,6 +1,8 @@
 import os
 import sys
 from typing import Mapping
+from PyQt5.QtCore import right
+from matplotlib.backends.backend_qt5 import ToolCopyToClipboardQT
 import numpy as np
 import dlib
 import cv2
@@ -9,6 +11,7 @@ import argparse
 import glob
 import imutils
 from imutils import face_utils
+from numpy.lib.index_tricks import AxisConcatenator
 
 def scale_bbox(bbox: dlib.rectangle, scale: float, padding: int = 0) -> dlib.rectangle:
     """Scale and pad a dlib.rectangle
@@ -66,10 +69,13 @@ class EyeBlinkingDetector():
 
         self.scale_factor = 0.3
 
-        self.face_imge: np.ndarray = np.ones((100, 100, 3), dtype=np.uint8)
+        self.img_face: np.ndarray = np.ones((100, 100, 3), dtype=np.uint8)
 
-        self.eye_left_slice: slice = slice(36, 42)
-        self.eye_right_slice: slice = slice(42, 48)
+        self.eye_left_slice: slice = slice(42, 48)
+        self.eye_right_slice: slice = slice(36, 42)
+
+        self.img_eye_left:  np.ndarray = np.ones((50, 50, 3), dtype=np.uint8)
+        self.img_eye_right: np.ndarray = np.ones((50, 50, 3), dtype=np.uint8)
 
     def set_threshold(self, threshold: float):
         self.threshold = threshold
@@ -97,17 +103,41 @@ class EyeBlinkingDetector():
             shape = face_utils.shape_to_np(shape)
 
             # draw the shapes into the face
-            # TODO check if the color is correct because of either RGB or BGR image...
-            self.face_imge = np.copy(image)
-            for (x, y) in shape[self.eye_left_slice]:
-                # left in blue color
-                cv2.circle(self.face_imge, (x, y), 1, (0, 0, 255), -1)
-            for (x, y) in shape[self.eye_right_slice]:
-                # right eye in red color
-                cv2.circle(self.face_imge, (x, y), 1, (255, 0, 0), -1)
-            # crop to the region containing the face
-            self.face_imge = self.face_imge[rect.top():rect.bottom(), rect.left():rect.right()]
+            self.img_face = np.copy(image)
+            eye_left  = shape[self.eye_left_slice]
+            eye_right = shape[self.eye_right_slice]
 
+            for (x, y) in eye_left:
+                # left in blue color
+                cv2.circle(self.img_face, (x, y), 1, (255, 0, 0), -1)
+            for (x, y) in eye_right:
+                # right eye in red color
+                cv2.circle(self.img_face, (x, y), 1, (0, 0, 255), -1)
+
+            # get the outer region of the plot
+
+            eye_left_mean  = np.nanmean(eye_left, axis=0).astype(np.int32)
+            eye_right_mean = np.nanmean(eye_right, axis=0).astype(np.int32)
+
+            eye_left_width  = (np.nanmax(eye_left, axis=0)[0] - np.nanmin(eye_left, axis=0)[0]) // 2
+            eye_right_width = (np.nanmax(eye_right, axis=0)[0] - np.nanmin(eye_right, axis=0)[0]) // 2
+
+            bbox_eye_left = scale_bbox(
+                bbox=dlib.rectangle(eye_left_mean[0] - eye_left_width, eye_left_mean[1] - eye_left_width, eye_left_mean[0] + eye_left_width, eye_left_mean[1] + eye_left_width,),
+                scale=1,
+                padding=-1
+            )
+            bbox_eye_right = scale_bbox(
+                bbox=dlib.rectangle(eye_right_mean[0] - eye_right_width, eye_right_mean[1] - eye_right_width, eye_right_mean[0] + eye_right_width, eye_right_mean[1] + eye_right_width,),
+                scale=1,
+                padding=-1
+            )
+
+            self.img_eye_left  = self.img_face[bbox_eye_left.top():bbox_eye_left.bottom(), bbox_eye_left.left():bbox_eye_left.right()]
+            self.img_eye_right = self.img_face[bbox_eye_right.top():bbox_eye_right.bottom(), bbox_eye_right.left():bbox_eye_right.right()]
+
+            self.img_face = self.img_face[rect.top():rect.bottom(), rect.left():rect.right()]
+            
             # convert dlib's rectangle to a OpenCV-style bounding box
             # [i.e., (x, y, w, h)], then draw the face bounding box
             (x, y, w, h) = face_utils.rect_to_bb(rect)
