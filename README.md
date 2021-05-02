@@ -8,13 +8,13 @@
 
 - frequency:
   - [ ] Hertz
-  - [ ] extract fps from video after opening
+  - [X] extract fps from video after opening
 
 - result file:
   - [X] result.csv becomes video_name.csv
   - [X] save to video directory
 
-- [ ] extra view with eyes
+- [X] extra view with eyes
 
 - [ ] plot normalized threshold into the plot
 
