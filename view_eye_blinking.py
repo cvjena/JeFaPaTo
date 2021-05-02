@@ -98,57 +98,21 @@ class view_eye_blinking(QWidget):
 
 
     def start_anaysis(self):
-        print('analyze all images ...')
-
-        # open results output file and write header
-        self.results_file = open(self.results_file_path, 'w')
-        self.results_file.write(self.results_file_header)
-
-        areas_left = []
-        areas_right = []
-        eye_distance_threshold_ratios = []
-
-        # set the range of the slider
-        # self.positionSlider.setRange(0, len(self.image_paths) - 1)
-
-        for i_idx, image in enumerate(self.image_paths):
-            print('image: ' + str(i_idx+1)+'/'+str(len(self.image_paths)))
-            self.show_image(i_idx)
-            self.slider_framenumber.setValue(i_idx)
-            self.analyze_current_image()
-
-            areas_left.append(self.eye_blinking_detector.left_eye_closing_norm_area)
-            areas_right.append(self.eye_blinking_detector.right_eye_closing_norm_area)
-            eye_distance_threshold_ratios.append(self.eye_blinking_detector.eye_distance_threshold_ratio)
-
-            # write results to file
-            self.results_file.write(self.label_eye_left.text() + ';'
-                                   + self.label_eye_right.text() + ';'
-                                   + str(self.eye_blinking_detector.left_eye_closing_norm_area) + ';'
-                                   + str(self.eye_blinking_detector.right_eye_closing_norm_area)
-                                   + '\n'
-                                   )
-
-        self.results_file.close()
-
-        self.evaluation_plot.plot(list(range(0,len(areas_left))), areas_left, color="blue")
-        self.evaluation_plot.plot(list(range(0,len(areas_right))), areas_right, color="red")
-        #self.evaluation_plot.plot(list(range(0,len(eye_distance_threshold_ratios))), eye_distance_threshold_ratios)
-        #self.evaluation_plot.redraw()
-
-
-    def calc_frequency(self):
-        # calculates the frequency based on the number of eye closings and time
-        frequency = 0
-
-        return frequency
-
+        self.thread_analyze = AnalyzeImagesThread(self)
+        self.thread_analyze.start()
+    
     def analyze_current_image(self):
         # print('analyze current image ...')
         self.eye_blinking_detector.detect_eye_blinking_in_image(self.current_image)
 
         self.label_eye_left.setText("closed" if self.eye_blinking_detector.left_closed else "open")
         self.label_eye_right.setText("closed" if self.eye_blinking_detector.right_closed else "open")
+
+    def calc_frequency(self):
+        # calculates the frequency based on the number of eye closings and time
+        frequency = 0
+
+        return frequency
 
     def change_threshold(self):
         if not self.edit_threshold.text() == '':
@@ -223,6 +187,60 @@ class MplCanvas(FigureCanvasQTAgg):
         self.axes.plot(l1, l2, c=color)
         self.draw()
 
+class AnalyzeImagesThread(QThread):
+    def __init__(self, view_eye_blinking) -> None:
+        super().__init__()
+
+        self.veb = view_eye_blinking
+
+    def __del__(self):
+        self.wait()
+
+    def analyze_current_image(self):
+        # print('analyze current image ...')
+        self.veb.eye_blinking_detector.detect_eye_blinking_in_image(self.veb.current_image)
+
+        self.veb.label_eye_left.setText("closed" if self.veb.eye_blinking_detector.left_closed else "open")
+        self.veb.label_eye_right.setText("closed" if self.veb.eye_blinking_detector.right_closed else "open")
+
+    def run(self):
+        print('analyze all images ...')
+
+        # open results output file and write header
+        self.results_file = open(self.veb.results_file_path, 'w')
+        self.results_file.write(self.veb.results_file_header)
+
+        areas_left = []
+        areas_right = []
+        eye_distance_threshold_ratios = []
+
+        # set the range of the slider
+        # self.positionSlider.setRange(0, len(self.image_paths) - 1)
+
+        for i_idx, image in enumerate(self.veb.image_paths):
+            print('image: ' + str(i_idx+1)+'/'+str(len(self.veb.image_paths)))
+            self.veb.show_image(i_idx)
+            self.veb.slider_framenumber.setValue(i_idx)
+            self.analyze_current_image()
+
+            areas_left.append(self.veb.eye_blinking_detector.left_eye_closing_norm_area)
+            areas_right.append(self.veb.eye_blinking_detector.right_eye_closing_norm_area)
+            eye_distance_threshold_ratios.append(self.veb.eye_blinking_detector.eye_distance_threshold_ratio)
+
+            # write results to file
+            self.results_file.write(self.veb.label_eye_left.text() + ';'
+                                   + self.veb.label_eye_right.text() + ';'
+                                   + str(self.veb.eye_blinking_detector.left_eye_closing_norm_area) + ';'
+                                   + str(self.veb.eye_blinking_detector.right_eye_closing_norm_area)
+                                   + '\n'
+                                   )
+
+        self.results_file.close()
+
+        self.veb.evaluation_plot.plot(list(range(0,len(areas_left))), areas_left, color="blue")
+        self.veb.evaluation_plot.plot(list(range(0,len(areas_right))), areas_right, color="red")
+        #self.evaluation_plot.plot(list(range(0,len(eye_distance_threshold_ratios))), eye_distance_threshold_ratios)
+        #self.evaluation_plot.redraw()
 
 class ExtractImagesThread(QThread):
     image_paths_signal = pyqtSignal(list)
