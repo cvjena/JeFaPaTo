@@ -59,6 +59,9 @@ class view_eye_blinking(QWidget):
         # edits
         self.edit_threshold = self.findChild(QLineEdit, "edit_threshhold")
         self.edit_threshold.editingFinished.connect(self.change_threshold)
+
+        # checkboxes
+        self.checkbox_analysis: QCheckBox= self.findChild(QCheckBox, "checkbox_analysis")
         
         # buttons
         self.button_video_load = self.findChild(QPushButton, "button_video_load")
@@ -204,20 +207,44 @@ class Analyzer():
     def __init__(self, detector: EyeBlinkingDetector) -> None:
         self.detector = detector
         
+        self.left_closed = []
+        self.right_closed = []
+
         self.areas_left = []
         self.areas_right = []
         self.eye_distance_threshold_ratios = []
+
         self.frames_per_second = -1
+        self.run_once = False
 
     def reset(self):
+        self.left_closed = []
+        self.right_closed = []
+
         self.areas_left = []
         self.areas_right = []
         self.eye_distance_threshold_ratios = []
+
+    def reset_closed(self):
+        self.left_closed = []
+        self.right_closed = []
 
     def analyze(self, image):
         self.detector.detect_eye_blinking_in_image(image)
 
+    def analyze_closing(self, image_idx: int):
+        l, r = self.detector.check_closing(
+            region_left=self.areas_left[image_idx], 
+            region_right=self.areas_right[image_idx],
+            eye_distance=self.eye_distance_threshold_ratios[image_idx]
+        )
+        self.left_closed.append(l)
+        self.right_closed.append(r)
+
     def append_values(self):
+        self.left_closed.append(self.detector.left_closed)
+        self.right_closed.append(self.detector.right_closed)
+
         self.areas_left.append(self.detector.left_eye_closing_norm_area)
         self.areas_right.append(self.detector.right_eye_closing_norm_area)
         self.eye_distance_threshold_ratios.append(self.detector.eye_distance_threshold_ratio)
@@ -225,6 +252,11 @@ class Analyzer():
     def set_frames_per_second(self, value):
         self.frames_per_second = value
 
+    def set_run(self):
+        self.run_once = True
+
+    def has_run(self):
+        return self.run_once
 
 class MplCanvas(FigureCanvasQTAgg):
 
@@ -275,8 +307,8 @@ class AnalyzeImagesThread(QThread):
     def __init__(self, veb: view_eye_blinking) -> None:
         super().__init__()
         self.veb = veb
-        self.analyzer = self.veb.analyzer
-        self.detector = self.veb.eye_blinking_detector
+        self.analyzer: Analyzer = self.veb.analyzer
+        self.detector: EyeBlinkingDetector = self.veb.eye_blinking_detector
 
     def __del__(self):
         self.wait()
@@ -284,36 +316,47 @@ class AnalyzeImagesThread(QThread):
     def run(self):
         print('analyze all images ...')
 
-        # reset the values inside the analyzer
-        self.analyzer.reset()
+        if self.veb.checkbox_analysis.isChecked() or not self.analyzer.has_run():
+            # reset the values inside the analyzer
+            self.analyzer.reset()
 
-        # open results output file and write header
-        self.results_file = open(self.veb.results_file_path, 'w')
-        self.results_file.write(self.veb.results_file_header)
+            # open results output file and write header
+            self.results_file = open(self.veb.results_file_path, 'w')
+            self.results_file.write(self.veb.results_file_header)
 
-        for i_idx, image in enumerate(self.veb.image_paths):
-            print('image: ' + str(i_idx+1)+'/'+str(len(self.veb.image_paths)))
-            self.veb.show_image(i_idx)
-            self.veb.slider_framenumber.setValue(i_idx)
+            for i_idx, image in enumerate(self.veb.image_paths):
+                print('image: ' + str(i_idx+1)+'/'+str(len(self.veb.image_paths)))
+                self.veb.show_image(i_idx)
+                self.veb.slider_framenumber.setValue(i_idx)
+                
+                self.analyzer.analyze(self.veb.current_image)
+                self.analyzer.append_values()
+                self.veb.update_eye_labels()
+
+                # fancy String literal concatenation¶
+                line = (
+                    f"{self.detector.get_eye_left()};"
+                    f"{self.detector.get_eye_right()};"
+                    f"{self.detector.left_eye_closing_norm_area};"
+                    f"{self.detector.right_eye_closing_norm_area}"
+                    f"\n"
+                )
+                self.veb.update_plot()
+                # write results to file
+                self.results_file.write(line)
+
+            self.results_file.close()
+            self.analyzer.set_run()
+
+        else:
+            self.analyzer.reset_closed()
+            for i_idx, image in enumerate(self.veb.image_paths):
+                self.veb.show_image(i_idx)
+                self.veb.slider_framenumber.setValue(i_idx)
+                self.analyzer.analyze_closing(i_idx)
+                self.veb.update_eye_labels()
+
             
-            self.analyzer.analyze(self.veb.current_image)
-            self.analyzer.append_values()
-            self.veb.update_eye_labels()
-
-            # fancy String literal concatenation¶
-            line = (
-                f"{self.detector.get_eye_left()};"
-                f"{self.detector.get_eye_right()};"
-                f"{self.detector.left_eye_closing_norm_area};"
-                f"{self.detector.right_eye_closing_norm_area}"
-                f"\n"
-            )
-            self.veb.update_plot()
-            # write results to file
-            self.results_file.write(line)
-
-        self.results_file.close()
-
 
 class ExtractImagesThread(QThread):
     image_paths_signal = pyqtSignal(list)

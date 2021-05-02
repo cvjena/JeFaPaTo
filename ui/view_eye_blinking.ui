@@ -273,6 +273,13 @@
         </widget>
        </item>
        <item>
+        <widget class="QCheckBox" name="checkbox_analysis">
+         <property name="text">
+          <string>Komplette Analyse Erzwingen</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QLabel" name="label_10">
          <property name="maximumSize">
           <size>
