@@ -347,8 +347,11 @@ class AnalyzeImagesThread(QThread):
                 self.analyzer.append_values()
 
                 self.veb.update_eye_labels()
-                self.veb.update_plot()
 
+                if i_idx % 5 == 0:
+                    self.veb.update_plot()
+
+            self.veb.update_plot()
             self.analyzer.set_run()
 
         else:
