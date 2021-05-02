@@ -107,13 +107,9 @@ class view_eye_blinking(QWidget):
         self.label_eye_right.setText(self.eye_blinking_detector.get_eye_right())
 
     def update_plot(self):
-        x_left = list(range(0, len(self.analyzer.areas_left)))
-        x_right = list(range(0, len(self.analyzer.areas_right)))
-
-        self.evaluation_plot.clear()
-
-        self.evaluation_plot.plot(x_left, self.analyzer.areas_left, color="blue")
-        self.evaluation_plot.plot(x_right, self.analyzer.areas_right, color="red")
+        self.evaluation_plot.set_eye_data("left", self.analyzer.areas_left)
+        self.evaluation_plot.set_eye_data("right", self.analyzer.areas_right)
+        self.evaluation_plot.plot()
 
     def calc_frequency(self):
         # calculates the frequency based on the number of eye closings and time
@@ -130,7 +126,9 @@ class view_eye_blinking(QWidget):
         self.show_image(self.slider_framenumber.value())
         self.analyzer.analyze(self.current_image)
         self.update_eye_labels()
-        plt.axvline(x=self.slider_framenumber.value())
+
+        self.evaluation_plot.set_xline(self.slider_framenumber.value())
+        self.evaluation_plot.plot()
 
     def load_video(self, ):
         print('load video from file')
@@ -213,10 +211,35 @@ class MplCanvas(FigureCanvasQTAgg):
         self.axes = self.fig.add_subplot(111)
         super(MplCanvas, self).__init__(self.fig)
 
-    def plot(self, l1, l2, color):
-        self.axes.plot(l1, l2, c=color)
-        self.draw()
+        self.x_line: int = None
+        self.data_eye_left = []
+        self.data_eye_right = []
 
+    def set_eye_data(self, eye:str, data):
+        if eye=="left":
+            self.data_eye_left = data
+        else:
+            self.data_eye_right = data
+
+    def set_xline(self, x_value):
+        self.x_line = x_value
+    
+    def plot(self):
+        self.axes.clear()
+
+        x_left = list(range(0, len(self.data_eye_left)))
+        x_right = list(range(0, len(self.data_eye_right)))
+
+        self.axes.plot(x_left, self.data_eye_left, c="blue")
+        self.axes.plot(x_right, self.data_eye_right, c="red")
+
+        if not self.x_line is None:
+            self.axes.axvline(self.x_line)
+
+        self.axes.set_ylim(0, 6)
+
+        self.draw()
+    
     def clear(self):
         self.axes.clear()
 
