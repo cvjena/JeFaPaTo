@@ -122,12 +122,6 @@ class view_eye_blinking(QWidget):
         self.evaluation_plot.set_eye_data("right", self.analyzer.areas_right)
         self.evaluation_plot.plot()
 
-    def calc_frequency(self):
-        # calculates the frequency based on the number of eye closings and time
-        frequency = 0
-
-        return frequency
-
     def change_threshold(self):
         try:
             input_value = float(self.edit_threshold.text())
@@ -260,6 +254,12 @@ class Analyzer():
 
     def has_run(self):
         return self.run_once
+
+    def calc_frequency(self):
+        # calculates the frequency based on the number of eye closings and time
+        frequency = 0
+
+        return frequency
 
     def save_results(self):
         # open results output file and write header
