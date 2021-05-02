@@ -16,7 +16,7 @@
 
 - [X] extra view with eyes
 
-- [ ] plot normalized threshold into the plot
+- [X] plot normalized threshold into the plot
 
 ## Installation Guide
 

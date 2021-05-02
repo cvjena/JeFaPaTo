@@ -92,6 +92,13 @@ class view_eye_blinking(QWidget):
         self.eye_blinking_detector = EyeBlinkingDetector(float(self.edit_threshold.text()))
         self.analyzer = Analyzer(self.eye_blinking_detector)
 
+        # load the default value for the threshhold
+        # check is not necessary as we have set the value in the 
+        # UI file
+        # FIXME set the default values in extra config file rather than UI file
+        self.evaluation_plot.set_yline(float(self.edit_threshold.text()))
+        self.evaluation_plot.plot()
+
         if (self.extract_folder / "frame_00000000.png").is_file():
             self.show_image()
 
@@ -123,6 +130,8 @@ class view_eye_blinking(QWidget):
             input_value = float(self.edit_threshold.text())
             self.eye_blinking_detector.set_threshold(input_value)
             self.button_video_analyze.setText("Erneut Analysieren")
+            self.evaluation_plot.set_yline(input_value)
+            self.evaluation_plot.plot()
         except ValueError:
             self.edit_threshold.setText("Ungültige Zahl")
 
@@ -225,6 +234,7 @@ class MplCanvas(FigureCanvasQTAgg):
         super(MplCanvas, self).__init__(self.fig)
 
         self.x_line: int = None
+        self.y_line: int = None
         self.data_eye_left = []
         self.data_eye_right = []
 
@@ -236,6 +246,9 @@ class MplCanvas(FigureCanvasQTAgg):
 
     def set_xline(self, x_value):
         self.x_line = x_value
+
+    def set_yline(self, y_value):
+        self.y_line = y_value
     
     def plot(self):
         self.axes.clear()
@@ -248,6 +261,8 @@ class MplCanvas(FigureCanvasQTAgg):
 
         if not self.x_line is None:
             self.axes.axvline(self.x_line)
+        if not self.y_line is None:
+            self.axes.axhline(self.y_line)
 
         self.axes.set_ylim(0, 6)
 
