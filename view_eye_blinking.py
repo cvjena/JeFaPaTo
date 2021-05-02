@@ -164,7 +164,7 @@ class view_eye_blinking(QWidget):
         # load the extracted frames as no new video has been loaded yet
         if len(self.image_paths) == 0:
             self.image_paths = sorted(self.extract_folder.glob('*.png'))
-        
+
         self.label_framenumber.setText(f"Frame Number:\t {image_id:10d}")
 
         cv_img: np.ndarray = cv2.imread(self.image_paths[image_id].as_posix())
@@ -193,6 +193,7 @@ class Analyzer():
         self.areas_left = []
         self.areas_right = []
         self.eye_distance_threshold_ratios = []
+        self.frames_per_second = -1
 
     def reset(self):
         self.areas_left = []
@@ -206,6 +207,9 @@ class Analyzer():
         self.areas_left.append(self.detector.left_eye_closing_norm_area)
         self.areas_right.append(self.detector.right_eye_closing_norm_area)
         self.eye_distance_threshold_ratios.append(self.detector.eye_distance_threshold_ratio)
+
+    def set_frames_per_second(self, value):
+        self.frames_per_second = value
 
 
 class MplCanvas(FigureCanvasQTAgg):
@@ -294,39 +298,31 @@ class AnalyzeImagesThread(QThread):
 class ExtractImagesThread(QThread):
     image_paths_signal = pyqtSignal(list)
 
-    def __init__(self, view_eye_blinking):
+    def __init__(self, veb: view_eye_blinking):
         super().__init__()
-        self.openButton = view_eye_blinking.openButton
-        self.video_file_path = view_eye_blinking.video_file_path
-        self.image_paths = view_eye_blinking.image_paths
-        self.extract_folder = view_eye_blinking.extract_folder
-        self.startAnalysisButton = view_eye_blinking.startAnalysisButton
-        self.positionSlider = view_eye_blinking.positionSlider
-        self.video_fps = -1
+        self.veb = veb
 
     def run(self):
         self.image_paths = []
-        self.startAnalysisButton.setDisabled(True)
+        self.veb.button_video_analyze.setDisabled(True)
 
-        vidcap = cv2.VideoCapture(self.video_file_path.as_posix())
+        vidcap = cv2.VideoCapture(self.veb.video_file_path.as_posix())
         success, image = vidcap.read()
 
-        self.video_fps = vidcap.get(cv2.CAP_PROP_FPS)
-        print(f"Frames per second: {self.video_fps:5.2f}")
+        self.veb.analyzer.set_frames_per_second(vidcap.get(cv2.CAP_PROP_FPS))
 
         count = 0
         while success:
-            self.openButton.setText(str(count))
-            image_path = self.extract_folder / f"frame_{count:08d}.png"
-            self.image_paths.append(image_path)
+            image_path = self.veb.extract_folder / f"frame_{count:08d}.png"
             cv2.imwrite(image_path.as_posix(), image)
+            self.veb.button_video_load.setText(str(count))
+            self.image_paths.append(image_path)
             success, image = vidcap.read()
-            # print('Read a new frame: ', success)
             count += 1
 
-        print("Loaded all frames")
-        self.openButton.setText('Open Video')
+        print(f"Loaded all {len(self.image_paths)} frames")
         self.image_paths.sort()
-        self.startAnalysisButton.setDisabled(False)
-        # set the range of the slider
-        self.positionSlider.setRange(0, len(self.image_paths) - 1)
+
+        self.veb.button_video_load.setText('Open Video')
+        self.veb.button_video_analyze.setDisabled(False)
+        self.veb.slider_framenumber.setRange(0, len(self.image_paths) - 1)
