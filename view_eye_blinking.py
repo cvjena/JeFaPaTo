@@ -52,40 +52,40 @@ class view_eye_blinking(QWidget):
         uic.loadUi("ui/view_eye_blinking.ui", self)
 
         # label
-        self.label_eye_left  = self.findChild(QLabel, "label_eye_left")
-        self.label_eye_right = self.findChild(QLabel, "label_eye_right")
-        self.label_framenumber = self.findChild(QLabel, "label_framenumber")
+        self.label_eye_left: QLabel  = self.findChild(QLabel, "label_eye_left")
+        self.label_eye_right: QLabel = self.findChild(QLabel, "label_eye_right")
+        self.label_framenumber: QLabel = self.findChild(QLabel, "label_framenumber")
 
         # edits
-        self.edit_threshold = self.findChild(QLineEdit, "edit_threshhold")
+        self.edit_threshold: QLineEdit = self.findChild(QLineEdit, "edit_threshhold")
         self.edit_threshold.editingFinished.connect(self.change_threshold)
 
         # checkboxes
-        self.checkbox_analysis: QCheckBox= self.findChild(QCheckBox, "checkbox_analysis")
+        self.checkbox_analysis: QCheckBox = self.findChild(QCheckBox, "checkbox_analysis")
         
         # buttons
-        self.button_video_load = self.findChild(QPushButton, "button_video_load")
-        self.button_video_analyze = self.findChild(QPushButton, "button_video_analyze")
+        self.button_video_load: QPushButton = self.findChild(QPushButton, "button_video_load")
+        self.button_video_analyze: QPushButton = self.findChild(QPushButton, "button_video_analyze")
 
         self.button_video_load.clicked.connect(self.load_video)
         self.button_video_analyze.clicked.connect(self.start_anaysis)
 
         # sliders
-        self.slider_framenumber = self.findChild(QSlider, "slider_framenumber")
+        self.slider_framenumber: QSlider = self.findChild(QSlider, "slider_framenumber")
         self.slider_framenumber.sliderMoved.connect(self.set_position)
         self.slider_framenumber.sliderPressed.connect(self.set_position)
 
         # images
-        self.view_video = self.findChild(QLabel, "view_video")
-        self.view_face  = self.findChild(QLabel, "view_face")
-        self.view_eye_left  = self.findChild(QLabel, "view_eye_left")
-        self.view_eye_right = self.findChild(QLabel, "view_eye_right")
+        self.view_video:QLabel = self.findChild(QLabel, "view_video")
+        self.view_face:QLabel  = self.findChild(QLabel, "view_face")
+        self.view_eye_left:QLabel  = self.findChild(QLabel, "view_eye_left")
+        self.view_eye_right:QLabel = self.findChild(QLabel, "view_eye_right")
         
         # plotting
         self.evaluation_plot = MplCanvas(self, width=10, height=5, dpi=100)
         self.evaluation_plot.axes.plot([], [])
 
-        self.vlayout_left = self.findChild(QVBoxLayout, "vlayout_left")
+        self.vlayout_left: QVBoxLayout = self.findChild(QVBoxLayout, "vlayout_left")
         self.vlayout_left.addWidget(self.evaluation_plot)
 
         # ==============================================================================================================
