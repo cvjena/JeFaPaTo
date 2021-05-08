@@ -69,11 +69,10 @@ class EyeBlinkingDetector():
 
         self.scale_factor = 0.3
 
-        self.img_face: np.ndarray = np.ones((100, 100, 3), dtype=np.uint8)
-
         self.eye_left_slice: slice = slice(42, 48)
         self.eye_right_slice: slice = slice(36, 42)
 
+        self.img_face: np.ndarray = np.ones((100, 100, 3), dtype=np.uint8)
         self.img_eye_left:  np.ndarray = np.ones((50, 50, 3), dtype=np.uint8)
         self.img_eye_right: np.ndarray = np.ones((50, 50, 3), dtype=np.uint8)
 
