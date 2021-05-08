@@ -1,9 +1,11 @@
 import sys
-import os
-import numpy as np
-#import dlib
-import cv2
 
+import logging
+import logging.config
+
+from pathlib import Path
+
+import numpy as np
 
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
@@ -30,8 +32,17 @@ class jefapato(QTabWidget):
 
 
 def main(argv):
+    log_path = Path("logs")
+    log_path.mkdir(parents=True, exist_ok=True)
+
+    logging.config.fileConfig(Path("config/logging.conf"))
+    logger = logging.getLogger("root")
+
     app = QApplication(sys.argv)
     ex = jefapato()
+    
+    logger.info(f"Start JeFaPaTo version {ex.VERSION}")
+
     ex.show()
     sys.exit(app.exec_())
 

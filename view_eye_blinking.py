@@ -1,6 +1,7 @@
 
 import numpy as np
 import cv2
+import logging
 
 from pathlib import Path
 
@@ -34,6 +35,7 @@ class view_eye_blinking(QWidget):
         self.disply_width = 640
         self.display_height = 480
 
+        self.logger = logging.getLogger("eyeBlinkingDetection")
         # ==============================================================================================================
         ## GUI ELEMENTS
         uic.loadUi("ui/view_eye_blinking.ui", self)
@@ -129,12 +131,13 @@ class view_eye_blinking(QWidget):
         self.update_eye_labels()
         self.update_plot()
 
-    def load_video(self, ):
-        print('load video from file')
+    def load_video(self):
+        self.logger.info("Open file explorer")
         fileName, _ = QFileDialog.getOpenFileName(self, "Select video file",
                                                   ".", "Video Files (*.mp4 *.flv *.ts *.mts *.avi)")
 
         if fileName != '':
+            self.logger.info(f"Load video file: {fileName}")
             self.video_file_path = Path(fileName)
             self.results_file_path = self.video_file_path.parent / (self.video_file_path.stem + ".csv")
 
@@ -144,6 +147,8 @@ class view_eye_blinking(QWidget):
 
             self.button_video_analyze.setDisabled(False)
             self.checkbox_analysis.setDisabled(False)
+        else:
+            self.logger.info(f"No video file was selected")
 
     def show_image(self):
         img_frame: QPixmap     = self.convert_cv_qt(self.analyzer.current_frame, self.disply_width, self.display_height)
@@ -230,7 +235,7 @@ class Analyzer():
         self.frames_per_second = value
 
     def set_frame_total(self, value):
-        print(f"Frames in this video: {value}")
+        self.veb.logger.info(f"Video contains {int(value)} frames")
         self.frames_total = int(value)
 
     def set_video(self, path: Path):
@@ -244,6 +249,7 @@ class Analyzer():
     def set_frame_by_id(self, id: int):
         # TODO better return if the frame is out of range
         if not (0 <= id < self.frames_total):
+            self.veb.logger.warning(f"Frame {id} not in range of {0} to {self.frames_total}")
             self.current_frame = np.zeros((100,100, 3), dtype=np.uint8)
 
         # set the current frame we want to extract for the video file
@@ -254,7 +260,7 @@ class Analyzer():
 
         # TODO same as above
         if not success:
-            print("ERROR: frame was not loaded succesfully")
+            self.veb.logger.error(f"Frame {id} could not be loaded")
             self.current_frame = np.zeros((100,100, 3), dtype=np.uint8)
 
         self.current_frame = frame
@@ -349,14 +355,12 @@ class AnalyzeImagesThread(QThread):
         # self.veb.button_video_analyze.setDisabled(True)
         # self.veb.checkbox_analysis.setDisabled(True)
         # self.veb.edit_threshold.setDisabled(True)
-
         if self.veb.checkbox_analysis.isChecked() or not self.analyzer.has_run():
+            self.veb.logger.info(f"Analyse complete video")
             # reset the values inside the analyzer
             self.analyzer.reset()
 
             for i_idx in range(self.analyzer.frames_total):
-                print(f"Frame {i_idx:04d}/{self.analyzer.frames_total:04d}")
-                
                 self.analyzer.set_frame_by_id(i_idx)
                 self.analyzer.analyze()
                 self.analyzer.append_values()
@@ -373,6 +377,7 @@ class AnalyzeImagesThread(QThread):
             self.analyzer.set_run()
 
         else:
+            self.veb.logger.info(f"Re-analyse eye closing")
             self.analyzer.reset_closed()
             for i_idx in range(self.analyzer.frames_total):
                 self.analyzer.analyze_closing(i_idx)
