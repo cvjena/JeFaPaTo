@@ -1,9 +1,6 @@
-import os
+
 import numpy as np
-import dlib
 import cv2
-import shutil
-import sys
 
 from pathlib import Path
 
@@ -31,13 +28,6 @@ class view_eye_blinking(QWidget):
 
         self.current_image: np.ndarray = None
         self.video_file_path: Path = None
-
-        # create the tmp folder if it does not exists
-        self.extract_folder = Path("tmp")
-        self.extract_folder.mkdir(parents=True, exist_ok=True)
-
-        self.image_paths = []
-        self.video_fps = None
 
         self.results_file = None
         self.results_file_path: Path = Path("results.csv")
@@ -102,12 +92,7 @@ class view_eye_blinking(QWidget):
         self.evaluation_plot.set_yline(float(self.edit_threshold.text()))
         self.evaluation_plot.plot()
 
-        if (self.extract_folder / "frame_00000000.png").is_file():
-            self.show_image()
-
-            # set slider
-            self.slider_framenumber.setRange(0, len(self.image_paths) - 1)
-            self.slider_framenumber.setSliderPosition(0)
+        self.show_image()
 
     def start_anaysis(self):
         self.thread_analyze = AnalyzeImagesThread(self)
@@ -151,20 +136,8 @@ class view_eye_blinking(QWidget):
             self.results_file_path = self.video_file_path.parent / (self.video_file_path.stem + ".csv")
 
             self.analyzer.reset()
-            print('remove existing files ... ')
-            existing_files = self.extract_folder.glob('*')
-            for f in existing_files:
-                os.remove(f)
-            self.extract_video()
-
-    @pyqtSlot(list)
-    def extract_video(self):
-        if os.path.isdir(self.extract_folder):
-            shutil.rmtree(self.extract_folder, ignore_errors=True)
-            os.mkdir(self.extract_folder)
-
-        self.analyzer.set_video(self.video_file_path)
-        self.slider_framenumber.setRange(0, self.analyzer.frames_total - 1)
+            self.analyzer.set_video(self.video_file_path)
+            self.slider_framenumber.setRange(0, self.analyzer.frames_total - 1)
 
     def show_image(self):
         img_frame: QPixmap     = self.convert_cv_qt(self.analyzer.current_frame, self.disply_width, self.display_height)
@@ -204,10 +177,10 @@ class Analyzer():
         self.frames_per_second = -1
         self.frames_total = -1
 
-        self.current_frame: np.ndarray = None
-        self.current_face:  np.ndarray = np.ones((100, 100, 3), dtype=np.uint8)
-        self.current_eye_left:  np.ndarray = np.ones((50, 50, 3), dtype=np.uint8)
-        self.current_eye_right: np.ndarray = np.ones((50, 50, 3), dtype=np.uint8)
+        self.current_frame: np.ndarray = np.zeros((480, 640, 3), dtype=np.uint8)
+        self.current_face:  np.ndarray = np.zeros((100, 100, 3), dtype=np.uint8)
+        self.current_eye_left:  np.ndarray = np.zeros((50, 50, 3), dtype=np.uint8)
+        self.current_eye_right: np.ndarray = np.zeros((50, 50, 3), dtype=np.uint8)
 
         self.run_once = False
 
