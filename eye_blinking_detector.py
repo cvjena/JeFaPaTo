@@ -93,6 +93,10 @@ class EyeBlinkingDetector():
         # detect faces in the grayscale image
         rects = self.detector(gray_sc, 1)
 
+        region_left = 0
+        region_right = 0
+        eye_distance = 1
+
         # loop over the face detections
         for i, rect in enumerate(rects):
             rect = scale_bbox(rect, 1/self.scale_factor)

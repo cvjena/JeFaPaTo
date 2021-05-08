@@ -18,7 +18,7 @@ class jefapato(QTabWidget):
         self.setWindowTitle("JeFaPaTo - Jena Facial Palsy Tool")
         #self.window().showMaximized()
 
-        self.VERSION = '2021.05.02'
+        self.VERSION = '2021.05.08'
 
         self.tab1 = view_eye_blinking()
         self.tab2 = view_landmark_distances()

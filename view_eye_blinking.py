@@ -162,19 +162,11 @@ class view_eye_blinking(QWidget):
             shutil.rmtree(self.extract_folder, ignore_errors=True)
             os.mkdir(self.extract_folder)
 
-        self.extract_thread = ExtractImagesThread(self)
-        self.extract_thread.image_paths_signal.connect(self.show_image)
-        self.extract_thread.start()
+        self.analyzer.set_video(self.video_file_path)
+        self.slider_framenumber.setRange(0, self.analyzer.frames_total - 1)
 
     def show_image(self, image_id=0):
-
-        # load the extracted frames as no new video has been loaded yet
-        if len(self.image_paths) == 0:
-            self.image_paths = sorted(self.extract_folder.glob('*.png'))
-
-        self.label_framenumber.setText(f"Frame Number:\t {image_id:10d}")
-
-        cv_img: np.ndarray = cv2.imread(self.image_paths[image_id].as_posix())
+        cv_img: np.ndarray = self.analyzer.get_frame_by_id(image_id)
         qt_img = self.convert_cv_qt(cv_img, self.disply_width, self.display_height)
         self.view_video.setPixmap(qt_img)
         self.current_image = cv_img
@@ -210,7 +202,9 @@ class Analyzer():
         self.areas_right = []
         self.eye_distance_threshold_ratios = []
 
+        self.video = None
         self.frames_per_second = -1
+        self.frames_total = -1
         self.run_once = False
 
     def reset(self):
@@ -248,6 +242,34 @@ class Analyzer():
 
     def set_frames_per_second(self, value):
         self.frames_per_second = value
+
+    def set_frame_total(self, value):
+        print(f"Frames in this video: {value}")
+        self.frames_total = int(value)
+
+    def set_video(self, path: Path):
+        self.video = cv2.VideoCapture(path.as_posix())
+        self.set_frames_per_second(self.video.get(cv2.CAP_PROP_FPS))
+        self.set_frame_total(self.video.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    def get_frame_by_id(self, id: int) -> np.ndarray:
+        # TODO better return if the frame is out of range
+        if not (0 < id < self.frames_total):
+            print("ERROR: frame not in range")
+            return np.zeros((100,100, 3), dtype=np.uint8)
+
+        # set the current frame we want to extract for the video file
+        # https://docs.opencv.org/3.4/d8/dfe/classcv_1_1VideoCapture.html#aa6480e6972ef4c00d74814ec841a2939
+        # https://docs.opencv.org/3.4/d4/d15/group__videoio__flags__base.html#gaeb8dd9c89c10a5c63c139bf7c4f5704d
+        self.video.set(cv2.CAP_PROP_POS_FRAMES, id)
+        success, frame = self.video.read()
+
+        # TODO same as above
+        if not success:
+            print("ERROR: frame was not loaded succesfully")
+            return np.zeros((100,100, 3), dtype=np.uint8)
+
+        return frame
 
     def set_run(self):
         self.run_once = True
@@ -338,8 +360,8 @@ class AnalyzeImagesThread(QThread):
             # reset the values inside the analyzer
             self.analyzer.reset()
 
-            for i_idx, image in enumerate(self.veb.image_paths):
-                #print('image: ' + str(i_idx+1)+'/'+str(len(self.veb.image_paths)))
+            for i_idx in range(self.analyzer.frames_total):
+                print(f"Frame {i_idx:04d}/{self.analyzer.frames_total:04d}")
                 self.veb.show_image(i_idx)
                 self.veb.slider_framenumber.setValue(i_idx)
 
@@ -356,7 +378,7 @@ class AnalyzeImagesThread(QThread):
 
         else:
             self.analyzer.reset_closed()
-            for i_idx, image in enumerate(self.veb.image_paths):
+            for i_idx in range(self.analyzer.frames_total):
                 self.veb.show_image(i_idx)
                 self.veb.slider_framenumber.setValue(i_idx)
                 self.analyzer.analyze_closing(i_idx)
@@ -364,36 +386,3 @@ class AnalyzeImagesThread(QThread):
 
         self.analyzer.save_results()
         self.veb.button_video_analyze.setText("Video Analysieren")
-
-
-class ExtractImagesThread(QThread):
-    image_paths_signal = pyqtSignal(list)
-
-    def __init__(self, veb: view_eye_blinking):
-        super().__init__()
-        self.veb = veb
-
-    def run(self):
-        self.image_paths = []
-        self.veb.button_video_analyze.setDisabled(True)
-
-        vidcap = cv2.VideoCapture(self.veb.video_file_path.as_posix())
-        success, image = vidcap.read()
-
-        self.veb.analyzer.set_frames_per_second(vidcap.get(cv2.CAP_PROP_FPS))
-
-        count = 0
-        while success:
-            image_path = self.veb.extract_folder / f"frame_{count:08d}.png"
-            cv2.imwrite(image_path.as_posix(), image)
-            self.veb.button_video_load.setText(str(count))
-            self.image_paths.append(image_path)
-            success, image = vidcap.read()
-            count += 1
-
-        print(f"Loaded all {len(self.image_paths)} frames")
-        self.image_paths.sort()
-
-        self.veb.button_video_load.setText('Open Video')
-        self.veb.button_video_analyze.setDisabled(False)
-        self.veb.slider_framenumber.setRange(0, len(self.image_paths) - 1)
