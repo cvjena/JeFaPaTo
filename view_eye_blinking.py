@@ -23,9 +23,7 @@ class view_eye_blinking(QWidget):
     def __init__(self):
         super().__init__()
         # ==============================================================================================================
-        
         ## PROPERTIES
-
         self.current_image: np.ndarray = None
         self.video_file_path: Path = None
 
@@ -37,39 +35,32 @@ class view_eye_blinking(QWidget):
         self.display_height = 480
 
         # ==============================================================================================================
-
         ## GUI ELEMENTS
         uic.loadUi("ui/view_eye_blinking.ui", self)
 
         # label
-        self.label_eye_left: QLabel  = self.findChild(QLabel, "label_eye_left")
-        self.label_eye_right: QLabel = self.findChild(QLabel, "label_eye_right")
+        self.label_eye_left:    QLabel = self.findChild(QLabel, "label_eye_left")
+        self.label_eye_right:   QLabel = self.findChild(QLabel, "label_eye_right")
         self.label_framenumber: QLabel = self.findChild(QLabel, "label_framenumber")
 
         # edits
         self.edit_threshold: QLineEdit = self.findChild(QLineEdit, "edit_threshhold")
-        self.edit_threshold.editingFinished.connect(self.change_threshold)
 
         # checkboxes
         self.checkbox_analysis: QCheckBox = self.findChild(QCheckBox, "checkbox_analysis")
         
         # buttons
-        self.button_video_load: QPushButton = self.findChild(QPushButton, "button_video_load")
+        self.button_video_load:    QPushButton = self.findChild(QPushButton, "button_video_load")
         self.button_video_analyze: QPushButton = self.findChild(QPushButton, "button_video_analyze")
-
-        self.button_video_load.clicked.connect(self.load_video)
-        self.button_video_analyze.clicked.connect(self.start_anaysis)
 
         # sliders
         self.slider_framenumber: QSlider = self.findChild(QSlider, "slider_framenumber")
-        self.slider_framenumber.sliderMoved.connect(self.set_position)
-        self.slider_framenumber.sliderPressed.connect(self.set_position)
 
         # images
-        self.view_video:QLabel = self.findChild(QLabel, "view_video")
-        self.view_face:QLabel  = self.findChild(QLabel, "view_face")
-        self.view_eye_left:QLabel  = self.findChild(QLabel, "view_eye_left")
-        self.view_eye_right:QLabel = self.findChild(QLabel, "view_eye_right")
+        self.view_video:     QLabel = self.findChild(QLabel, "view_video")
+        self.view_face:      QLabel = self.findChild(QLabel, "view_face")
+        self.view_eye_left:  QLabel = self.findChild(QLabel, "view_eye_left")
+        self.view_eye_right: QLabel = self.findChild(QLabel, "view_eye_right")
         
         # plotting
         self.evaluation_plot = MplCanvas(self, width=10, height=5, dpi=100)
@@ -79,11 +70,22 @@ class view_eye_blinking(QWidget):
         self.vlayout_left.addWidget(self.evaluation_plot)
 
         # ==============================================================================================================
-
         ## INITIALIZATION ROUTINES
-
         self.eye_blinking_detector = EyeBlinkingDetector(float(self.edit_threshold.text()))
         self.analyzer = Analyzer(self, self.eye_blinking_detector)
+
+        # connect the functions
+        self.button_video_load.clicked.connect(self.load_video)
+        self.button_video_analyze.clicked.connect(self.start_anaysis)
+
+        self.edit_threshold.editingFinished.connect(self.change_threshold)
+        
+        self.slider_framenumber.sliderMoved.connect(self.set_position)
+        self.slider_framenumber.sliderPressed.connect(self.set_position)
+
+        # disable analyse button and check box
+        self.button_video_analyze.setDisabled(True)
+        self.checkbox_analysis.setDisabled(True)
 
         # load the default value for the threshhold
         # check is not necessary as we have set the value in the 
@@ -112,7 +114,8 @@ class view_eye_blinking(QWidget):
         try:
             input_value = float(self.edit_threshold.text())
             self.eye_blinking_detector.set_threshold(input_value)
-            self.button_video_analyze.setText("Erneut Analysieren")
+            if self.analyzer.has_run():
+                self.button_video_analyze.setText("Erneut Analysieren")
             self.evaluation_plot.set_yline(input_value)
             self.evaluation_plot.plot()
         except ValueError:
@@ -138,6 +141,9 @@ class view_eye_blinking(QWidget):
             self.analyzer.reset()
             self.analyzer.set_video(self.video_file_path)
             self.slider_framenumber.setRange(0, self.analyzer.frames_total - 1)
+
+            self.button_video_analyze.setDisabled(False)
+            self.checkbox_analysis.setDisabled(False)
 
     def show_image(self):
         img_frame: QPixmap     = self.convert_cv_qt(self.analyzer.current_frame, self.disply_width, self.display_height)
