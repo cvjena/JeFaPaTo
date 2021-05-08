@@ -243,8 +243,7 @@ class Analyzer():
 
     def set_frame_by_id(self, id: int):
         # TODO better return if the frame is out of range
-        if not (0 < id < self.frames_total):
-            print("ERROR: frame not in range")
+        if not (0 <= id < self.frames_total):
             self.current_frame = np.zeros((100,100, 3), dtype=np.uint8)
 
         # set the current frame we want to extract for the video file
