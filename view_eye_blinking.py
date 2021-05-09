@@ -251,10 +251,15 @@ class Analyzer():
         if not (0 <= id < self.frames_total):
             self.veb.logger.warning(f"Frame {id} not in range of {0} to {self.frames_total}")
             self.current_frame = np.zeros((100,100, 3), dtype=np.uint8)
+            return
 
         # set the current frame we want to extract for the video file
         # https://docs.opencv.org/3.4/d8/dfe/classcv_1_1VideoCapture.html#aa6480e6972ef4c00d74814ec841a2939
         # https://docs.opencv.org/3.4/d4/d15/group__videoio__flags__base.html#gaeb8dd9c89c10a5c63c139bf7c4f5704d
+        if self.video is None:
+            self.current_frame = np.zeros((100,100, 3), dtype=np.uint8)
+            return 
+
         self.video.set(cv2.CAP_PROP_POS_FRAMES, id)
         success, frame = self.video.read()
 
@@ -262,6 +267,7 @@ class Analyzer():
         if not success:
             self.veb.logger.error(f"Frame {id} could not be loaded")
             self.current_frame = np.zeros((100,100, 3), dtype=np.uint8)
+            return 
 
         self.current_frame = frame
 
