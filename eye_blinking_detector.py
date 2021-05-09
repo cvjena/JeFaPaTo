@@ -49,7 +49,7 @@ def scale_bbox(bbox: dlib.rectangle, scale: float, padding: int = 0) -> dlib.rec
     )
 
 class EyeBlinkingDetector():
-    def __init__(self, threshold):
+    def __init__(self):
         super().__init__()
 
         # initialize dlib's face detector (HOG-based) and then create
@@ -58,7 +58,7 @@ class EyeBlinkingDetector():
         self.detector = dlib.get_frontal_face_detector()
         self.predictor = dlib.shape_predictor(self.shape_predictor_file)
 
-        self.threshold = threshold
+        self.threshold = None
 
         self.left_closed = False
         self.right_closed = False
@@ -85,7 +85,7 @@ class EyeBlinkingDetector():
     def get_eye_right(self) -> str:
         return "closed" if self.right_closed else "open"
 
-    def detect_eye_blinking_in_image(self, image: np.ndarray):
+    def detect_eye_blinking_in_image(self, image: np.ndarray, threshold: float):
         # image = imutils.resize(image, width=500)
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         gray_sc = cv2.resize(gray, (int(image.shape[1] * self.scale_factor), int(image.shape[0] * self.scale_factor)), interpolation=cv2.INTER_LINEAR)
@@ -164,16 +164,16 @@ class EyeBlinkingDetector():
             #print(self.threshold * eye_distance)
             #print(region_left)
 
-            self.eye_distance_threshold_ratio = self.threshold * eye_distance
+            self.eye_distance_threshold_ratio = threshold * eye_distance
             
             # set closed to true if condition applies, else it will be false
-            self.left_closed, self.right_closed = self.check_closing(region_left, region_right, eye_distance)
+            self.left_closed, self.right_closed = self.check_closing(region_left, region_right, eye_distance, threshold)
 
         self.left_eye_closing_norm_area = region_left / eye_distance
         self.right_eye_closing_norm_area = region_right / eye_distance
 
-    def check_closing(self, region_left, region_right, eye_distance):
-        return (region_left < (self.threshold * eye_distance), region_right < (self.threshold * eye_distance))
+    def check_closing(self, region_left, region_right, eye_distance, threshold: float):
+        return (region_left < (threshold * eye_distance), region_right < (threshold * eye_distance))
 
 
     def calculate_eye_regions(self, landmark_list):

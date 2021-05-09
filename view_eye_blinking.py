@@ -12,6 +12,7 @@ from PyQt5.QtMultimedia import *
 from PyQt5 import uic
 
 import pyqtgraph as pg
+from pyqtgraph.GraphicsScene import mouseEvents
 
 from eye_blinking_detector import EyeBlinkingDetector
 
@@ -30,6 +31,9 @@ class view_eye_blinking(QWidget):
 
         self.disply_width = 640
         self.display_height = 480
+
+        self.eye_blinking_detector = EyeBlinkingDetector()
+        self.analyzer = Analyzer(self, self.eye_blinking_detector)
 
         self.logger = logging.getLogger("eyeBlinkingDetection")
         # ==============================================================================================================
@@ -64,29 +68,24 @@ class view_eye_blinking(QWidget):
         self.curve_left_eye.setPen(pg.mkPen(pg.mkColor(0, 0, 255)))
         self.curve_right_eye.setPen(pg.mkPen(pg.mkColor(255, 0, 0)))
 
-        self.vertical_line_pos: int = 0
-        self.horizontal_line_pos: float = float(self.edit_threshold.text())
-
-        self.vertical_line: pg.InfiniteLine = pg.InfiniteLine(self.vertical_line_pos, movable=True)
-        self.horizontal_line: pg.InfiniteLine = pg.InfiniteLine(self.horizontal_line_pos, angle=0)
+        self.vertical_line: pg.InfiniteLine = pg.InfiniteLine(self.analyzer.frame, movable=True)
+        self.horizontal_line: pg.InfiniteLine = pg.InfiniteLine(self.analyzer.threshold, angle=0, movable=True)
         self.evaluation_plot.addItem(self.vertical_line)
         self.evaluation_plot.addItem(self.horizontal_line)
 
         self.vertical_line.sigDragged.connect(self.change_frame)
+        self.horizontal_line.sigDragged.connect(self.change_threshold_per_line)
 
         self.vlayout_left: QVBoxLayout = self.findChild(QVBoxLayout, "vlayout_left")
         self.vlayout_left.addWidget(self.evaluation_plot)
 
         # ==============================================================================================================
         ## INITIALIZATION ROUTINES
-        self.eye_blinking_detector = EyeBlinkingDetector(float(self.edit_threshold.text()))
-        self.analyzer = Analyzer(self, self.eye_blinking_detector)
-
         # connect the functions
         self.button_video_load.clicked.connect(self.load_video)
         self.button_video_analyze.clicked.connect(self.start_anaysis)
 
-        self.edit_threshold.editingFinished.connect(self.change_threshold)
+        self.edit_threshold.editingFinished.connect(self.change_threshold_per_edit)
 
         # disable analyse button and check box
         self.button_video_analyze.setDisabled(True)
@@ -95,9 +94,7 @@ class view_eye_blinking(QWidget):
         self.show_image()
 
     def change_frame(self):
-        # we have to move the line to the same position... just do it, maybe fix later...
-        self.vertical_line_pos = int(self.vertical_line.getPos()[0])
-        self.analyzer.set_frame_by_id(self.vertical_line_pos)
+        self.analyzer.set_frame_by_id(id=int(self.vertical_line.getPos()[0]))
         self.analyzer.analyze()
         self.update_eye_labels()
         self.update_plot()
@@ -114,24 +111,27 @@ class view_eye_blinking(QWidget):
     def update_plot(self):
         self.curve_left_eye.setData(self.analyzer.areas_left)
         self.curve_right_eye.setData(self.analyzer.areas_right)
-        self.vertical_line.setPos(self.vertical_line_pos)
-        self.horizontal_line.setPos(self.horizontal_line_pos)
+        self.vertical_line.setPos(self.analyzer.frame)
+        self.horizontal_line.setPos(self.analyzer.threshold)
+
+    def change_threshold_per_edit(self):
+        try:
+            self.analyzer.threshold = float(self.edit_threshold.text())
+        except ValueError:
+            self.edit_threshold.setText("Ungültige Zahl")    
+            return
+        self.change_threshold()
+
+    def change_threshold_per_line(self):
+        self.analyzer.threshold = float(self.horizontal_line.getPos()[1])
+        self.change_threshold()
 
     def change_threshold(self):
-        try:
-            input_value = float(self.edit_threshold.text())
-            self.eye_blinking_detector.set_threshold(input_value)
-            if self.analyzer.has_run():
-                self.button_video_analyze.setText("Erneut Analysieren")
-
-            self.analyzer.threshold = input_value
-            self.horizontal_line_pos = input_value
-
-            self.update_plot()
-            
-        except ValueError:
-            self.edit_threshold.setText("Ungültige Zahl")
-
+        self.eye_blinking_detector.set_threshold(self.analyzer.threshold)
+        self.edit_threshold.setText(f"{self.analyzer.threshold:8.2f}".strip())
+        if self.analyzer.has_run():
+            self.button_video_analyze.setText("Erneut Analysieren")
+        self.update_plot()
 
     def load_video(self):
         self.logger.info("Open file explorer")
@@ -190,6 +190,7 @@ class Analyzer():
         self.frames_total = -1
 
         self.threshold: float = 2.0
+        self.frame: int = 0
 
         self.current_frame: np.ndarray = np.zeros((480, 640, 3), dtype=np.uint8)
         self.current_face:  np.ndarray = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -212,7 +213,7 @@ class Analyzer():
         self.right_closed = []
 
     def analyze(self):
-        self.detector.detect_eye_blinking_in_image(self.current_frame)
+        self.detector.detect_eye_blinking_in_image(self.current_frame, self.threshold)
         self.current_face = self.detector.img_face
         self.current_eye_left  = self.detector.img_eye_left
         self.current_eye_right = self.detector.img_eye_right
@@ -221,7 +222,8 @@ class Analyzer():
         l, r = self.detector.check_closing(
             region_left=self.areas_left[image_idx], 
             region_right=self.areas_right[image_idx],
-            eye_distance=self.eye_distance_threshold_ratios[image_idx]
+            eye_distance=self.eye_distance_threshold_ratios[image_idx],
+            threshold=self.threshold
         )
         self.left_closed.append(l)
         self.right_closed.append(r)
@@ -255,7 +257,7 @@ class Analyzer():
             self.veb.logger.warning(f"Frame {id} not in range of {0} to {self.frames_total}")
             self.current_frame = np.zeros((100,100, 3), dtype=np.uint8)
             return
-
+        self.frame = id
         # set the current frame we want to extract for the video file
         # https://docs.opencv.org/3.4/d8/dfe/classcv_1_1VideoCapture.html#aa6480e6972ef4c00d74814ec841a2939
         # https://docs.opencv.org/3.4/d4/d15/group__videoio__flags__base.html#gaeb8dd9c89c10a5c63c139bf7c4f5704d
@@ -329,7 +331,6 @@ class AnalyzeImagesThread(QThread):
                 self.analyzer.analyze()
                 self.analyzer.append_values()
 
-                self.veb.vertical_line_pos = i_idx
                 self.veb.show_image()
                 self.veb.update_eye_labels()
                 self.veb.update_plot()
@@ -343,7 +344,6 @@ class AnalyzeImagesThread(QThread):
                 self.analyzer.analyze_closing(i_idx)
                 self.analyzer.set_frame_by_id(i_idx)
 
-                self.veb.vertical_line_pos = i_idx
                 self.veb.show_image()
                 self.veb.update_eye_labels()
                 self.veb.update_plot()
