@@ -51,18 +51,12 @@ class view_eye_blinking(QWidget):
         self.button_video_load:    QPushButton = self.findChild(QPushButton, "button_video_load")
         self.button_video_analyze: QPushButton = self.findChild(QPushButton, "button_video_analyze")
 
-        # sliders
-        self.slider_framenumber: QSlider = self.findChild(QSlider, "slider_framenumber")
-
         # images
         self.view_video:     QLabel = self.findChild(QLabel, "view_video")
         self.view_face:      QLabel = self.findChild(QLabel, "view_face")
         self.view_eye_left:  QLabel = self.findChild(QLabel, "view_eye_left")
         self.view_eye_right: QLabel = self.findChild(QLabel, "view_eye_right")
-        
-        # plotting
-        # self.evaluation_plot = MplCanvas(self, width=10, height=5, dpi=100)
-        # self.evaluation_plot.axes.plot([], [])
+
         self.evaluation_plot = pg.PlotWidget()
         self.curve_left_eye:  pg.PlotDataItem = self.evaluation_plot.plot()
         self.curve_right_eye: pg.PlotDataItem = self.evaluation_plot.plot()
@@ -73,10 +67,12 @@ class view_eye_blinking(QWidget):
         self.vertical_line_pos: int = 0
         self.horizontal_line_pos: float = float(self.edit_threshold.text())
 
-        self.vertical_line: pg.InfiniteLine = pg.InfiniteLine(self.vertical_line_pos)
+        self.vertical_line: pg.InfiniteLine = pg.InfiniteLine(self.vertical_line_pos, movable=True)
         self.horizontal_line: pg.InfiniteLine = pg.InfiniteLine(self.horizontal_line_pos, angle=0)
         self.evaluation_plot.addItem(self.vertical_line)
         self.evaluation_plot.addItem(self.horizontal_line)
+
+        self.vertical_line.sigDragged.connect(self.change_frame)
 
         self.vlayout_left: QVBoxLayout = self.findChild(QVBoxLayout, "vlayout_left")
         self.vlayout_left.addWidget(self.evaluation_plot)
@@ -91,15 +87,20 @@ class view_eye_blinking(QWidget):
         self.button_video_analyze.clicked.connect(self.start_anaysis)
 
         self.edit_threshold.editingFinished.connect(self.change_threshold)
-        
-        self.slider_framenumber.sliderMoved.connect(self.set_position)
-        self.slider_framenumber.sliderPressed.connect(self.set_position)
-        self.slider_framenumber.valueChanged.connect(self.update_vertical_pos)
 
         # disable analyse button and check box
         self.button_video_analyze.setDisabled(True)
         self.checkbox_analysis.setDisabled(True)
 
+        self.show_image()
+
+    def change_frame(self):
+        # we have to move the line to the same position... just do it, maybe fix later...
+        self.vertical_line_pos = int(self.vertical_line.getPos()[0])
+        self.analyzer.set_frame_by_id(self.vertical_line_pos)
+        self.analyzer.analyze()
+        self.update_eye_labels()
+        self.update_plot()
         self.show_image()
 
     def start_anaysis(self):
@@ -131,17 +132,6 @@ class view_eye_blinking(QWidget):
         except ValueError:
             self.edit_threshold.setText("Ungültige Zahl")
 
-    def update_vertical_pos(self):
-        self.vertical_line_pos = self.slider_framenumber.value()
-
-    def set_position(self):
-        # load the new frame by the given slider id
-        self.analyzer.set_frame_by_id(self.slider_framenumber.value())
-        self.analyzer.analyze()
-
-        self.update_vertical_pos()
-        self.update_eye_labels()
-        self.update_plot()
 
     def load_video(self):
         self.logger.info("Open file explorer")
@@ -155,7 +145,6 @@ class view_eye_blinking(QWidget):
 
             self.analyzer.reset()
             self.analyzer.set_video(self.video_file_path)
-            self.slider_framenumber.setRange(0, self.analyzer.frames_total - 1)
 
             self.button_video_analyze.setDisabled(False)
             self.checkbox_analysis.setDisabled(False)
@@ -340,7 +329,7 @@ class AnalyzeImagesThread(QThread):
                 self.analyzer.analyze()
                 self.analyzer.append_values()
 
-                self.veb.slider_framenumber.setValue(i_idx)
+                self.veb.vertical_line_pos = i_idx
                 self.veb.show_image()
                 self.veb.update_eye_labels()
                 self.veb.update_plot()
@@ -353,8 +342,8 @@ class AnalyzeImagesThread(QThread):
             for i_idx in range(self.analyzer.frames_total):
                 self.analyzer.analyze_closing(i_idx)
                 self.analyzer.set_frame_by_id(i_idx)
-                self.veb.slider_framenumber.setValue(i_idx)
 
+                self.veb.vertical_line_pos = i_idx
                 self.veb.show_image()
                 self.veb.update_eye_labels()
                 self.veb.update_plot()
