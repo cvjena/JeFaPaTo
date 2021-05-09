@@ -5,3 +5,5 @@ results.csv
 *.mp4
 .vscode
 logs
+.qt_for_python
+.idea
