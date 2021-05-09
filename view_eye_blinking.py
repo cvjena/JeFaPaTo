@@ -11,11 +11,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtMultimedia import *
 from PyQt5 import uic
 
-import matplotlib
-matplotlib.use('Qt5Agg')
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
-from matplotlib.figure import Figure
+import pyqtgraph as pg
 
 from eye_blinking_detector import EyeBlinkingDetector
 
@@ -65,8 +61,22 @@ class view_eye_blinking(QWidget):
         self.view_eye_right: QLabel = self.findChild(QLabel, "view_eye_right")
         
         # plotting
-        self.evaluation_plot = MplCanvas(self, width=10, height=5, dpi=100)
-        self.evaluation_plot.axes.plot([], [])
+        # self.evaluation_plot = MplCanvas(self, width=10, height=5, dpi=100)
+        # self.evaluation_plot.axes.plot([], [])
+        self.evaluation_plot = pg.PlotWidget()
+        self.curve_left_eye:  pg.PlotDataItem = self.evaluation_plot.plot()
+        self.curve_right_eye: pg.PlotDataItem = self.evaluation_plot.plot()
+
+        self.curve_left_eye.setPen(pg.mkPen(pg.mkColor(0, 0, 255)))
+        self.curve_right_eye.setPen(pg.mkPen(pg.mkColor(255, 0, 0)))
+
+        self.vertical_line_pos: int = 0
+        self.horizontal_line_pos: float = float(self.edit_threshold.text())
+
+        self.vertical_line: pg.InfiniteLine = pg.InfiniteLine(self.vertical_line_pos)
+        self.horizontal_line: pg.InfiniteLine = pg.InfiniteLine(self.horizontal_line_pos, angle=0)
+        self.evaluation_plot.addItem(self.vertical_line)
+        self.evaluation_plot.addItem(self.horizontal_line)
 
         self.vlayout_left: QVBoxLayout = self.findChild(QVBoxLayout, "vlayout_left")
         self.vlayout_left.addWidget(self.evaluation_plot)
@@ -84,17 +94,11 @@ class view_eye_blinking(QWidget):
         
         self.slider_framenumber.sliderMoved.connect(self.set_position)
         self.slider_framenumber.sliderPressed.connect(self.set_position)
+        self.slider_framenumber.valueChanged.connect(self.update_vertical_pos)
 
         # disable analyse button and check box
         self.button_video_analyze.setDisabled(True)
         self.checkbox_analysis.setDisabled(True)
-
-        # load the default value for the threshhold
-        # check is not necessary as we have set the value in the 
-        # UI file
-        # FIXME set the default values in extra config file rather than UI file
-        self.evaluation_plot.set_yline(float(self.edit_threshold.text()))
-        self.evaluation_plot.plot()
 
         self.show_image()
 
@@ -107,10 +111,10 @@ class view_eye_blinking(QWidget):
         self.label_eye_right.setText(self.eye_blinking_detector.get_eye_right())
 
     def update_plot(self):
-        self.evaluation_plot.set_eye_data("left", self.analyzer.areas_left)
-        self.evaluation_plot.set_eye_data("right", self.analyzer.areas_right)
-        self.evaluation_plot.set_xline(self.slider_framenumber.value())
-        self.evaluation_plot.plot()
+        self.curve_left_eye.setData(self.analyzer.areas_left)
+        self.curve_right_eye.setData(self.analyzer.areas_right)
+        self.vertical_line.setPos(self.vertical_line_pos)
+        self.horizontal_line.setPos(self.horizontal_line_pos)
 
     def change_threshold(self):
         try:
@@ -118,16 +122,24 @@ class view_eye_blinking(QWidget):
             self.eye_blinking_detector.set_threshold(input_value)
             if self.analyzer.has_run():
                 self.button_video_analyze.setText("Erneut Analysieren")
-            self.evaluation_plot.set_yline(input_value)
-            self.evaluation_plot.plot()
+
+            self.analyzer.threshold = input_value
+            self.horizontal_line_pos = input_value
+
+            self.update_plot()
+            
         except ValueError:
             self.edit_threshold.setText("Ungültige Zahl")
+
+    def update_vertical_pos(self):
+        self.vertical_line_pos = self.slider_framenumber.value()
 
     def set_position(self):
         # load the new frame by the given slider id
         self.analyzer.set_frame_by_id(self.slider_framenumber.value())
         self.analyzer.analyze()
 
+        self.update_vertical_pos()
         self.update_eye_labels()
         self.update_plot()
 
@@ -187,6 +199,8 @@ class Analyzer():
         self.video = None
         self.frames_per_second = -1
         self.frames_total = -1
+
+        self.threshold: float = 2.0
 
         self.current_frame: np.ndarray = np.zeros((480, 640, 3), dtype=np.uint8)
         self.current_face:  np.ndarray = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -300,51 +314,6 @@ class Analyzer():
         self.results_file.close()
 
 
-class MplCanvas(FigureCanvasQTAgg):
-
-    def __init__(self, parent=None, width=5, height=4, dpi=100):
-        self.fig = Figure(figsize=(width, height), dpi=dpi)
-        self.axes = self.fig.add_subplot(111)
-        super(MplCanvas, self).__init__(self.fig)
-
-        self.x_line: int = None
-        self.y_line: int = None
-        self.data_eye_left = []
-        self.data_eye_right = []
-
-    def set_eye_data(self, eye:str, data):
-        if eye=="left":
-            self.data_eye_left = data
-        else:
-            self.data_eye_right = data
-
-    def set_xline(self, x_value):
-        self.x_line = x_value
-
-    def set_yline(self, y_value):
-        self.y_line = y_value
-    
-    def plot(self):
-        self.axes.clear()
-
-        x_left = list(range(0, len(self.data_eye_left)))
-        x_right = list(range(0, len(self.data_eye_right)))
-
-        self.axes.plot(x_left, self.data_eye_left, c="blue")
-        self.axes.plot(x_right, self.data_eye_right, c="red")
-
-        if not self.x_line is None:
-            self.axes.axvline(self.x_line)
-        if not self.y_line is None:
-            self.axes.axhline(self.y_line)
-
-        self.axes.set_ylim(0, 6)
-
-        self.draw()
-    
-    def clear(self):
-        self.axes.clear()
-
 class AnalyzeImagesThread(QThread):
     def __init__(self, veb: view_eye_blinking) -> None:
         super().__init__()
@@ -374,12 +343,8 @@ class AnalyzeImagesThread(QThread):
                 self.veb.slider_framenumber.setValue(i_idx)
                 self.veb.show_image()
                 self.veb.update_eye_labels()
+                self.veb.update_plot()
 
-                # FIXME Updating the plot takes most of the time during this calculation...
-                if i_idx % 5 == 0:
-                    self.veb.update_plot()
-
-            #self.veb.update_plot()
             self.analyzer.set_run()
 
         else:
@@ -392,7 +357,7 @@ class AnalyzeImagesThread(QThread):
 
                 self.veb.show_image()
                 self.veb.update_eye_labels()
-                #self.veb.update_plot()
+                self.veb.update_plot()
 
         self.analyzer.save_results()
         self.veb.button_video_analyze.setText("Video Analysieren")
