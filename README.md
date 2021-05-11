@@ -1,6 +1,8 @@
 # JeFaPaTo
 
 ## TODOs:
+- license:
+  - [ ] GPL-v2/v3
 
 - colors:
   - [X] red  -> right
