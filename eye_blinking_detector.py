@@ -69,11 +69,10 @@ class EyeBlinkingDetector():
 
         self.scale_factor = 0.3
 
-        self.img_face: np.ndarray = np.ones((100, 100, 3), dtype=np.uint8)
-
         self.eye_left_slice: slice = slice(42, 48)
         self.eye_right_slice: slice = slice(36, 42)
 
+        self.img_face: np.ndarray = np.ones((100, 100, 3), dtype=np.uint8)
         self.img_eye_left:  np.ndarray = np.ones((50, 50, 3), dtype=np.uint8)
         self.img_eye_right: np.ndarray = np.ones((50, 50, 3), dtype=np.uint8)
 
@@ -92,6 +91,10 @@ class EyeBlinkingDetector():
         gray_sc = cv2.resize(gray, (int(image.shape[1] * self.scale_factor), int(image.shape[0] * self.scale_factor)), interpolation=cv2.INTER_LINEAR)
         # detect faces in the grayscale image
         rects = self.detector(gray_sc, 1)
+
+        region_left = 0
+        region_right = 0
+        eye_distance = 1
 
         # loop over the face detections
         for i, rect in enumerate(rects):

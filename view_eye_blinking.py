@@ -1,9 +1,7 @@
-import os
+
 import numpy as np
-import dlib
 import cv2
-import shutil
-import sys
+import logging
 
 from pathlib import Path
 
@@ -26,18 +24,9 @@ class view_eye_blinking(QWidget):
     def __init__(self):
         super().__init__()
         # ==============================================================================================================
-        
         ## PROPERTIES
-
         self.current_image: np.ndarray = None
         self.video_file_path: Path = None
-
-        # create the tmp folder if it does not exists
-        self.extract_folder = Path("tmp")
-        self.extract_folder.mkdir(parents=True, exist_ok=True)
-
-        self.image_paths = []
-        self.video_fps = None
 
         self.results_file = None
         self.results_file_path: Path = Path("results.csv")
@@ -46,54 +35,59 @@ class view_eye_blinking(QWidget):
         self.disply_width = 640
         self.display_height = 480
 
+        self.logger = logging.getLogger("eyeBlinkingDetection")
         # ==============================================================================================================
-
         ## GUI ELEMENTS
         uic.loadUi("ui/view_eye_blinking.ui", self)
 
         # label
-        self.label_eye_left  = self.findChild(QLabel, "label_eye_left")
-        self.label_eye_right = self.findChild(QLabel, "label_eye_right")
-        self.label_framenumber = self.findChild(QLabel, "label_framenumber")
+        self.label_eye_left:    QLabel = self.findChild(QLabel, "label_eye_left")
+        self.label_eye_right:   QLabel = self.findChild(QLabel, "label_eye_right")
+        self.label_framenumber: QLabel = self.findChild(QLabel, "label_framenumber")
 
         # edits
-        self.edit_threshold = self.findChild(QLineEdit, "edit_threshhold")
-        self.edit_threshold.editingFinished.connect(self.change_threshold)
+        self.edit_threshold: QLineEdit = self.findChild(QLineEdit, "edit_threshhold")
 
         # checkboxes
-        self.checkbox_analysis: QCheckBox= self.findChild(QCheckBox, "checkbox_analysis")
+        self.checkbox_analysis: QCheckBox = self.findChild(QCheckBox, "checkbox_analysis")
         
         # buttons
-        self.button_video_load = self.findChild(QPushButton, "button_video_load")
-        self.button_video_analyze = self.findChild(QPushButton, "button_video_analyze")
-
-        self.button_video_load.clicked.connect(self.load_video)
-        self.button_video_analyze.clicked.connect(self.start_anaysis)
+        self.button_video_load:    QPushButton = self.findChild(QPushButton, "button_video_load")
+        self.button_video_analyze: QPushButton = self.findChild(QPushButton, "button_video_analyze")
 
         # sliders
-        self.slider_framenumber = self.findChild(QSlider, "slider_framenumber")
-        self.slider_framenumber.sliderMoved.connect(self.set_position)
-        self.slider_framenumber.sliderPressed.connect(self.set_position)
+        self.slider_framenumber: QSlider = self.findChild(QSlider, "slider_framenumber")
 
         # images
-        self.view_video = self.findChild(QLabel, "view_video")
-        self.view_face  = self.findChild(QLabel, "view_face")
-        self.view_eye_left  = self.findChild(QLabel, "view_eye_left")
-        self.view_eye_right = self.findChild(QLabel, "view_eye_right")
+        self.view_video:     QLabel = self.findChild(QLabel, "view_video")
+        self.view_face:      QLabel = self.findChild(QLabel, "view_face")
+        self.view_eye_left:  QLabel = self.findChild(QLabel, "view_eye_left")
+        self.view_eye_right: QLabel = self.findChild(QLabel, "view_eye_right")
         
         # plotting
         self.evaluation_plot = MplCanvas(self, width=10, height=5, dpi=100)
         self.evaluation_plot.axes.plot([], [])
 
-        self.vlayout_left = self.findChild(QVBoxLayout, "vlayout_left")
+        self.vlayout_left: QVBoxLayout = self.findChild(QVBoxLayout, "vlayout_left")
         self.vlayout_left.addWidget(self.evaluation_plot)
 
         # ==============================================================================================================
-
         ## INITIALIZATION ROUTINES
-
         self.eye_blinking_detector = EyeBlinkingDetector(float(self.edit_threshold.text()))
         self.analyzer = Analyzer(self, self.eye_blinking_detector)
+
+        # connect the functions
+        self.button_video_load.clicked.connect(self.load_video)
+        self.button_video_analyze.clicked.connect(self.start_anaysis)
+
+        self.edit_threshold.editingFinished.connect(self.change_threshold)
+        
+        self.slider_framenumber.sliderMoved.connect(self.set_position)
+        self.slider_framenumber.sliderPressed.connect(self.set_position)
+
+        # disable analyse button and check box
+        self.button_video_analyze.setDisabled(True)
+        self.checkbox_analysis.setDisabled(True)
 
         # load the default value for the threshhold
         # check is not necessary as we have set the value in the 
@@ -102,12 +96,7 @@ class view_eye_blinking(QWidget):
         self.evaluation_plot.set_yline(float(self.edit_threshold.text()))
         self.evaluation_plot.plot()
 
-        if (self.extract_folder / "frame_00000000.png").is_file():
-            self.show_image()
-
-            # set slider
-            self.slider_framenumber.setRange(0, len(self.image_paths) - 1)
-            self.slider_framenumber.setSliderPosition(0)
+        self.show_image()
 
     def start_anaysis(self):
         self.thread_analyze = AnalyzeImagesThread(self)
@@ -120,69 +109,54 @@ class view_eye_blinking(QWidget):
     def update_plot(self):
         self.evaluation_plot.set_eye_data("left", self.analyzer.areas_left)
         self.evaluation_plot.set_eye_data("right", self.analyzer.areas_right)
+        self.evaluation_plot.set_xline(self.slider_framenumber.value())
         self.evaluation_plot.plot()
 
     def change_threshold(self):
         try:
             input_value = float(self.edit_threshold.text())
             self.eye_blinking_detector.set_threshold(input_value)
-            self.button_video_analyze.setText("Erneut Analysieren")
+            if self.analyzer.has_run():
+                self.button_video_analyze.setText("Erneut Analysieren")
             self.evaluation_plot.set_yline(input_value)
             self.evaluation_plot.plot()
         except ValueError:
             self.edit_threshold.setText("Ungültige Zahl")
 
     def set_position(self):
-        self.show_image(self.slider_framenumber.value())
-        self.analyzer.analyze(self.current_image)
+        # load the new frame by the given slider id
+        self.analyzer.set_frame_by_id(self.slider_framenumber.value())
+        self.analyzer.analyze()
+
         self.update_eye_labels()
+        self.update_plot()
 
-        self.evaluation_plot.set_xline(self.slider_framenumber.value())
-        self.evaluation_plot.plot()
-
-    def load_video(self, ):
-        print('load video from file')
+    def load_video(self):
+        self.logger.info("Open file explorer")
         fileName, _ = QFileDialog.getOpenFileName(self, "Select video file",
                                                   ".", "Video Files (*.mp4 *.flv *.ts *.mts *.avi)")
 
         if fileName != '':
+            self.logger.info(f"Load video file: {fileName}")
             self.video_file_path = Path(fileName)
             self.results_file_path = self.video_file_path.parent / (self.video_file_path.stem + ".csv")
 
             self.analyzer.reset()
-            print('remove existing files ... ')
-            existing_files = self.extract_folder.glob('*')
-            for f in existing_files:
-                os.remove(f)
-            self.extract_video()
+            self.analyzer.set_video(self.video_file_path)
+            self.slider_framenumber.setRange(0, self.analyzer.frames_total - 1)
 
-    @pyqtSlot(list)
-    def extract_video(self):
-        if os.path.isdir(self.extract_folder):
-            shutil.rmtree(self.extract_folder, ignore_errors=True)
-            os.mkdir(self.extract_folder)
+            self.button_video_analyze.setDisabled(False)
+            self.checkbox_analysis.setDisabled(False)
+        else:
+            self.logger.info(f"No video file was selected")
 
-        self.extract_thread = ExtractImagesThread(self)
-        self.extract_thread.image_paths_signal.connect(self.show_image)
-        self.extract_thread.start()
+    def show_image(self):
+        img_frame: QPixmap     = self.convert_cv_qt(self.analyzer.current_frame, self.disply_width, self.display_height)
+        img_face: QPixmap      = self.convert_cv_qt(self.analyzer.current_face, 200, 200)
+        img_eye_left: QPixmap  = self.convert_cv_qt(self.analyzer.current_eye_left, 100, 100)
+        img_eye_right: QPixmap = self.convert_cv_qt(self.analyzer.current_eye_right, 100, 100)
 
-    def show_image(self, image_id=0):
-
-        # load the extracted frames as no new video has been loaded yet
-        if len(self.image_paths) == 0:
-            self.image_paths = sorted(self.extract_folder.glob('*.png'))
-
-        self.label_framenumber.setText(f"Frame Number:\t {image_id:10d}")
-
-        cv_img: np.ndarray = cv2.imread(self.image_paths[image_id].as_posix())
-        qt_img = self.convert_cv_qt(cv_img, self.disply_width, self.display_height)
-        self.view_video.setPixmap(qt_img)
-        self.current_image = cv_img
-
-        img_face: QPixmap      = self.convert_cv_qt(self.eye_blinking_detector.img_face, 200, 200)
-        img_eye_left: QPixmap  = self.convert_cv_qt(self.eye_blinking_detector.img_eye_left, 100, 100)
-        img_eye_right: QPixmap = self.convert_cv_qt(self.eye_blinking_detector.img_eye_right, 100, 100)
-
+        self.view_video.setPixmap(img_frame)
         self.view_face.setPixmap(img_face)
         self.view_eye_left.setPixmap(img_eye_left)
         self.view_eye_right.setPixmap(img_eye_right)
@@ -210,7 +184,15 @@ class Analyzer():
         self.areas_right = []
         self.eye_distance_threshold_ratios = []
 
+        self.video = None
         self.frames_per_second = -1
+        self.frames_total = -1
+
+        self.current_frame: np.ndarray = np.zeros((480, 640, 3), dtype=np.uint8)
+        self.current_face:  np.ndarray = np.zeros((100, 100, 3), dtype=np.uint8)
+        self.current_eye_left:  np.ndarray = np.zeros((50, 50, 3), dtype=np.uint8)
+        self.current_eye_right: np.ndarray = np.zeros((50, 50, 3), dtype=np.uint8)
+
         self.run_once = False
 
     def reset(self):
@@ -226,8 +208,11 @@ class Analyzer():
         self.left_closed = []
         self.right_closed = []
 
-    def analyze(self, image):
-        self.detector.detect_eye_blinking_in_image(image)
+    def analyze(self):
+        self.detector.detect_eye_blinking_in_image(self.current_frame)
+        self.current_face = self.detector.img_face
+        self.current_eye_left  = self.detector.img_eye_left
+        self.current_eye_right = self.detector.img_eye_right
 
     def analyze_closing(self, image_idx: int):
         l, r = self.detector.check_closing(
@@ -248,6 +233,43 @@ class Analyzer():
 
     def set_frames_per_second(self, value):
         self.frames_per_second = value
+
+    def set_frame_total(self, value):
+        self.veb.logger.info(f"Video contains {int(value)} frames")
+        self.frames_total = int(value)
+
+    def set_video(self, path: Path):
+        self.video = cv2.VideoCapture(path.as_posix())
+        self.set_frames_per_second(self.video.get(cv2.CAP_PROP_FPS))
+        self.set_frame_total(self.video.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    def get_current_frame(self) -> np.ndarray:
+        return self.current_frame
+
+    def set_frame_by_id(self, id: int):
+        # TODO better return if the frame is out of range
+        if not (0 <= id < self.frames_total):
+            self.veb.logger.warning(f"Frame {id} not in range of {0} to {self.frames_total}")
+            self.current_frame = np.zeros((100,100, 3), dtype=np.uint8)
+            return
+
+        # set the current frame we want to extract for the video file
+        # https://docs.opencv.org/3.4/d8/dfe/classcv_1_1VideoCapture.html#aa6480e6972ef4c00d74814ec841a2939
+        # https://docs.opencv.org/3.4/d4/d15/group__videoio__flags__base.html#gaeb8dd9c89c10a5c63c139bf7c4f5704d
+        if self.video is None:
+            self.current_frame = np.zeros((100,100, 3), dtype=np.uint8)
+            return 
+
+        self.video.set(cv2.CAP_PROP_POS_FRAMES, id)
+        success, frame = self.video.read()
+
+        # TODO same as above
+        if not success:
+            self.veb.logger.error(f"Frame {id} could not be loaded")
+            self.current_frame = np.zeros((100,100, 3), dtype=np.uint8)
+            return 
+
+        self.current_frame = frame
 
     def set_run(self):
         self.run_once = True
@@ -334,66 +356,47 @@ class AnalyzeImagesThread(QThread):
         self.wait()
 
     def run(self):
+        # Disable the button so the user cannto click it again
+        # TODO move this code rather to the gui and call it with a function!
+        # self.veb.button_video_analyze.setDisabled(True)
+        # self.veb.checkbox_analysis.setDisabled(True)
+        # self.veb.edit_threshold.setDisabled(True)
         if self.veb.checkbox_analysis.isChecked() or not self.analyzer.has_run():
+            self.veb.logger.info(f"Analyse complete video")
             # reset the values inside the analyzer
             self.analyzer.reset()
 
-            for i_idx, image in enumerate(self.veb.image_paths):
-                #print('image: ' + str(i_idx+1)+'/'+str(len(self.veb.image_paths)))
-                self.veb.show_image(i_idx)
-                self.veb.slider_framenumber.setValue(i_idx)
-
-                self.analyzer.analyze(self.veb.current_image)
+            for i_idx in range(self.analyzer.frames_total):
+                self.analyzer.set_frame_by_id(i_idx)
+                self.analyzer.analyze()
                 self.analyzer.append_values()
 
+                self.veb.slider_framenumber.setValue(i_idx)
+                self.veb.show_image()
                 self.veb.update_eye_labels()
 
+                # FIXME Updating the plot takes most of the time during this calculation...
                 if i_idx % 5 == 0:
                     self.veb.update_plot()
 
-            self.veb.update_plot()
+            #self.veb.update_plot()
             self.analyzer.set_run()
 
         else:
+            self.veb.logger.info(f"Re-analyse eye closing")
             self.analyzer.reset_closed()
-            for i_idx, image in enumerate(self.veb.image_paths):
-                self.veb.show_image(i_idx)
-                self.veb.slider_framenumber.setValue(i_idx)
+            for i_idx in range(self.analyzer.frames_total):
                 self.analyzer.analyze_closing(i_idx)
+                self.analyzer.set_frame_by_id(i_idx)
+                self.veb.slider_framenumber.setValue(i_idx)
+
+                self.veb.show_image()
                 self.veb.update_eye_labels()
+                #self.veb.update_plot()
 
         self.analyzer.save_results()
         self.veb.button_video_analyze.setText("Video Analysieren")
-
-
-class ExtractImagesThread(QThread):
-    image_paths_signal = pyqtSignal(list)
-
-    def __init__(self, veb: view_eye_blinking):
-        super().__init__()
-        self.veb = veb
-
-    def run(self):
-        self.image_paths = []
-        self.veb.button_video_analyze.setDisabled(True)
-
-        vidcap = cv2.VideoCapture(self.veb.video_file_path.as_posix())
-        success, image = vidcap.read()
-
-        self.veb.analyzer.set_frames_per_second(vidcap.get(cv2.CAP_PROP_FPS))
-
-        count = 0
-        while success:
-            image_path = self.veb.extract_folder / f"frame_{count:08d}.png"
-            cv2.imwrite(image_path.as_posix(), image)
-            self.veb.button_video_load.setText(str(count))
-            self.image_paths.append(image_path)
-            success, image = vidcap.read()
-            count += 1
-
-        print(f"Loaded all {len(self.image_paths)} frames")
-        self.image_paths.sort()
-
-        self.veb.button_video_load.setText('Open Video')
-        self.veb.button_video_analyze.setDisabled(False)
-        self.veb.slider_framenumber.setRange(0, len(self.image_paths) - 1)
+        # Re-enable the analyse button for the user
+        # self.veb.button_video_analyze.setDisabled(False)
+        # self.veb.checkbox_analysis.setDisabled(False)
+        # self.veb.edit_threshold.setDisabled(False)
