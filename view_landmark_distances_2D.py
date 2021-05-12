@@ -5,7 +5,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 
 
-class view_landmark_distances(QWidget):
+class view_landmark_distances_2D(QWidget):
     def __init__(self):
         super().__init__()
 

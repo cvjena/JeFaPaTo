@@ -26,7 +26,7 @@ class view_eye_blinking(QWidget):
         self.video_file_path: Path = None
 
         self.results_file = None
-        self.results_file_path: Path = Path("results.csv")
+        self.results_file_path: Path = Path("results_eye_blinking.csv")
         self.results_file_header = 'closed_left;closed_right;norm_eye_area_left;norm_eye_area_right\n'
 
         self.disply_width = 640
