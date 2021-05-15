@@ -13,6 +13,7 @@ from PyQt5 import uic
 
 import pyqtgraph as pg
 from pyqtgraph.GraphicsScene import mouseEvents
+from pyqtgraph.graphicsItems.ViewBox.ViewBox import ViewBox
 
 from eye_blinking_detector import EyeBlinkingDetector
 
@@ -20,6 +21,16 @@ from eye_blinking_detector import EyeBlinkingDetector
 class view_eye_blinking(QWidget):
     def __init__(self):
         super().__init__()
+
+        # we set this for all images, as we do not expect
+        # the images to be in a different orientation
+        pg.setConfigOption(
+            opt="imageAxisOrder", value="row-major"
+        )
+        pg.setConfigOption(
+            opt="background", value=pg.mkColor(255, 255, 255)
+        )
+
         # ==============================================================================================================
         ## PROPERTIES
         self.current_image: np.ndarray = None
@@ -29,7 +40,7 @@ class view_eye_blinking(QWidget):
         self.results_file_path: Path = Path("results_eye_blinking.csv")
         self.results_file_header = 'closed_left;closed_right;norm_eye_area_left;norm_eye_area_right\n'
 
-        self.disply_width = 640
+        self.disply_width   = 640
         self.display_height = 480
 
         self.eye_blinking_detector = EyeBlinkingDetector()
@@ -40,10 +51,19 @@ class view_eye_blinking(QWidget):
         ## GUI ELEMENTS
         uic.loadUi("ui/view_eye_blinking.ui", self)
 
+        # layouts
+        self.hlayout_mw:    QHBoxLayout = self.findChild(QHBoxLayout, "hlayout_mw")
+        self.vlayout_left:  QVBoxLayout = self.findChild(QVBoxLayout, "vlayout_left")
+        self.vlayout_right: QVBoxLayout = self.findChild(QVBoxLayout, "vlayout_right")
+
+        self.layout_frame:  pg.GraphicsLayoutWidget = pg.GraphicsLayoutWidget(title="Video Frame")
+        self.layout_detail: pg.GraphicsLayoutWidget = pg.GraphicsLayoutWidget()
+        self.layout_eye_left:  pg.GraphicsLayout = pg.GraphicsLayout()
+        self.layout_eye_right: pg.GraphicsLayout = pg.GraphicsLayout()
+
         # label
-        self.label_eye_left:    QLabel = self.findChild(QLabel, "label_eye_left")
-        self.label_eye_right:   QLabel = self.findChild(QLabel, "label_eye_right")
-        self.label_framenumber: QLabel = self.findChild(QLabel, "label_framenumber")
+        self.label_eye_left:  pg.LabelItem = pg.LabelItem("open")
+        self.label_eye_right: pg.LabelItem = pg.LabelItem("open")
 
         # edits
         self.edit_threshold: QLineEdit = self.findChild(QLineEdit, "edit_threshhold")
@@ -55,33 +75,77 @@ class view_eye_blinking(QWidget):
         self.button_video_load:    QPushButton = self.findChild(QPushButton, "button_video_load")
         self.button_video_analyze: QPushButton = self.findChild(QPushButton, "button_video_analyze")
 
-        # images
-        self.view_video:     QLabel = self.findChild(QLabel, "view_video")
-        self.view_face:      QLabel = self.findChild(QLabel, "view_face")
-        self.view_eye_left:  QLabel = self.findChild(QLabel, "view_eye_left")
-        self.view_eye_right: QLabel = self.findChild(QLabel, "view_eye_right")
+        # image holders
+        image_settings = {
+            "invertY": True, 
+            "lockAspect":True,
+            "enableMouse": False,
+        }
 
-        self.evaluation_plot = pg.PlotWidget()
+        self.view_frame: pg.ViewBox = pg.ViewBox(**image_settings)
+        self.view_face:  pg.ViewBox = pg.ViewBox(**image_settings)
+        self.view_image_left:  pg.ViewBox() = pg.ViewBox(**image_settings)
+        self.view_image_right: pg.ViewBox() = pg.ViewBox(**image_settings)
+        # images
+        self.image_frame:     pg.ImageItem = pg.ImageItem()
+        self.image_face:      pg.ImageItem = pg.ImageItem()
+        self.image_eye_left:  pg.ImageItem = pg.ImageItem()
+        self.image_eye_right: pg.ImageItem = pg.ImageItem()
+
+        # plotting
+        self.evaluation_plot: pg.PlotWidget   = pg.PlotWidget()
         self.curve_left_eye:  pg.PlotDataItem = self.evaluation_plot.plot()
         self.curve_right_eye: pg.PlotDataItem = self.evaluation_plot.plot()
+        self.curve_left_eye.setPen(pg.mkPen(pg.mkColor(0, 0, 255), width=2))
+        self.curve_right_eye.setPen(pg.mkPen(pg.mkColor(255, 0, 0), width=2))
 
-        self.curve_left_eye.setPen(pg.mkPen(pg.mkColor(0, 0, 255)))
-        self.curve_right_eye.setPen(pg.mkPen(pg.mkColor(255, 0, 0)))
+        bar_pen = pg.mkPen(width=2, color="k")
+        self.vertical_line:   pg.InfiniteLine = pg.InfiniteLine(self.analyzer.frame, movable=False, pen=bar_pen)
+        self.horizontal_line: pg.InfiniteLine = pg.InfiniteLine(self.analyzer.threshold, angle=0, movable=True, pen=bar_pen)
 
-        self.vertical_line: pg.InfiniteLine = pg.InfiniteLine(self.analyzer.frame, movable=True)
-        self.horizontal_line: pg.InfiniteLine = pg.InfiniteLine(self.analyzer.threshold, angle=0, movable=True)
+        # ==============================================================================================================
+        # Add widgets to layout
+        self.vlayout_left.addWidget(self.layout_frame)
+        self.vlayout_left.addWidget(self.evaluation_plot)
+        self.vlayout_right.insertWidget(0, self.layout_detail)
+        
+        self.hlayout_mw.setStretchFactor(self.vlayout_left, 4)
+        self.hlayout_mw.setStretchFactor(self.vlayout_right, 1)
+        # view the frame
+        self.layout_frame.addItem(self.view_frame)
+
+        # add the sliders to the plot
         self.evaluation_plot.addItem(self.vertical_line)
         self.evaluation_plot.addItem(self.horizontal_line)
 
-        self.vertical_line.sigDragged.connect(self.change_frame)
-        self.horizontal_line.sigDragged.connect(self.change_threshold_per_line)
+        # add the images to the image holders
+        self.view_frame.addItem(self.image_frame)
+        self.view_face.addItem(self.image_face)
+        self.view_image_left.addItem(self.image_eye_left)
+        self.view_image_right.addItem(self.image_eye_right)
 
-        self.vlayout_left: QVBoxLayout = self.findChild(QVBoxLayout, "vlayout_left")
-        self.vlayout_left.addWidget(self.evaluation_plot)
+        # setup the detail layout
+        self.layout_detail.addItem(self.view_face, row=0, col=0, rowspan=2, colspan=2)
+        self.layout_detail.addItem(self.layout_eye_left,  row=2, col=1)
+        self.layout_detail.addItem(self.layout_eye_right, row=2, col=0)
+
+        # detail right eye
+        self.layout_eye_right.addLabel(text='Right eye',     row=0, col=0)
+        self.layout_eye_right.addItem(self.view_image_right, row=1, col=0)
+        self.layout_eye_right.addItem(self.label_eye_right,  row=2, col=0)
+
+        # detail left eye
+        self.layout_eye_left.addLabel(text='Left eye',     row=0, col=0)
+        self.layout_eye_left.addItem(self.view_image_left, row=1, col=0)
+        self.layout_eye_left.addItem(self.label_eye_left,  row=2, col=0)
 
         # ==============================================================================================================
         ## INITIALIZATION ROUTINES
         # connect the functions
+        # add slot connections
+        self.vertical_line.sigDragged.connect(self.change_frame)
+        self.horizontal_line.sigDragged.connect(self.change_threshold_per_line)
+
         self.button_video_load.clicked.connect(self.load_video)
         self.button_video_analyze.clicked.connect(self.start_anaysis)
 
@@ -102,8 +166,34 @@ class view_eye_blinking(QWidget):
 
     def start_anaysis(self):
         self.thread_analyze = AnalyzeImagesThread(self)
+        self.thread_analyze.updated.connect(self.update_eye_labels)
+        self.thread_analyze.updated.connect(self.update_plot)
+        self.thread_analyze.updated.connect(self.show_image)
+
+        self.thread_analyze.started.connect(self.gui_analysis_start)
+        self.thread_analyze.finished.connect(self.gui_analysis_finished)
+
         self.thread_analyze.start()
     
+    def gui_analysis_start(self):
+        self.button_video_load.setDisabled(True)
+        self.button_video_analyze.setDisabled(True)
+        self.checkbox_analysis.setDisabled(True)
+        self.edit_threshold.setDisabled(True)
+
+        self.vertical_line.setMovable(False)
+        self.horizontal_line.setMovable(False)
+
+    def gui_analysis_finished(self):
+        self.button_video_load.setDisabled(False)
+        self.button_video_analyze.setText("Video Analysieren")
+        self.button_video_analyze.setDisabled(False)
+        self.checkbox_analysis.setDisabled(False)
+        self.edit_threshold.setDisabled(False)
+
+        self.vertical_line.setMovable(True)
+        self.horizontal_line.setMovable(True)
+
     def update_eye_labels(self):
         self.label_eye_left.setText(self.eye_blinking_detector.get_eye_left())
         self.label_eye_right.setText(self.eye_blinking_detector.get_eye_right())
@@ -152,25 +242,10 @@ class view_eye_blinking(QWidget):
             self.logger.info(f"No video file was selected")
 
     def show_image(self):
-        img_frame: QPixmap     = self.convert_cv_qt(self.analyzer.current_frame, self.disply_width, self.display_height)
-        img_face: QPixmap      = self.convert_cv_qt(self.analyzer.current_face, 200, 200)
-        img_eye_left: QPixmap  = self.convert_cv_qt(self.analyzer.current_eye_left, 100, 100)
-        img_eye_right: QPixmap = self.convert_cv_qt(self.analyzer.current_eye_right, 100, 100)
-
-        self.view_video.setPixmap(img_frame)
-        self.view_face.setPixmap(img_face)
-        self.view_eye_left.setPixmap(img_eye_left)
-        self.view_eye_right.setPixmap(img_eye_right)
-
-
-    def convert_cv_qt(self, cv_img, width, height):
-        """Convert from an opencv image to QPixmap"""
-        rgb_image = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB)
-        h, w, ch = rgb_image.shape
-        bytes_per_line = ch * w
-        convert_to_Qt_format = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888)
-        p = convert_to_Qt_format.scaled(width, height, Qt.KeepAspectRatio)
-        return QPixmap.fromImage(p)
+        self.image_frame.setImage(cv2.cvtColor(self.analyzer.current_frame, cv2.COLOR_BGR2RGB))
+        self.image_face.setImage(cv2.cvtColor(self.analyzer.current_face, cv2.COLOR_BGR2RGB))
+        self.image_eye_left.setImage(cv2.cvtColor(self.analyzer.current_eye_left, cv2.COLOR_BGR2RGB))
+        self.image_eye_right.setImage(cv2.cvtColor(self.analyzer.current_eye_right, cv2.COLOR_BGR2RGB))
 
 
 class Analyzer():
@@ -306,6 +381,10 @@ class Analyzer():
 
 
 class AnalyzeImagesThread(QThread):
+    updated: pyqtSignal = pyqtSignal()
+    started: pyqtSignal = pyqtSignal()
+    finished: pyqtSignal = pyqtSignal()
+
     def __init__(self, veb: view_eye_blinking) -> None:
         super().__init__()
         self.veb = veb
@@ -316,11 +395,7 @@ class AnalyzeImagesThread(QThread):
         self.wait()
 
     def run(self):
-        # Disable the button so the user cannto click it again
-        # TODO move this code rather to the gui and call it with a function!
-        # self.veb.button_video_analyze.setDisabled(True)
-        # self.veb.checkbox_analysis.setDisabled(True)
-        # self.veb.edit_threshold.setDisabled(True)
+        self.started.emit()
         if self.veb.checkbox_analysis.isChecked() or not self.analyzer.has_run():
             self.veb.logger.info(f"Analyse complete video")
             # reset the values inside the analyzer
@@ -331,9 +406,7 @@ class AnalyzeImagesThread(QThread):
                 self.analyzer.analyze()
                 self.analyzer.append_values()
 
-                self.veb.show_image()
-                self.veb.update_eye_labels()
-                self.veb.update_plot()
+                self.updated.emit()
 
             self.analyzer.set_run()
 
@@ -344,13 +417,7 @@ class AnalyzeImagesThread(QThread):
                 self.analyzer.analyze_closing(i_idx)
                 self.analyzer.set_frame_by_id(i_idx)
 
-                self.veb.show_image()
-                self.veb.update_eye_labels()
-                self.veb.update_plot()
+                self.updated.emit()
 
         self.analyzer.save_results()
-        self.veb.button_video_analyze.setText("Video Analysieren")
-        # Re-enable the analyse button for the user
-        # self.veb.button_video_analyze.setDisabled(False)
-        # self.veb.checkbox_analysis.setDisabled(False)
-        # self.veb.edit_threshold.setDisabled(False)
+        self.finished.emit()
