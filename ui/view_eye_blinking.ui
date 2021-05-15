@@ -42,7 +42,7 @@
         <widget class="QPushButton" name="button_video_load">
          <property name="maximumSize">
           <size>
-           <width>200</width>
+           <width>16777215</width>
            <height>16777215</height>
           </size>
          </property>
@@ -73,7 +73,7 @@
         <widget class="QPushButton" name="button_video_analyze">
          <property name="maximumSize">
           <size>
-           <width>200</width>
+           <width>16777215</width>
            <height>16777215</height>
           </size>
          </property>
@@ -93,8 +93,8 @@
         <widget class="QLabel" name="label_10">
          <property name="maximumSize">
           <size>
-           <width>200</width>
-           <height>40</height>
+           <width>16777215</width>
+           <height>16777215</height>
           </size>
          </property>
          <property name="text">
@@ -112,7 +112,7 @@
          </property>
          <property name="maximumSize">
           <size>
-           <width>200</width>
+           <width>16777215</width>
            <height>16777215</height>
           </size>
          </property>
