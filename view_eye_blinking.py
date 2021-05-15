@@ -1,15 +1,20 @@
 
+from typing import List, Optional
 import numpy as np
 import cv2
 import logging
+
+import time
+from queue import Queue
+from threading import Thread
 
 from pathlib import Path
 
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
-from PyQt5.QtGui import *
+from PyQt5.QtGui import * #type: ignore
 from PyQt5.QtMultimedia import *
-from PyQt5 import uic
+from PyQt5 import uic # type: ignore
 
 import pyqtgraph as pg
 from pyqtgraph.GraphicsScene import mouseEvents
@@ -165,13 +170,17 @@ class view_eye_blinking(QWidget):
         self.show_image()
 
     def start_anaysis(self):
-        self.thread_analyze = AnalyzeImagesThread(self)
-        self.thread_analyze.updated.connect(self.update_eye_labels)
-        self.thread_analyze.updated.connect(self.update_plot)
-        self.thread_analyze.updated.connect(self.show_image)
 
-        self.thread_analyze.started.connect(self.gui_analysis_start)
-        self.thread_analyze.finished.connect(self.gui_analysis_finished)
+        thread_load = AnalyzeImageLoaderThread(self)
+        thread_load.start()
+
+        self.thread_analyze = AnalyzeImagesThread(self)
+        self.thread_analyze.analysisUpdated.connect(self.update_eye_labels)
+        self.thread_analyze.analysisUpdated.connect(self.update_plot)
+        self.thread_analyze.analysisUpdated.connect(self.show_image)
+
+        self.thread_analyze.analysisStarted.connect(self.gui_analysis_start)
+        self.thread_analyze.analysisFinished.connect(self.gui_analysis_finished)
 
         self.thread_analyze.start()
     
@@ -245,19 +254,17 @@ class view_eye_blinking(QWidget):
         self.image_face.setImage(cv2.cvtColor(self.analyzer.current_face, cv2.COLOR_BGR2RGB))
         self.image_eye_left.setImage(cv2.cvtColor(self.analyzer.current_eye_left, cv2.COLOR_BGR2RGB))
         self.image_eye_right.setImage(cv2.cvtColor(self.analyzer.current_eye_right, cv2.COLOR_BGR2RGB))
-
-
+        
 class Analyzer():
     def __init__(self, veb: view_eye_blinking, detector: EyeBlinkingDetector) -> None:
         self.veb = veb
         self.detector = detector
         
-        self.left_closed = []
-        self.right_closed = []
+        self.left_closed: List  = []
+        self.right_closed: List = []
 
-        self.areas_left = []
-        self.areas_right = []
-        self.eye_distance_threshold_ratios = []
+        self.areas_left: List  = []
+        self.areas_right: List = []
 
         self.video: cv2.VideoCapture = None
         self.frames_per_second = -1
@@ -266,6 +273,8 @@ class Analyzer():
         self.threshold: float = 0.2
         self.frame: int = 0
 
+        self.frame_queue: Queue = Queue(maxsize=0)
+
         self.current_frame: np.ndarray = np.zeros((480, 640, 3), dtype=np.uint8)
         self.current_face:  np.ndarray = np.zeros((100, 100, 3), dtype=np.uint8)
         self.current_eye_left:  np.ndarray = np.zeros((50, 50, 3), dtype=np.uint8)
@@ -273,18 +282,16 @@ class Analyzer():
 
         self.run_once = False
 
-    def reset(self):
-        self.run_once = False
+    def reset(self, reset_only_closing: Optional[bool]=False):
         self.left_closed = []
         self.right_closed = []
 
+        if reset_only_closing:
+            return
+
+        self.run_once = False
         self.areas_left = []
         self.areas_right = []
-        self.eye_distance_threshold_ratios = []
-
-    def reset_closed(self):
-        self.left_closed = []
-        self.right_closed = []
 
     def analyze(self):
         self.detector.detect_eye_blinking_in_image(self.current_frame, self.threshold)
@@ -296,7 +303,6 @@ class Analyzer():
         l, r = self.detector.check_closing(
             score_left=self.areas_left[image_idx], 
             score_right=self.areas_right[image_idx],
-            eye_distance=self.eye_distance_threshold_ratios[image_idx],
             threshold=self.threshold
         )
         self.left_closed.append(l)
@@ -308,7 +314,6 @@ class Analyzer():
 
         self.areas_left.append(self.detector.left_eye_closing_norm_area)
         self.areas_right.append(self.detector.right_eye_closing_norm_area)
-        self.eye_distance_threshold_ratios.append(self.detector.eye_distance_threshold_ratio)
 
     def set_frames_per_second(self, value):
         self.frames_per_second = value
@@ -336,8 +341,8 @@ class Analyzer():
             return
         self.frame = id
         # set the current frame we want to extract for the video file
-        # https://docs.opencv.org/3.4/d8/dfe/classcv_1_1VideoCapture.html#aa6480e6972ef4c00d74814ec841a2939
-        # https://docs.opencv.org/3.4/d4/d15/group__videoio__flags__base.html#gaeb8dd9c89c10a5c63c139bf7c4f5704d
+        # https://docs.opencv.org/4.5.1/d8/dfe/classcv_1_1VideoCapture.html#aa6480e6972ef4c00d74814ec841a2939
+        # https://docs.opencv.org/4.5.1/d4/d15/group__videoio__flags__base.html#gaeb8dd9c89c10a5c63c139bf7c4f5704d
         if self.video is None:
             self.current_frame = np.zeros((100,100, 3), dtype=np.uint8)
             return 
@@ -381,11 +386,31 @@ class Analyzer():
             self.results_file.write(line)
         self.results_file.close()
 
+class AnalyzeImageLoaderThread(Thread):
+    def __init__(self, veb: view_eye_blinking) -> None:
+        super().__init__()
+        self.veb = veb
+        self.analyzer: Analyzer = self.veb.analyzer
+        self.stopped = False
+
+    def run(self):
+        self.analyzer.video.set(cv2.CAP_PROP_POS_FRAMES, 0)
+        while True:
+            if self.stopped:
+                return
+            
+            if not self.analyzer.frame_queue.full():
+                (grabbed, frame) = self.analyzer.video.read()
+                
+                if not grabbed:
+                    return
+
+                self.analyzer.frame_queue.put(frame)
 
 class AnalyzeImagesThread(QThread):
-    updated: pyqtSignal = pyqtSignal()
-    started: pyqtSignal = pyqtSignal()
-    finished: pyqtSignal = pyqtSignal()
+    analysisUpdated:  pyqtSignal = pyqtSignal()
+    analysisStarted:  pyqtSignal = pyqtSignal()
+    analysisFinished: pyqtSignal = pyqtSignal()
 
     def __init__(self, veb: view_eye_blinking) -> None:
         super().__init__()
@@ -397,29 +422,30 @@ class AnalyzeImagesThread(QThread):
         self.wait()
 
     def run(self):
-        self.started.emit()
-        if self.veb.checkbox_analysis.isChecked() or not self.analyzer.has_run():
-            self.veb.logger.info(f"Analyse complete video")
-            # reset the values inside the analyzer
-            self.analyzer.reset()
+        self.analysisStarted.emit()
+        self.veb.logger.info(f"Analyse complete video")
+        # reset the values inside the analyzer
 
-            for i_idx in range(self.analyzer.frames_total):
-                self.analyzer.set_frame_by_id(i_idx)
-                self.analyzer.analyze()
-                self.analyzer.append_values()
+        complete_run: bool = self.veb.checkbox_analysis.isChecked() or not self.analyzer.has_run()
+        self.analyzer.reset(reset_only_closing=(not complete_run))
 
-                self.updated.emit()
+        processed = 0
 
-            self.analyzer.set_run()
+        while processed < self.analyzer.frames_total:
+            if self.analyzer.frame_queue.qsize() > 0:
+                self.analyzer.current_frame = self.analyzer.frame_queue.get_nowait()
+                self.analyzer.frame_queue.task_done()
+                if complete_run:
+                    self.analyzer.analyze()
+                    self.analyzer.append_values()
+                else:
+                    self.analyzer.analyze_closing(processed)
+                self.analysisUpdated.emit()
+                self.analyzer.frame = processed
+                processed += 1
 
-        else:
-            self.veb.logger.info(f"Re-analyse eye closing")
-            self.analyzer.reset_closed()
-            for i_idx in range(self.analyzer.frames_total):
-                self.analyzer.analyze_closing(i_idx)
-                self.analyzer.set_frame_by_id(i_idx)
-
-                self.updated.emit()
+        self.analysisUpdated.emit()
+        self.analyzer.set_run()
 
         self.analyzer.save_results()
-        self.finished.emit()
+        self.analysisFinished.emit()
