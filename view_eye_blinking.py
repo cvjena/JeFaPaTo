@@ -217,7 +217,6 @@ class view_eye_blinking(QWidget):
         self.change_threshold()
 
     def change_threshold(self):
-        self.eye_blinking_detector.set_threshold(self.analyzer.threshold)
         self.edit_threshold.setText(f"{self.analyzer.threshold:8.2f}".strip())
         if self.analyzer.has_run():
             self.button_video_analyze.setText("Erneut Analysieren")
@@ -260,11 +259,11 @@ class Analyzer():
         self.areas_right = []
         self.eye_distance_threshold_ratios = []
 
-        self.video = None
+        self.video: cv2.VideoCapture = None
         self.frames_per_second = -1
         self.frames_total = -1
 
-        self.threshold: float = 2.0
+        self.threshold: float = 0.2
         self.frame: int = 0
 
         self.current_frame: np.ndarray = np.zeros((480, 640, 3), dtype=np.uint8)
@@ -295,8 +294,8 @@ class Analyzer():
 
     def analyze_closing(self, image_idx: int):
         l, r = self.detector.check_closing(
-            region_left=self.areas_left[image_idx], 
-            region_right=self.areas_right[image_idx],
+            score_left=self.areas_left[image_idx], 
+            score_right=self.areas_right[image_idx],
             eye_distance=self.eye_distance_threshold_ratios[image_idx],
             threshold=self.threshold
         )
@@ -319,6 +318,9 @@ class Analyzer():
         self.frames_total = int(value)
 
     def set_video(self, path: Path):
+        if self.video is not None:
+            self.video.release()
+
         self.video = cv2.VideoCapture(path.as_posix())
         self.set_frames_per_second(self.video.get(cv2.CAP_PROP_FPS))
         self.set_frame_total(self.video.get(cv2.CAP_PROP_FRAME_COUNT))
