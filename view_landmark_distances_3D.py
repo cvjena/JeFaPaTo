@@ -134,6 +134,7 @@ class view_landmark_distances_3D(QWidget):
             self.logger.info(f"Load landmark file: {fileName}")
             self.landmark_file_path = Path(fileName)
             self.results_file_path = self.landmark_file_path.parent / (self.landmark_file_path.stem + ".csv")
+            self.results_file_header = 'left distance (' + str(self.lineEdit_idx1_left.text()) + ',' + str(self.lineEdit_idx2_left.text()) + ');right distance ('  + str(self.lineEdit_idx1_right.text()) + ',' + str(self.lineEdit_idx2_right.text()) + ')\n'
 
             self.analyzer.reset()
             self.analyzer.set_landmark_file_path(self.landmark_file_path)

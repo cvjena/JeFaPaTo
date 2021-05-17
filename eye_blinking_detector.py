@@ -47,6 +47,8 @@ class EyeBlinkingDetector():
         # initialize dlib's face detector (HOG-based) and then create
         # the facial landmark predictor
         self.shape_predictor_file = './data/shape_predictor_68_face_landmarks.dat'
+        #self.shape_predictor_file = './data/mee_shape_predictor_68_face_landmarks.dat'
+        
         self.detector  = dlib.get_frontal_face_detector()
         self.predictor = dlib.shape_predictor(self.shape_predictor_file)
 
