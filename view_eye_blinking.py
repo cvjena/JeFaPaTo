@@ -1,12 +1,7 @@
-
-from typing import List, Optional
+from typing import Callable, List, Optional, Any, Tuple, Union, Type
 import numpy as np
 import cv2
 import logging
-
-import time
-from queue import Queue
-from threading import Thread
 
 from pathlib import Path
 
@@ -17,11 +12,6 @@ from PyQt5.QtMultimedia import *
 from PyQt5 import uic # type: ignore
 
 import pyqtgraph as pg
-from pyqtgraph.GraphicsScene import mouseEvents
-from pyqtgraph.graphicsItems.ViewBox.ViewBox import ViewBox
-
-from eye_blinking_detector import EyeBlinkingDetector
-
 
 class view_eye_blinking(QWidget):
     def __init__(self):
@@ -41,15 +31,8 @@ class view_eye_blinking(QWidget):
         self.current_image: np.ndarray = None
         self.video_file_path: Path = None
 
-        self.results_file = None
-        self.results_file_path: Path = Path("results_eye_blinking.csv")
-        self.results_file_header = 'closed_left;closed_right;norm_eye_area_left;norm_eye_area_right\n'
-
         self.disply_width   = 640
         self.display_height = 480
-
-        self.eye_blinking_detector = EyeBlinkingDetector()
-        self.analyzer = Analyzer(self, self.eye_blinking_detector)
 
         self.logger = logging.getLogger("eyeBlinkingDetection")
         # ==============================================================================================================
@@ -105,8 +88,8 @@ class view_eye_blinking(QWidget):
         self.curve_right_eye.setPen(pg.mkPen(pg.mkColor(255, 0, 0), width=2))
 
         bar_pen = pg.mkPen(width=2, color="k")
-        self.vertical_line:   pg.InfiniteLine = pg.InfiniteLine(self.analyzer.frame, movable=False, pen=bar_pen)
-        self.horizontal_line: pg.InfiniteLine = pg.InfiniteLine(self.analyzer.threshold, angle=0, movable=True, pen=bar_pen)
+        self.indicator_frame: pg.InfiniteLine = pg.InfiniteLine(0, movable=False, pen=bar_pen)
+        self.indicator_threshold: pg.InfiniteLine = pg.InfiniteLine(0.2, angle=0, movable=True, pen=bar_pen)
 
         # ==============================================================================================================
         # Add widgets to layout
@@ -120,8 +103,8 @@ class view_eye_blinking(QWidget):
         self.layout_frame.addItem(self.view_frame)
 
         # add the sliders to the plot
-        self.evaluation_plot.addItem(self.vertical_line)
-        self.evaluation_plot.addItem(self.horizontal_line)
+        self.evaluation_plot.addItem(self.indicator_frame)
+        self.evaluation_plot.addItem(self.indicator_threshold)
 
         # add the images to the image holders
         self.view_frame.addItem(self.image_frame)
@@ -148,8 +131,26 @@ class view_eye_blinking(QWidget):
         ## INITIALIZATION ROUTINES
         # connect the functions
         # add slot connections
-        self.vertical_line.sigDragged.connect(self.change_frame)
-        self.horizontal_line.sigDragged.connect(self.change_threshold_per_line)
+
+        plotting = EyeBlinkingPlotting(
+            curve_eye_left=self.curve_left_eye,
+            curve_eye_right=self.curve_right_eye,
+            label_eye_left=self.label_eye_left,
+            label_eye_right=self.label_eye_right,
+            image_frame=self.image_frame,
+            image_face=self.image_face,
+            image_eye_left=self.image_eye_left,
+            image_eye_right=self.image_eye_right,
+            indicator_frame=self.indicator_frame
+        )
+
+        self.ea = EyeBlinkingVideoAnalyser(plotting)
+
+        self.ea.connect_on_started([self.gui_analysis_start])
+        self.ea.connect_on_finished([self.gui_analysis_finished])
+        
+        self.indicator_frame.sigDragged.connect(self.display_certain_frame)
+        self.indicator_threshold.sigDragged.connect(self.change_threshold_per_line)
 
         self.button_video_load.clicked.connect(self.load_video)
         self.button_video_analyze.clicked.connect(self.start_anaysis)
@@ -160,38 +161,20 @@ class view_eye_blinking(QWidget):
         self.button_video_analyze.setDisabled(True)
         self.checkbox_analysis.setDisabled(True)
 
-        self.show_image()
-
-    def change_frame(self):
-        self.analyzer.set_frame_by_id(id=int(self.vertical_line.getPos()[0]))
-        self.analyzer.analyze()
-        self.update_eye_labels()
-        self.update_plot()
-        self.show_image()
+    def display_certain_frame(self):
+        self.ea.set_current_frame()
 
     def start_anaysis(self):
+        self.ea.analysis_start()
 
-        thread_load = AnalyzeImageLoaderThread(self)
-        thread_load.start()
-
-        self.thread_analyze = AnalyzeImagesThread(self)
-        self.thread_analyze.analysisUpdated.connect(self.update_eye_labels)
-        self.thread_analyze.analysisUpdated.connect(self.update_plot)
-        self.thread_analyze.analysisUpdated.connect(self.show_image)
-
-        self.thread_analyze.analysisStarted.connect(self.gui_analysis_start)
-        self.thread_analyze.analysisFinished.connect(self.gui_analysis_finished)
-
-        self.thread_analyze.start()
-    
     def gui_analysis_start(self):
         self.button_video_load.setDisabled(True)
         self.button_video_analyze.setDisabled(True)
         self.checkbox_analysis.setDisabled(True)
         self.edit_threshold.setDisabled(True)
 
-        self.vertical_line.setMovable(False)
-        self.horizontal_line.setMovable(False)
+        self.indicator_frame.setMovable(False)
+        self.indicator_threshold.setMovable(False)
 
     def gui_analysis_finished(self):
         self.button_video_load.setDisabled(False)
@@ -200,36 +183,25 @@ class view_eye_blinking(QWidget):
         self.checkbox_analysis.setDisabled(False)
         self.edit_threshold.setDisabled(False)
 
-        self.vertical_line.setMovable(True)
-        self.horizontal_line.setMovable(True)
-
-    def update_eye_labels(self):
-        self.label_eye_left.setText(self.eye_blinking_detector.get_eye_left())
-        self.label_eye_right.setText(self.eye_blinking_detector.get_eye_right())
-
-    def update_plot(self):
-        self.curve_left_eye.setData(self.analyzer.areas_left)
-        self.curve_right_eye.setData(self.analyzer.areas_right)
-        self.vertical_line.setPos(self.analyzer.frame)
-        self.horizontal_line.setPos(self.analyzer.threshold)
+        self.indicator_frame.setMovable(True)
+        self.indicator_threshold.setMovable(True)
 
     def change_threshold_per_edit(self):
         try:
-            self.analyzer.threshold = float(self.edit_threshold.text())
+            value: float = float(self.edit_threshold.text())
+            self.ea.set_threshold(value)
+            self.indicator_threshold.setPos(value)
         except ValueError:
-            self.edit_threshold.setText("Ungültige Zahl")    
+            self.edit_threshold.setText("Ungültige Zahl")
             return
         self.change_threshold()
 
     def change_threshold_per_line(self):
-        self.analyzer.threshold = float(self.horizontal_line.getPos()[1])
+        self.ea.set_threshold(float(self.indicator_threshold.getPos()[1]))
         self.change_threshold()
 
     def change_threshold(self):
-        self.edit_threshold.setText(f"{self.analyzer.threshold:8.2f}".strip())
-        if self.analyzer.has_run():
-            self.button_video_analyze.setText("Erneut Analysieren")
-        self.update_plot()
+        self.edit_threshold.setText(f"{self.ea.get_threshold():8.2f}".strip())
 
     def load_video(self):
         self.logger.info("Open file explorer")
@@ -239,213 +211,178 @@ class view_eye_blinking(QWidget):
         if fileName != '':
             self.logger.info(f"Load video file: {fileName}")
             self.video_file_path = Path(fileName)
-            self.results_file_path = self.video_file_path.parent / (self.video_file_path.stem + ".csv")
-
-            self.analyzer.reset()
-            self.analyzer.set_video(self.video_file_path)
-
+            
+            self.ea.set_resource_path(self.video_file_path)
             self.button_video_analyze.setDisabled(False)
             self.checkbox_analysis.setDisabled(False)
         else:
             self.logger.info(f"No video file was selected")
 
-    def show_image(self):
-        self.image_frame.setImage(cv2.cvtColor(self.analyzer.current_frame, cv2.COLOR_BGR2RGB))
-        self.image_face.setImage(cv2.cvtColor(self.analyzer.current_face, cv2.COLOR_BGR2RGB))
-        self.image_eye_left.setImage(cv2.cvtColor(self.analyzer.current_eye_left, cv2.COLOR_BGR2RGB))
-        self.image_eye_right.setImage(cv2.cvtColor(self.analyzer.current_eye_right, cv2.COLOR_BGR2RGB))
+from jefapato.analyser import VideoAnalyser
+from jefapato.feature_extractor import LandMarkFeatureExtractor, scale_bbox
+from jefapato.classifier import EyeBlinkingResult, EyeBlinkingClassifier
+
+import dlib
+
+from dataclasses import dataclass
+@dataclass
+class EyeBlinkingPlotting:
+    curve_eye_left:  pg.PlotDataItem
+    curve_eye_right: pg.PlotDataItem
+
+    label_eye_left:  pg.LabelItem
+    label_eye_right: pg.LabelItem
+
+    image_frame:     pg.ImageItem
+    image_face:      pg.ImageItem
+    image_eye_left:  pg.ImageItem
+    image_eye_right: pg.ImageItem
+
+    indicator_frame: pg.InfiniteLine
+
+class EyeBlinkingVideoAnalyser(VideoAnalyser):
+    def __init__(self, plotting: EyeBlinkingPlotting) -> None:
         
-class Analyzer():
-    def __init__(self, veb: view_eye_blinking, detector: EyeBlinkingDetector) -> None:
-        self.veb = veb
-        self.detector = detector
+        self.eye_blinking_classifier = EyeBlinkingClassifier(threshold=0.2)
+        super().__init__(
+            feature_extractor=LandMarkFeatureExtractor(), 
+            classifier=self.eye_blinking_classifier
+            )
+
+        self.results_file_header = 'closed_left;closed_right;norm_eye_area_left;norm_eye_area_right\n'
+
+        self.plotting: EyeBlinkingPlotting = plotting
+
+        self.connect_on_started([self.__on_start])
+        self.connect_on_updated([self.__on_update])
+        self.connect_on_finished([self.__on_finished])
+
+        self.score_eye_left:  List[float] = list()
+        self.score_eye_right: List[float] = list()
+
+        self.closed_eye_left:  List[bool] = list()
+        self.closed_eye_right: List[bool] = list()
+
+        self.current_frame: int = 0
+
+    def set_threshold(self, value:float):
+        self.eye_blinking_classifier.threshold = value
+    
+    def get_threshold(self) -> float:
+        return self.eye_blinking_classifier.threshold
+
+    def __on_start(self):
+        self.score_eye_left  = list()
+        self.score_eye_right = list()
+
+    def __on_update(self, frame: np.ndarray, frame_id: int):
+        # currently we only check the first one
+        # TODO make possible for more faces
+        self.current_frame = frame_id
+        latest_value: EyeBlinkingResult = self.classes[-1][0]
         
-        self.left_closed: List  = []
-        self.right_closed: List = []
+        self.score_eye_left.append(latest_value.ear_left)
+        self.score_eye_right.append(latest_value.ear_right)
 
-        self.areas_left: List  = []
-        self.areas_right: List = []
+        self.closed_eye_left.append(latest_value.closed_left)
+        self.closed_eye_right.append(latest_value.closed_right)
 
-        self.video: cv2.VideoCapture = None
-        self.frames_per_second = -1
-        self.frames_total = -1
+        # plotting of the data
+        # TODO move to extra functions for cleaner structure and easier reuse
+        self.plotting.indicator_frame.setPos(self.current_frame)
 
-        self.threshold: float = 0.2
-        self.frame: int = 0
+        self.plotting.curve_eye_left.setData(self.score_eye_left)
+        self.plotting.curve_eye_right.setData(self.score_eye_right)
 
-        self.frame_queue: Queue = Queue(maxsize=0)
+        self.plot_label()
 
-        self.current_frame: np.ndarray = np.zeros((480, 640, 3), dtype=np.uint8)
-        self.current_face:  np.ndarray = np.zeros((100, 100, 3), dtype=np.uint8)
-        self.current_eye_left:  np.ndarray = np.zeros((50, 50, 3), dtype=np.uint8)
-        self.current_eye_right: np.ndarray = np.zeros((50, 50, 3), dtype=np.uint8)
+        # TODO plotting of the frame and extracted faces
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        rect, shape = self.features[-1][0]
 
-        self.run_once = False
+        self.plot_frame(frame, rect, shape)
 
-    def reset(self, reset_only_closing: Optional[bool]=False):
-        self.left_closed = []
-        self.right_closed = []
+    def set_current_frame(self) -> None:
+        # clip the frame into the maximum valid range
+        # cast to int, just to be sure
+        value = int(max(0, min(int(self.plotting.indicator_frame.pos()[0]), self.data_amount-1)))
+        self.plotting.indicator_frame.setPos(value) 
+        self.current_frame = value
 
-        if reset_only_closing:
+        self.set_next_item_by_id(self.current_frame)
+        (grabbed, frame) = self.get_next_item()
+
+        # TODO do something better if nothing gets grabbed
+        if not grabbed:
             return
+        
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        rect, shape = self.features[self.current_frame][0]
 
-        self.run_once = False
-        self.areas_left = []
-        self.areas_right = []
+        self.plot_label()
+        self.plot_frame(frame, rect, shape)
 
-    def analyze(self):
-        self.detector.detect_eye_blinking_in_image(self.current_frame, self.threshold)
-        self.current_face = self.detector.img_face
-        self.current_eye_left  = self.detector.img_eye_left
-        self.current_eye_right = self.detector.img_eye_right
+    def plot_label(self):
+        self.plotting.label_eye_left.setText(self.closed_text(self.closed_eye_left[self.current_frame]))
+        self.plotting.label_eye_right.setText(self.closed_text(self.closed_eye_right[self.current_frame]))
 
-    def analyze_closing(self, image_idx: int):
-        l, r = self.detector.check_closing(
-            score_left=self.areas_left[image_idx], 
-            score_right=self.areas_right[image_idx],
-            threshold=self.threshold
+    def plot_frame(self, frame: np.ndarray, rect: dlib.rectangle, shape: np.ndarray) -> None:
+        face = np.copy(frame)
+
+        eye_left  = shape[self.eye_blinking_classifier.eye_left_slice]
+        eye_right = shape[self.eye_blinking_classifier.eye_right_slice]
+        # get the outer region of the plot
+        eye_left_mean  = np.nanmean(eye_left, axis=0).astype(np.int32)
+        eye_right_mean = np.nanmean(eye_right, axis=0).astype(np.int32)
+
+        self.draw_shape(face, eye_left,  color=(0, 0, 255))
+        self.draw_shape(face, eye_right, color=(255, 0, 0))
+
+        eye_left_width  = (np.nanmax(eye_left, axis=0)[0] - np.nanmin(eye_left, axis=0)[0]) // 2
+        eye_right_width = (np.nanmax(eye_right, axis=0)[0] - np.nanmin(eye_right, axis=0)[0]) // 2
+
+        bbox_eye_left = scale_bbox(
+            bbox=dlib.rectangle(eye_left_mean[0] - eye_left_width, eye_left_mean[1] - eye_left_width, eye_left_mean[0] + eye_left_width, eye_left_mean[1] + eye_left_width,),
+            scale=1,
+            padding=-1
         )
-        self.left_closed.append(l)
-        self.right_closed.append(r)
+        bbox_eye_right = scale_bbox(
+            bbox=dlib.rectangle(eye_right_mean[0] - eye_right_width, eye_right_mean[1] - eye_right_width, eye_right_mean[0] + eye_right_width, eye_right_mean[1] + eye_right_width,),
+            scale=1,
+            padding=-1
+        )
+        img_eye_left  = face[bbox_eye_left.top():bbox_eye_left.bottom(), bbox_eye_left.left():bbox_eye_left.right()]
+        img_eye_right = face[bbox_eye_right.top():bbox_eye_right.bottom(), bbox_eye_right.left():bbox_eye_right.right()]
+        face = face[rect.top():rect.bottom(), rect.left():rect.right()]
 
-    def append_values(self):
-        self.left_closed.append(self.detector.left_closed)
-        self.right_closed.append(self.detector.right_closed)
+        self.plotting.image_frame.setImage(frame)
+        self.plotting.image_face.setImage(face)
+        self.plotting.image_eye_left.setImage(img_eye_left)
+        self.plotting.image_eye_right.setImage(img_eye_right)
 
-        self.areas_left.append(self.detector.left_eye_closing_norm_area)
-        self.areas_right.append(self.detector.right_eye_closing_norm_area)
+    def closed_text(self, value: bool) -> str:
+        return "closed" if value else "open"
 
-    def set_frames_per_second(self, value):
-        self.frames_per_second = value
-
-    def set_frame_total(self, value):
-        self.veb.logger.info(f"Video contains {int(value)} frames")
-        self.frames_total = int(value)
-
-    def set_video(self, path: Path):
-        if self.video is not None:
-            self.video.release()
-
-        self.video = cv2.VideoCapture(path.as_posix())
-        self.set_frames_per_second(self.video.get(cv2.CAP_PROP_FPS))
-        self.set_frame_total(self.video.get(cv2.CAP_PROP_FRAME_COUNT))
-
-    def get_current_frame(self) -> np.ndarray:
-        return self.current_frame
-
-    def set_frame_by_id(self, id: int):
-        # TODO better return if the frame is out of range
-        if not (0 <= id < self.frames_total):
-            self.veb.logger.warning(f"Frame {id} not in range of {0} to {self.frames_total}")
-            self.current_frame = np.zeros((100,100, 3), dtype=np.uint8)
-            return
-        self.frame = id
-        # set the current frame we want to extract for the video file
-        # https://docs.opencv.org/4.5.1/d8/dfe/classcv_1_1VideoCapture.html#aa6480e6972ef4c00d74814ec841a2939
-        # https://docs.opencv.org/4.5.1/d4/d15/group__videoio__flags__base.html#gaeb8dd9c89c10a5c63c139bf7c4f5704d
-        if self.video is None:
-            self.current_frame = np.zeros((100,100, 3), dtype=np.uint8)
-            return 
-
-        self.video.set(cv2.CAP_PROP_POS_FRAMES, id)
-        success, frame = self.video.read()
-
-        # TODO same as above
-        if not success:
-            self.veb.logger.error(f"Frame {id} could not be loaded")
-            self.current_frame = np.zeros((100,100, 3), dtype=np.uint8)
-            return 
-
-        self.current_frame = frame
-
-    def set_run(self):
-        self.run_once = True
-
-    def has_run(self):
-        return self.run_once
-
-    def calc_frequency(self):
-        # calculates the frequency based on the number of eye closings and time
-        frequency = 0
-
-        return frequency
+    def __on_finished(self):
+        self.save_results()
 
     def save_results(self):
-        # open results output file and write header
-        self.results_file = open(self.veb.results_file_path, 'w')
-        self.results_file.write(self.veb.results_file_header)
-        for i in range(len(self.left_closed)):
-            # fancy String literal concatenation
-            line = (
-                    f"{'closed' if self.left_closed[i] else 'open'};"
-                    f"{'closed' if self.left_closed[i] else 'open'};"
-                    f"{self.areas_left[i]};"
-                    f"{self.areas_right[i]}"
-                    f"\n"
-                )
-            self.results_file.write(line)
-        self.results_file.close()
+        resource_path = self.get_resource_path()
+        result_path = resource_path.parent / (resource_path.stem + ".csv")
 
-class AnalyzeImageLoaderThread(Thread):
-    def __init__(self, veb: view_eye_blinking) -> None:
-        super().__init__()
-        self.veb = veb
-        self.analyzer: Analyzer = self.veb.analyzer
-        self.stopped = False
+        with open(result_path, 'w') as f:
+            f.write(self.results_file_header)
+            for i in range(len(self.score_eye_right)):
+                # fancy String literal concatenation
+                line = (
+                        f"{'closed' if self.closed_eye_left[i] else 'open'};"
+                        f"{'closed' if self.closed_eye_right[i] else 'open'};"
+                        f"{self.score_eye_left[i]};"
+                        f"{self.score_eye_right[i]}"
+                        f"\n"
+                    )
+                f.write(line)
 
-    def run(self):
-        self.analyzer.video.set(cv2.CAP_PROP_POS_FRAMES, 0)
-        while True:
-            if self.stopped:
-                return
-            
-            if not self.analyzer.frame_queue.full():
-                (grabbed, frame) = self.analyzer.video.read()
-                
-                if not grabbed:
-                    return
-
-                self.analyzer.frame_queue.put(frame)
-
-class AnalyzeImagesThread(QThread):
-    analysisUpdated:  pyqtSignal = pyqtSignal()
-    analysisStarted:  pyqtSignal = pyqtSignal()
-    analysisFinished: pyqtSignal = pyqtSignal()
-
-    def __init__(self, veb: view_eye_blinking) -> None:
-        super().__init__()
-        self.veb = veb
-        self.analyzer: Analyzer = self.veb.analyzer
-        self.detector: EyeBlinkingDetector = self.veb.eye_blinking_detector
-
-    def __del__(self):
-        self.wait()
-
-    def run(self):
-        self.analysisStarted.emit()
-        self.veb.logger.info(f"Analyse complete video")
-        # reset the values inside the analyzer
-
-        complete_run: bool = self.veb.checkbox_analysis.isChecked() or not self.analyzer.has_run()
-        self.analyzer.reset(reset_only_closing=(not complete_run))
-
-        processed = 0
-
-        while processed < self.analyzer.frames_total:
-            if self.analyzer.frame_queue.qsize() > 0:
-                self.analyzer.current_frame = self.analyzer.frame_queue.get_nowait()
-                self.analyzer.frame_queue.task_done()
-                if complete_run:
-                    self.analyzer.analyze()
-                    self.analyzer.append_values()
-                else:
-                    self.analyzer.analyze_closing(processed)
-                self.analysisUpdated.emit()
-                self.analyzer.frame = processed
-                processed += 1
-
-        self.analysisUpdated.emit()
-        self.analyzer.set_run()
-
-        self.analyzer.save_results()
-        self.analysisFinished.emit()
+    def draw_shape(self, img: np.ndarray, shape: np.ndarray, color: Tuple) -> None:
+        for (x, y) in shape:
+            cv2.circle(img, (x, y), 1, color, -1)
