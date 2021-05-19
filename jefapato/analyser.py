@@ -30,6 +30,7 @@ class Analyser(ABC):
         self.data_amount: int = 0
 
     def analyse(self, data: Any):
+        # TODO allow more feature extractors and classifier on the same data?
         features = self.feature_extractor.extract_features(data)
         self.features.append(features)
         classes = self.classifier.classify(features)
@@ -128,7 +129,6 @@ class VideoAnalyser(Analyser):
 
     def release_resource(self):
         self.resource.release()
-
 
     def get_next_item(self) -> Tuple[bool, np.ndarray]:
         return self.resource.read()

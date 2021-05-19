@@ -220,7 +220,7 @@ class view_eye_blinking(QWidget):
 
 from jefapato.analyser import VideoAnalyser
 from jefapato.feature_extractor import LandMarkFeatureExtractor, scale_bbox
-from jefapato.classifier import EyeBlinkingResult, EyeBlinkingClassifier
+from jefapato.classifier import EyeBlinkingResult, EyeBlinking68Classifier
 
 import dlib
 
@@ -243,7 +243,7 @@ class EyeBlinkingPlotting:
 class EyeBlinkingVideoAnalyser(VideoAnalyser):
     def __init__(self, plotting: EyeBlinkingPlotting) -> None:
         
-        self.eye_blinking_classifier = EyeBlinkingClassifier(threshold=0.2)
+        self.eye_blinking_classifier = EyeBlinking68Classifier(threshold=0.2)
         super().__init__(
             feature_extractor=LandMarkFeatureExtractor(), 
             classifier=self.eye_blinking_classifier

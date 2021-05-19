@@ -24,7 +24,7 @@ class EyeBlinkingResult:
     closed_right: bool
 
 
-class EyeBlinkingClassifier(Classifier):
+class EyeBlinking68Classifier(Classifier):
     def __init__(self, threshold: float) -> None:
         super().__init__()
         self.threshold: float = threshold
