@@ -10,7 +10,7 @@ import cv2
 class DataLoader(ABC, Thread):
 
     def __init__(self, next_item_func: Callable, queue_maxsize: int=0) -> None:
-        super().__init__()
+        super().__init__(daemon=True)
         self.next_item_func: Callable = next_item_func
         self.data_queue: Queue = Queue(maxsize=queue_maxsize)
         self.data_amount: int = 0

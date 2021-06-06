@@ -82,6 +82,11 @@ class view_eye_blinking(QWidget):
 
         # plotting
         self.evaluation_plot: pg.PlotWidget   = pg.PlotWidget()
+        self.evaluation_plot.setDownsampling(mode="peak")
+        self.evaluation_plot.setTitle("EAR Score")
+        self.evaluation_plot.setMouseEnabled(x=True, y=False)
+        self.evaluation_plot.setLimits(xMin=0)
+        self.evaluation_plot.setYRange(0, 0.5)
         self.curve_left_eye:  pg.PlotDataItem = self.evaluation_plot.plot()
         self.curve_right_eye: pg.PlotDataItem = self.evaluation_plot.plot()
         self.curve_left_eye.setPen(pg.mkPen(pg.mkColor(0, 0, 255), width=2))
@@ -133,6 +138,7 @@ class view_eye_blinking(QWidget):
         # add slot connections
 
         plotting = EyeBlinkingPlotting(
+            plot=self.evaluation_plot,
             curve_eye_left=self.curve_left_eye,
             curve_eye_right=self.curve_right_eye,
             label_eye_left=self.label_eye_left,
@@ -227,6 +233,7 @@ import dlib
 from dataclasses import dataclass
 @dataclass
 class EyeBlinkingPlotting:
+    plot: pg.PlotWidget
     curve_eye_left:  pg.PlotDataItem
     curve_eye_right: pg.PlotDataItem
 
@@ -301,6 +308,8 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
         rect, shape = self.features[-1][0]
 
         self.plot_frame(frame, rect, shape)
+        self.plotting.plot.setXRange(self.current_frame-100, self.current_frame)
+        self.plotting.plot.setLimits(xMax=self.current_frame)
 
     def set_current_frame(self) -> None:
         # clip the frame into the maximum valid range
