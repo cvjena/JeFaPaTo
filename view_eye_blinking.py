@@ -319,7 +319,7 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
         self.closed_eye_left = list()
         self.closed_eye_right = list()
 
-
+        self.plotting.plot.enableAutoRange(axis="x")
         self.plotting.plot.setMouseEnabled(x=False, y=False)
         self.plotting.grid.setTickSpacing(
             x=[self.get_fps()],
@@ -352,7 +352,7 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
         rect, shape = self.features[-1][0]
 
         self.plot_frame(frame, rect, shape)
-        self.plotting.plot.setXRange(self.current_frame-100, self.current_frame)
+        self.plotting.plot.setLimits(xMin=self.current_frame-100, xMax=self.current_frame)
        
     def set_current_frame(self) -> None:
         # clip the frame into the maximum valid range
