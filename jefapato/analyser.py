@@ -118,6 +118,9 @@ class Analyser(ABC):
     def connect_processed_percentage(self, functions: List[Callable]) -> None:
         self.functions_processed_percentage += functions
 
+    def resource_is_loaded(self):
+        return self.resource is not None
+
 class ResourcePathNotSetException(Exception):
     pass
 

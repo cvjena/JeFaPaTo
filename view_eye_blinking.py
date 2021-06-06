@@ -82,7 +82,6 @@ class view_eye_blinking(QWidget):
 
         # plotting
         self.evaluation_plot: pg.PlotWidget   = pg.PlotWidget()
-        self.evaluation_plot.setDownsampling(mode="peak")
         self.evaluation_plot.setTitle("EAR Score")
         self.evaluation_plot.setMouseEnabled(x=True, y=False)
         self.evaluation_plot.setLimits(xMin=0)
@@ -92,6 +91,8 @@ class view_eye_blinking(QWidget):
         self.curve_right_eye: pg.PlotDataItem = self.evaluation_plot.plot()
         self.curve_left_eye.setPen(pg.mkPen(pg.mkColor(0, 0, 255), width=2))
         self.curve_right_eye.setPen(pg.mkPen(pg.mkColor(255, 0, 0), width=2))
+
+        self.evaluation_plot.scene().sigMouseClicked.connect(self.move_line)
 
         self.grid_item: pg.GridItem = pg.GridItem()
         self.grid_item.setTickSpacing(x=[1.0], y=[0.1])
@@ -172,6 +173,17 @@ class view_eye_blinking(QWidget):
         # disable analyse button and check box
         self.button_video_analyze.setDisabled(True)
         self.checkbox_analysis.setDisabled(True)
+
+    def move_line(self, mouseClickEvent):
+        # this code  calculates the index of the underlying data entry
+        # and moves the indicator to it
+        vb = self.evaluation_plot.getPlotItem().vb
+        mousePoint = vb.mapSceneToView(mouseClickEvent._scenePos)
+        if self.evaluation_plot.sceneBoundingRect().contains(mouseClickEvent._scenePos):
+            mousePoint = vb.mapSceneToView(mouseClickEvent._scenePos)
+            index = int(mousePoint.x())
+            self.indicator_frame.setPos(index)
+            self.display_certain_frame()
 
     def display_certain_frame(self):
         self.ea.set_current_frame()
@@ -329,6 +341,8 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
         value = int(max(0, min(int(self.plotting.indicator_frame.pos()[0]), self.data_amount-1)))
         self.plotting.indicator_frame.setPos(value) 
         self.current_frame = value
+        if not self.resource_is_loaded():
+            return
 
         self.set_next_item_by_id(self.current_frame)
         (grabbed, frame) = self.get_next_item()
@@ -338,7 +352,11 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
             return
         
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        rect, shape = self.features[self.current_frame][0]
+        try:
+            rect, shape = self.features[self.current_frame][0]
+        except IndexError as e:
+            logging.exception("User probably clicked on the plot without anaylizing the video. Silent error.")
+            return
 
         self.plot_label()
         self.plot_frame(frame, rect, shape)
