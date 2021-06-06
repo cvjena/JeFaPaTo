@@ -2,6 +2,7 @@ from typing import Callable, List, Optional, Any, Tuple, Union, Type
 import numpy as np
 import cv2
 import logging
+from itertools import groupby
 
 from pathlib import Path
 
@@ -54,7 +55,9 @@ class view_eye_blinking(QWidget):
         self.label_eye_right: pg.LabelItem = pg.LabelItem("open")
 
         # edits
-        self.edit_threshold: QLineEdit = self.findChild(QLineEdit, "edit_threshhold")
+        self.edit_threshold: QLineEdit = self.findChild(QLineEdit, "edit_threshold")
+        self.edit_bmp_l: QLineEdit = self.findChild(QLineEdit, "blinkingPerMinuteLeftLineEdit")
+        self.edit_bmp_r: QLineEdit = self.findChild(QLineEdit, "blinkingPerMinuteRightLineEdit")
 
         # checkboxes
         self.checkbox_analysis: QCheckBox = self.findChild(QCheckBox, "checkbox_analysis")
@@ -159,7 +162,7 @@ class view_eye_blinking(QWidget):
 
         self.ea = EyeBlinkingVideoAnalyser(plotting)
         self.ea.connect_on_started([self.gui_analysis_start, self.progressbar_analyze.reset])
-        self.ea.connect_on_finished([self.gui_analysis_finished])
+        self.ea.connect_on_finished([self.gui_analysis_finished, self.compute_blinking_per_minute])
         self.ea.connect_processed_percentage([self.progressbar_analyze.setValue])
         
         self.indicator_frame.sigDragged.connect(self.display_certain_frame)
@@ -173,6 +176,18 @@ class view_eye_blinking(QWidget):
         # disable analyse button and check box
         self.button_video_analyze.setDisabled(True)
         self.checkbox_analysis.setDisabled(True)
+
+    def compute_blinking_per_minute(self):
+        frames_per_minute = int(self.ea.get_fps()) * 60
+        amount_minutes = self.ea.get_data_amount() / frames_per_minute
+
+        eye_l = [i[0] for i in groupby(self.ea.closed_eye_left)].count(True)
+        eye_r = [i[0] for i in groupby(self.ea.closed_eye_right)].count(True)
+
+        self.bpm_l = eye_l / amount_minutes
+        self.bpm_r = eye_r / amount_minutes
+        self.edit_bmp_l.setText(f"{self.bpm_l:5.2f}")
+        self.edit_bmp_r.setText(f"{self.bpm_r:5.2f}")
 
     def move_line(self, mouseClickEvent):
         # this code  calculates the index of the underlying data entry
@@ -301,6 +316,10 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
     def __on_start(self):
         self.score_eye_left  = list()
         self.score_eye_right = list()
+        self.closed_eye_left = list()
+        self.closed_eye_right = list()
+
+
         self.plotting.plot.setMouseEnabled(x=False, y=False)
         self.plotting.grid.setTickSpacing(
             x=[self.get_fps()],
