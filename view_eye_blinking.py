@@ -62,7 +62,7 @@ class view_eye_blinking(QWidget):
         # buttons
         self.button_video_load:    QPushButton = self.findChild(QPushButton, "button_video_load")
         self.button_video_analyze: QPushButton = self.findChild(QPushButton, "button_video_analyze")
-
+        self.progressbar_analyze: QProgressBar = self.findChild(QProgressBar, "progressbar_analyze")
         # image holders
         image_settings = {
             "invertY": True, 
@@ -151,9 +151,9 @@ class view_eye_blinking(QWidget):
         )
 
         self.ea = EyeBlinkingVideoAnalyser(plotting)
-
-        self.ea.connect_on_started([self.gui_analysis_start])
+        self.ea.connect_on_started([self.gui_analysis_start, self.progressbar_analyze.reset])
         self.ea.connect_on_finished([self.gui_analysis_finished])
+        self.ea.connect_processed_percentage([self.progressbar_analyze.setValue])
         
         self.indicator_frame.sigDragged.connect(self.display_certain_frame)
         self.indicator_threshold.sigDragged.connect(self.change_threshold_per_line)
@@ -309,8 +309,7 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
 
         self.plot_frame(frame, rect, shape)
         self.plotting.plot.setXRange(self.current_frame-100, self.current_frame)
-        self.plotting.plot.setLimits(xMax=self.current_frame)
-
+       
     def set_current_frame(self) -> None:
         # clip the frame into the maximum valid range
         # cast to int, just to be sure
@@ -374,6 +373,7 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
 
     def __on_finished(self):
         self.save_results()
+        self.plotting.plot.setLimits(xMax=self.current_frame)
 
     def save_results(self):
         resource_path = self.get_resource_path()

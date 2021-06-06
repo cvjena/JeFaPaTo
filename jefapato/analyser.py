@@ -24,6 +24,7 @@ class Analyser(ABC):
         self.functions_processing_started:  List[Callable] = list()
         self.functions_processing_updated:  List[Callable] = list()
         self.functions_processing_finished: List[Callable] = list()
+        self.functions_processed_percentage: List[Callable] = list()
 
         self.resource: Any = None
         self.resource_path: Union[Path, None] = None
@@ -82,6 +83,9 @@ class Analyser(ABC):
         for f in self.functions_processing_finished:
             self.data_processor.processingFinished.connect(f)
 
+        for f in self.functions_processed_percentage:
+            self.data_processor.processedPercentage.connect(f)
+
         self.data_processor.start()
 
     def current_feature(self):
@@ -110,6 +114,9 @@ class Analyser(ABC):
 
     def connect_on_finished(self, functions: List[Callable]) -> None:
         self.functions_processing_finished += functions
+
+    def connect_processed_percentage(self, functions: List[Callable]) -> None:
+        self.functions_processed_percentage += functions
 
 class ResourcePathNotSetException(Exception):
     pass
