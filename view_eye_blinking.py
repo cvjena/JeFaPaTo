@@ -87,10 +87,15 @@ class view_eye_blinking(QWidget):
         self.evaluation_plot.setMouseEnabled(x=True, y=False)
         self.evaluation_plot.setLimits(xMin=0)
         self.evaluation_plot.setYRange(0, 0.5)
+        self.evaluation_plot.disableAutoRange()
         self.curve_left_eye:  pg.PlotDataItem = self.evaluation_plot.plot()
         self.curve_right_eye: pg.PlotDataItem = self.evaluation_plot.plot()
         self.curve_left_eye.setPen(pg.mkPen(pg.mkColor(0, 0, 255), width=2))
         self.curve_right_eye.setPen(pg.mkPen(pg.mkColor(255, 0, 0), width=2))
+
+        self.grid_item: pg.GridItem = pg.GridItem()
+        self.grid_item.setTickSpacing(x=[1.0], y=[0.1])
+        self.evaluation_plot.addItem(self.grid_item)
 
         bar_pen = pg.mkPen(width=2, color="k")
         self.indicator_frame: pg.InfiniteLine = pg.InfiniteLine(0, movable=False, pen=bar_pen)
@@ -147,7 +152,8 @@ class view_eye_blinking(QWidget):
             image_face=self.image_face,
             image_eye_left=self.image_eye_left,
             image_eye_right=self.image_eye_right,
-            indicator_frame=self.indicator_frame
+            indicator_frame=self.indicator_frame,
+            grid=self.grid_item
         )
 
         self.ea = EyeBlinkingVideoAnalyser(plotting)
@@ -247,6 +253,8 @@ class EyeBlinkingPlotting:
 
     indicator_frame: pg.InfiniteLine
 
+    grid: pg.GridItem
+
 class EyeBlinkingVideoAnalyser(VideoAnalyser):
     def __init__(self, plotting: EyeBlinkingPlotting) -> None:
         
@@ -281,6 +289,11 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
     def __on_start(self):
         self.score_eye_left  = list()
         self.score_eye_right = list()
+        self.plotting.plot.setMouseEnabled(x=False, y=False)
+        self.plotting.grid.setTickSpacing(
+            x=[self.get_fps()],
+            y=None
+        )
 
     def __on_update(self, frame: np.ndarray, frame_id: int):
         # currently we only check the first one
@@ -374,6 +387,7 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
     def __on_finished(self):
         self.save_results()
         self.plotting.plot.setLimits(xMax=self.current_frame)
+        self.plotting.plot.setMouseEnabled(x=True, y=False)
 
     def save_results(self):
         resource_path = self.get_resource_path()
