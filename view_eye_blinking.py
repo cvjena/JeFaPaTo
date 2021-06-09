@@ -423,7 +423,8 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
 
     def __on_finished(self):
         self.save_results()
-        self.plotting.plot.setLimits(xMax=self.current_frame)
+        self.plotting.plot.setLimits(xMin=0, xMax=self.current_frame)
+        self.plotting.plot.setXRange(self.current_frame-100, self.current_frame)
         self.plotting.plot.setMouseEnabled(x=True, y=False)
 
     def save_results(self):
