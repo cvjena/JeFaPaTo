@@ -32,7 +32,7 @@
         </spacer>
        </item>
        <item>
-        <widget class="QLabel" name="view_video">
+        <widget class="QLabel" name="view_image">
          <property name="minimumSize">
           <size>
            <width>0</width>
@@ -46,6 +46,22 @@
           <set>Qt::AlignCenter</set>
          </property>
         </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Expanding</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>50</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
        </item>
        <item>
         <spacer name="verticalSpacer_5">
@@ -72,20 +88,6 @@
           </size>
          </property>
         </spacer>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_framenumber">
-         <property name="text">
-          <string>TextLabel</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QSlider" name="slider_framenumber">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-        </widget>
        </item>
        <item>
         <spacer name="verticalSpacer_4">
@@ -138,59 +140,24 @@
        </item>
        <item>
         <layout class="QGridLayout" name="gridLayout">
-         <item row="1" column="0">
-          <widget class="QLabel" name="label_4">
-           <property name="enabled">
-            <bool>true</bool>
-           </property>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_lm_idx_1">
            <property name="text">
-            <string>Rechtes Auge</string>
-           </property>
-           <property name="alignment">
-            <set>Qt::AlignCenter</set>
+            <string>Landmark Index Nr. 1:</string>
            </property>
           </widget>
          </item>
          <item row="3" column="0">
-          <widget class="QLabel" name="label_eye_right">
+          <widget class="QLabel" name="label_lm_idx_2">
            <property name="text">
-            <string>open</string>
-           </property>
-           <property name="alignment">
-            <set>Qt::AlignCenter</set>
+            <string>Landmark Index Nr. 1:</string>
            </property>
           </widget>
          </item>
-         <item row="1" column="1">
-          <widget class="QLabel" name="label_5">
+         <item row="1" column="2">
+          <widget class="QLabel" name="label_left">
            <property name="text">
-            <string>Linkes Auge</string>
-           </property>
-           <property name="alignment">
-            <set>Qt::AlignCenter</set>
-           </property>
-          </widget>
-         </item>
-         <item row="3" column="1">
-          <widget class="QLabel" name="label_eye_left">
-           <property name="text">
-            <string>open</string>
-           </property>
-           <property name="alignment">
-            <set>Qt::AlignCenter</set>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="0">
-          <widget class="QLabel" name="view_eye_right">
-           <property name="minimumSize">
-            <size>
-             <width>50</width>
-             <height>50</height>
-            </size>
-           </property>
-           <property name="text">
-            <string>TextLabel</string>
+            <string>Left Side</string>
            </property>
            <property name="alignment">
             <set>Qt::AlignCenter</set>
@@ -198,18 +165,64 @@
           </widget>
          </item>
          <item row="2" column="1">
-          <widget class="QLabel" name="view_eye_left">
-           <property name="minimumSize">
-            <size>
-             <width>50</width>
-             <height>50</height>
-            </size>
+          <widget class="QLineEdit" name="lineEdit_idx1_right">
+           <property name="text">
+            <string>39</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QLineEdit" name="lineEdit_idx2_right">
+           <property name="text">
+            <string>41</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLabel" name="label_right">
+           <property name="enabled">
+            <bool>true</bool>
            </property>
            <property name="text">
-            <string>TextLabel</string>
+            <string>Right Side</string>
            </property>
            <property name="alignment">
             <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="2">
+          <widget class="QLineEdit" name="lineEdit_idx1_left">
+           <property name="text">
+            <string>44</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="2">
+          <widget class="QLineEdit" name="lineEdit_idx2_left">
+           <property name="text">
+            <string>48</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="0">
+          <widget class="QLabel" name="label">
+           <property name="text">
+            <string>Distances:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="1">
+          <widget class="QLabel" name="label_dist_right">
+           <property name="text">
+            <string>-1</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="2">
+          <widget class="QLabel" name="label_dist_left">
+           <property name="text">
+            <string>-1</string>
            </property>
           </widget>
          </item>
@@ -229,7 +242,7 @@
         </spacer>
        </item>
        <item>
-        <widget class="QPushButton" name="button_video_load">
+        <widget class="QPushButton" name="button_lm_load">
          <property name="maximumSize">
           <size>
            <width>200</width>
@@ -240,7 +253,7 @@
           <string>Video Datei öffen</string>
          </property>
          <property name="text">
-          <string>Video Öffnen</string>
+          <string>Open Landmark File</string>
          </property>
          <property name="checkable">
           <bool>false</bool>
@@ -260,7 +273,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="button_video_analyze">
+        <widget class="QPushButton" name="button_lm_analyze">
          <property name="maximumSize">
           <size>
            <width>200</width>
@@ -268,19 +281,19 @@
           </size>
          </property>
          <property name="text">
-          <string>Video Analysieren</string>
+          <string>Analyze</string>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QCheckBox" name="checkbox_analysis">
          <property name="text">
-          <string>Komplette Analyse Erzwingen</string>
+          <string>Complete Analyzes</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QLabel" name="label_10">
+        <widget class="QLabel" name="label_threshold">
          <property name="maximumSize">
           <size>
            <width>200</width>
