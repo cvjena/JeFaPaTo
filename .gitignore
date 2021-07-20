@@ -8,3 +8,5 @@ logs
 .qt_for_python
 .idea
 *.code-workspace
+*.build/
+*.zip
