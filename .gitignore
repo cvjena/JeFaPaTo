@@ -7,3 +7,4 @@ results.csv
 logs
 .qt_for_python
 .idea
+*.code-workspace

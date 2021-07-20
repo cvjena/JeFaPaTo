@@ -245,7 +245,7 @@ class view_eye_blinking(QWidget):
     def load_video(self):
         self.logger.info("Open file explorer")
         fileName, _ = QFileDialog.getOpenFileName(self, "Select video file",
-                                                  ".", "Video Files (*.mp4 *.flv *.ts *.mts *.avi)")
+                                                  ".", "Video Files (*.mp4 *.flv *.ts *.mts *.avi *.mov)")
 
         if fileName != '':
             self.logger.info(f"Load video file: {fileName}")
