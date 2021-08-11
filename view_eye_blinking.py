@@ -146,7 +146,7 @@ class view_eye_blinking(QWidget):
         # connect the functions
         # add slot connections
 
-        plotting = EyeBlinkingPlotting(
+        self.plotting = EyeBlinkingPlotting(
             plot=self.evaluation_plot,
             curve_eye_left=self.curve_left_eye,
             curve_eye_right=self.curve_right_eye,
@@ -160,7 +160,7 @@ class view_eye_blinking(QWidget):
             grid=self.grid_item
         )
 
-        self.ea = EyeBlinkingVideoAnalyser(plotting)
+        self.ea = EyeBlinkingVideoAnalyser(self.plotting)
         self.ea.connect_on_started([self.gui_analysis_start, self.progressbar_analyze.reset])
         self.ea.connect_on_finished([self.gui_analysis_finished, self.compute_blinking_per_minute])
         self.ea.connect_processed_percentage([self.progressbar_analyze.setValue])
@@ -204,6 +204,7 @@ class view_eye_blinking(QWidget):
         self.ea.set_current_frame()
 
     def start_anaysis(self):
+        self.logger.info("User started analysis.")
         self.ea.analysis_start()
 
     def gui_analysis_start(self):
@@ -241,6 +242,7 @@ class view_eye_blinking(QWidget):
 
     def change_threshold(self):
         self.edit_threshold.setText(f"{self.ea.get_threshold():8.2f}".strip())
+        self.logger.info(f"User updated threshold to: {self.ea.get_threshold():8.2f}")
 
     def load_video(self):
         self.logger.info("Open file explorer")
