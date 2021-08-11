@@ -10,6 +10,10 @@ from .data_processor import DataProcessor
 
 import cv2
 import numpy as np
+import psutil
+import logging
+
+MAX_RAM_SIZE = 4 << 30 # ~4GB
 
 class Analyser(ABC):
     def __init__(self, data_loader_class: Type[DataLoader], feature_extractor, classifier) -> None:
@@ -29,6 +33,7 @@ class Analyser(ABC):
         self.resource: Any = None
         self.resource_path: Union[Path, None] = None
         self.data_amount: int = 0
+        self.logger = logging.getLogger("analyser")
 
     def analyse(self, data: Any):
         # TODO allow more feature extractors and classifier on the same data?
@@ -64,14 +69,34 @@ class Analyser(ABC):
     def set_next_item_by_id(self, value: int):
         pass
 
+    @abstractmethod
+    def get_item_size_in_bytes(self):
+        pass
+
+    @abstractmethod
+    def get_item_size(self):
+        pass
+
     def analysis_start(self):
         self.features = list()
         self.classes = list()
         # reset the data resource to the initial state, like frame 0
         self.reset_data_resource()
 
-        self.data_loader = self.data_loader_class(self.get_next_item)
+        # compute how much RAM space we have
+        available_memory = min(psutil.virtual_memory().available, MAX_RAM_SIZE)
+        item_size = self.get_item_size_in_bytes()
+        items_to_place = available_memory // item_size
+        
+        self.logger.info(f"Item dimesion: {self.get_item_size()}")
+        self.logger.info(f"Item size in bytes: {self.get_item_size_in_bytes()}")
+        self.logger.info(f"Available memory: {available_memory}")
+        self.logger.info(f"Data loader queue size: {items_to_place} items")
+
+        self.data_loader = self.data_loader_class(self.get_next_item, items_to_place)
         self.data_loader.start()
+        
+        self.logger.info(f"Started data loader thread.")
 
         self.data_processor = DataProcessor(self.analyse, self.get_data_amount(), self.data_loader)
         for f in self.functions_processing_started:
@@ -87,6 +112,7 @@ class Analyser(ABC):
             self.data_processor.processedPercentage.connect(f)
 
         self.data_processor.start()
+        self.logger.info(f"Stared data processor thread.")
 
     def current_feature(self):
         return self.features[-1]
@@ -154,3 +180,16 @@ class VideoAnalyser(Analyser):
 
     def set_next_item_by_id(self, value: int):
         self.resource.set(cv2.CAP_PROP_POS_FRAMES, value)
+
+    def get_item_size_in_bytes(self):
+        width    = self.resource.get(cv2.CAP_PROP_FRAME_WIDTH)
+        height   = self.resource.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        channels = 3
+        data_size_in_bytes = 1
+        return width * height * channels * data_size_in_bytes
+
+    def get_item_size(self):
+        width    = self.resource.get(cv2.CAP_PROP_FRAME_WIDTH)
+        height   = self.resource.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        channels = 3
+        return width, height, channels
