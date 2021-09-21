@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Type, List, Callable, Any, Union, Tuple
+from typing import Optional, Type, List, Callable, Any, Union, Tuple
 from pathlib import Path
 
 from .data_loader import DataLoader, VideoDataLoader
@@ -120,11 +120,16 @@ class Analyser(ABC):
     def current_class(self):
         return self.classes[-1]
 
-    def set_resource_path(self, value: Union[str, Path]):
+    def set_resource_path(self, value: Union[str, Path]) -> Optional[Any]:
         if isinstance(value, str):
             value = Path(value)
         self.resource_path = value
         self.load_resource()
+        read, data = self.get_next_item()
+        # set to inital index again because we just loaded it
+        self.set_next_item_by_id(0)
+
+        return data
 
     def get_resource_path(self) -> Union[Path, None]:
         return self.resource_path

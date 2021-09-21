@@ -263,9 +263,11 @@ class view_eye_blinking(QWidget):
             self.logger.info(f"Load video file: {fileName}")
             self.video_file_path = Path(fileName)
             
-            self.ea.set_resource_path(self.video_file_path)
+            first_frame = self.ea.set_resource_path(self.video_file_path)
             self.button_video_analyze.setDisabled(False)
             self.checkbox_analysis.setDisabled(False)
+
+            self.image_frame.setImage(cv2.cvtColor(first_frame, cv2.COLOR_BGR2RGB))
         else:
             self.logger.info(f"No video file was selected")
 
