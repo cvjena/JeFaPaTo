@@ -5,9 +5,11 @@ from typing import Callable
 from queue import Queue
 from time import sleep
 
-class DataLoader(ABC, Thread):
 
-    def __init__(self, next_item_func: Callable, queue_maxsize: int=(1 << 10)) -> None:
+class DataLoader(ABC, Thread):
+    def __init__(
+        self, next_item_func: Callable, queue_maxsize: int = (1 << 10)
+    ) -> None:
         super().__init__(daemon=True)
         self.next_item_func: Callable = next_item_func
         self.data_queue: Queue = Queue(maxsize=queue_maxsize)
@@ -18,8 +20,11 @@ class DataLoader(ABC, Thread):
     def run(self):
         pass
 
+
 class VideoDataLoader(DataLoader):
-    def __init__(self, next_item_func: Callable, queue_maxsize: int=(1 << 10)) -> None:
+    def __init__(
+        self, next_item_func: Callable, queue_maxsize: int = (1 << 10)
+    ) -> None:
         super().__init__(next_item_func, queue_maxsize=queue_maxsize)
 
     def run(self):
@@ -28,7 +33,7 @@ class VideoDataLoader(DataLoader):
         while grabbed:
             if self.stopped:
                 return
-            
+
             if not self.data_queue.full():
                 (grabbed, frame) = self.next_item_func()
                 if not grabbed:
