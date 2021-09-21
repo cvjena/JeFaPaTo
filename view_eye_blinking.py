@@ -191,7 +191,7 @@ class view_eye_blinking(QWidget):
             self.button_video_analyze.setDisabled(False)
             self.checkbox_analysis.setDisabled(False)
 
-            self.plotter.set_frame(first_frame, bgr=True)
+            self.plotter.widget_frame.frame.set_image(first_frame, bgr=True)
         else:
             self.logger.info("No video file was selected")
 

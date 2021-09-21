@@ -1,9 +1,110 @@
-from typing import Callable, List
+from typing import Callable, List, Tuple
 
+import cv2
 import numpy as np
 import pyqtgraph as pg
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QWidget
+
+IMAGE_SETTINGS = {
+    "invertY": True,
+    "lockAspect": True,
+    "enableMouse": False,
+}
+
+
+class FrameWidget(pg.GraphicsLayoutWidget):
+    def __init__(self, parent=None, show=False, size=None, title=None, **kargs):
+        super().__init__(parent=parent, show=show, size=size, title=title, **kargs)
+
+        self.vb = FrameViewBox(**IMAGE_SETTINGS)
+        self.addItem(self.vb)
+        self.frame = self.vb
+
+
+class FrameViewBox(pg.ViewBox):
+    def __init__(
+        self,
+        parent=None,
+        border=None,
+        lockAspect=False,
+        enableMouse=True,
+        invertY=False,
+        enableMenu=True,
+        name=None,
+        invertX=False,
+        defaultPadding=0.02,
+    ):
+        super().__init__(
+            parent=parent,
+            border=border,
+            lockAspect=lockAspect,
+            enableMouse=enableMouse,
+            invertY=invertY,
+            enableMenu=enableMenu,
+            name=name,
+            invertX=invertX,
+            defaultPadding=defaultPadding,
+        )
+
+        self.frame = pg.ImageItem()
+        self.addItem(self.frame)
+
+    def set_image(self, image: np.ndarray, bgr: bool = False) -> None:
+        if bgr:
+            image = image[..., ::-1]
+
+        self.frame.setImage(image)
+
+    def set_image_draw(
+        self, image: np.ndarray, shape: np.ndarray, color: Tuple, bgr: bool = False
+    ) -> None:
+        for (x, y) in shape:
+            cv2.circle(image, (x, y), 1, color, -1)
+        self.set_image(image, bgr)
+
+    def set_image_draw_connected(
+        self, image: np.ndarray, shape: np.ndarray, color: Tuple, bgr: bool = False
+    ) -> None:
+        # TODO
+        self.set_image(image, bgr)
+
+
+class DetailWidget(pg.GraphicsLayoutWidget):
+    def __init__(self, parent=None, show=False, size=None, title=None, **kargs):
+        super().__init__(parent=parent, show=show, size=size, title=title, **kargs)
+
+        self.layout_l = pg.GraphicsLayout()
+        self.layout_r = pg.GraphicsLayout()
+
+        self.frame_d = FrameViewBox(**IMAGE_SETTINGS)
+        self.frame_l = FrameViewBox(**IMAGE_SETTINGS)
+        self.frame_r = FrameViewBox(**IMAGE_SETTINGS)
+
+        # label
+        self.label_l: pg.LabelItem = pg.LabelItem("open")
+        self.label_r: pg.LabelItem = pg.LabelItem("open")
+
+        self.addItem(self.frame_d, row=0, col=0, rowspan=2, colspan=2)
+        self.addItem(self.layout_l, row=2, col=1)
+        self.addItem(self.layout_r, row=2, col=0)
+
+        # detail right eye
+        self.layout_r.addLabel(text="Right eye", row=0, col=0)
+        self.layout_r.addItem(self.frame_r, row=1, col=0)
+        self.layout_r.addItem(self.label_r, row=2, col=0)
+
+        # detail left eye
+        self.layout_l.addLabel(text="Left eye", row=0, col=0)
+        self.layout_l.addItem(self.frame_l, row=1, col=0)
+        self.layout_l.addItem(self.label_l, row=2, col=0)
+
+    def set_labels(self, left: bool, right: bool) -> None:
+        self.label_l.setText(self.closed_text(left))
+        self.label_r.setText(self.closed_text(right))
+
+    def closed_text(self, value: bool) -> str:
+        return "closed" if value else "open"
 
 
 class EyeBlinkingPlotter(QWidget):
@@ -16,32 +117,8 @@ class EyeBlinkingPlotter(QWidget):
         self._threshold: float = 0.20
         self._current_frame: int = 0
 
-        self.widget_frame: pg.GraphicsLayoutWidget = pg.GraphicsLayoutWidget(
-            title="Video Frame"
-        )
-        self.widget_detail: pg.GraphicsLayoutWidget = pg.GraphicsLayoutWidget()
-        self.layout_eye_left: pg.GraphicsLayout = pg.GraphicsLayout()
-        self.layout_eye_right: pg.GraphicsLayout = pg.GraphicsLayout()
-
-        # label
-        self.label_eye_left: pg.LabelItem = pg.LabelItem("open")
-        self.label_eye_right: pg.LabelItem = pg.LabelItem("open")
-
-        image_settings = {
-            "invertY": True,
-            "lockAspect": True,
-            "enableMouse": False,
-        }
-
-        self.view_frame: pg.ViewBox = pg.ViewBox(**image_settings)
-        self.view_face: pg.ViewBox = pg.ViewBox(**image_settings)
-        self.view_image_left: pg.ViewBox() = pg.ViewBox(**image_settings)
-        self.view_image_right: pg.ViewBox() = pg.ViewBox(**image_settings)
-        # images
-        self.image_frame: pg.ImageItem = pg.ImageItem()
-        self.image_face: pg.ImageItem = pg.ImageItem()
-        self.image_eye_left: pg.ImageItem = pg.ImageItem()
-        self.image_eye_right: pg.ImageItem = pg.ImageItem()
+        self.widget_frame = FrameWidget()
+        self.widget_detail = DetailWidget()
 
         # plotting
         self.widget_graph: pg.PlotWidget = pg.PlotWidget()
@@ -67,33 +144,9 @@ class EyeBlinkingPlotter(QWidget):
             0.2, angle=0, movable=True, pen=bar_pen
         )
 
-        # view the frame
-        self.widget_frame.addItem(self.view_frame)
-
         # add the sliders to the plot
         self.widget_graph.addItem(self.indicator_frame)
         self.widget_graph.addItem(self.indicator_threshold)
-
-        # add the images to the image holders
-        self.view_frame.addItem(self.image_frame)
-        self.view_face.addItem(self.image_face)
-        self.view_image_left.addItem(self.image_eye_left)
-        self.view_image_right.addItem(self.image_eye_right)
-
-        # setup the detail layout
-        self.widget_detail.addItem(self.view_face, row=0, col=0, rowspan=2, colspan=2)
-        self.widget_detail.addItem(self.layout_eye_left, row=2, col=1)
-        self.widget_detail.addItem(self.layout_eye_right, row=2, col=0)
-
-        # detail right eye
-        self.layout_eye_right.addLabel(text="Right eye", row=0, col=0)
-        self.layout_eye_right.addItem(self.view_image_right, row=1, col=0)
-        self.layout_eye_right.addItem(self.label_eye_right, row=2, col=0)
-
-        # detail left eye
-        self.layout_eye_left.addLabel(text="Left eye", row=0, col=0)
-        self.layout_eye_left.addItem(self.view_image_left, row=1, col=0)
-        self.layout_eye_left.addItem(self.label_eye_left, row=2, col=0)
 
         self.connect_on_graph_clicked(self.move_line)
 
@@ -132,23 +185,6 @@ class EyeBlinkingPlotter(QWidget):
     def get_threshold(self) -> float:
         return self._threshold
 
-    def set_frame(self, frame: np.ndarray, bgr: bool = False) -> None:
-        if bgr:
-            frame = frame[..., ::-1]
-
-        self.image_frame.setImage(frame)
-
-    def set_ear_scores(self, left: List[float], right: List[float]) -> None:
-        self.curve_left_eye.setData(left)
-        self.curve_right_eye.setData(right)
-
-    def set_labels(self, left: bool, right: bool) -> None:
-        self.label_eye_left.setText(self.closed_text(left))
-        self.label_eye_right.setText(self.closed_text(right))
-
-    def closed_text(self, value: bool) -> str:
-        return "closed" if value else "open"
-
     def update_limits(self, right_border) -> None:
         self.widget_graph.setLimits(xMin=right_border - 100, xMax=right_border)
 
@@ -164,3 +200,7 @@ class EyeBlinkingPlotter(QWidget):
         self.widget_graph.setLimits(xMin=0, xMax=last_frame)
         self.widget_graph.setXRange(last_frame - 100, last_frame)
         self.widget_graph.setMouseEnabled(x=True, y=False)
+
+    def set_ear_scores(self, left: List[float], right: List[float]) -> None:
+        self.curve_left_eye.setData(left)
+        self.curve_right_eye.setData(right)

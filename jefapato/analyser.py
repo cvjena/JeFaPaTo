@@ -329,7 +329,7 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
         self.plot_frame(frame, rect, shape)
 
     def plot_label(self):
-        self.plotter.set_labels(
+        self.plotter.widget_detail.set_labels(
             self.closed_eye_left[self.current_frame],
             self.closed_eye_right[self.current_frame],
         )
@@ -340,10 +340,10 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
         rect: Optional[dlib.rectangle],
         shape: Optional[np.ndarray],
     ) -> None:
-        self.plotter.image_frame.setImage(frame)
-        self.plotter.image_face.setImage(np.zeros((20, 20)))
-        self.plotter.image_eye_left.setImage(np.zeros((20, 20)))
-        self.plotter.image_eye_right.setImage(np.zeros((20, 20)))
+        self.plotter.widget_frame.frame.set_image(frame)
+        self.plotter.widget_detail.frame_d.set_image(np.zeros((20, 20)))
+        self.plotter.widget_detail.frame_l.set_image(np.zeros((20, 20)))
+        self.plotter.widget_detail.frame_r.set_image(np.zeros((20, 20)))
 
         if rect is not None or shape is not None:
             eye_left = shape[self.eye_blinking_classifier.eye_left_slice]
@@ -392,9 +392,9 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
             ]
             frame = frame[rect.top() : rect.bottom(), rect.left() : rect.right()]
 
-            self.plotter.image_face.setImage(frame)
-            self.plotter.image_eye_left.setImage(img_eye_left)
-            self.plotter.image_eye_right.setImage(img_eye_right)
+            self.plotter.widget_detail.frame_d.set_image(frame)
+            self.plotter.widget_detail.frame_l.set_image(img_eye_left)
+            self.plotter.widget_detail.frame_r.set_image(img_eye_right)
 
     def __on_finished(self):
         self.save_results()
