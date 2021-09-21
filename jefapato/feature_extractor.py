@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, List, Tuple
-from dataclasses import dataclass
+from typing import Any, List, Tuple, Optional
 
 import cv2
 import dlib
@@ -42,6 +41,7 @@ def scale_bbox(bbox: dlib.rectangle, scale: float, padding: int = 0) -> dlib.rec
         right=right + padding_w,
         bottom=bottom + padding_h,
     )
+
 
 class FeatureExtractor(ABC):
 

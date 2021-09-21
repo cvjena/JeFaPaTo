@@ -293,7 +293,7 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
             classifier=self.eye_blinking_classifier
             )
 
-        self.results_file_header = 'closed_left;closed_right;norm_eye_area_left;norm_eye_area_right\n'
+        self.results_file_header = 'closed_left;closed_right;ear_score_left;ear_score_rigth;valid\n'
 
         self.plotting: EyeBlinkingPlotting = plotting
 
@@ -306,6 +306,7 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
 
         self.closed_eye_left:  List[bool] = list()
         self.closed_eye_right: List[bool] = list()
+        self.valid:            List[bool] = list()
 
         self.current_frame: int = 0
 
@@ -340,6 +341,8 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
         self.closed_eye_left.append(latest_value.closed_left)
         self.closed_eye_right.append(latest_value.closed_right)
 
+        self.valid.append(latest_value.valid)
+
         # plotting of the data
         # TODO move to extra functions for cleaner structure and easier reuse
         self.plotting.indicator_frame.setPos(self.current_frame)
@@ -351,8 +354,11 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
 
         # TODO plotting of the frame and extracted faces
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        rect, shape = self.features[-1][0]
-
+        try:
+            rect, shape = self.features[-1][0]
+        except IndexError:
+            rect, shape = None, None
+        
         self.plot_frame(frame, rect, shape)
         self.plotting.plot.setLimits(xMin=self.current_frame-100, xMax=self.current_frame)
        
@@ -386,39 +392,44 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
         self.plotting.label_eye_left.setText(self.closed_text(self.closed_eye_left[self.current_frame]))
         self.plotting.label_eye_right.setText(self.closed_text(self.closed_eye_right[self.current_frame]))
 
-    def plot_frame(self, frame: np.ndarray, rect: dlib.rectangle, shape: np.ndarray) -> None:
-        face = np.copy(frame)
-
-        eye_left  = shape[self.eye_blinking_classifier.eye_left_slice]
-        eye_right = shape[self.eye_blinking_classifier.eye_right_slice]
-        # get the outer region of the plot
-        eye_left_mean  = np.nanmean(eye_left, axis=0).astype(np.int32)
-        eye_right_mean = np.nanmean(eye_right, axis=0).astype(np.int32)
-
-        self.draw_shape(face, eye_left,  color=(0, 0, 255))
-        self.draw_shape(face, eye_right, color=(255, 0, 0))
-
-        eye_left_width  = (np.nanmax(eye_left, axis=0)[0] - np.nanmin(eye_left, axis=0)[0]) // 2
-        eye_right_width = (np.nanmax(eye_right, axis=0)[0] - np.nanmin(eye_right, axis=0)[0]) // 2
-
-        bbox_eye_left = scale_bbox(
-            bbox=dlib.rectangle(eye_left_mean[0] - eye_left_width, eye_left_mean[1] - eye_left_width, eye_left_mean[0] + eye_left_width, eye_left_mean[1] + eye_left_width,),
-            scale=1,
-            padding=-1
-        )
-        bbox_eye_right = scale_bbox(
-            bbox=dlib.rectangle(eye_right_mean[0] - eye_right_width, eye_right_mean[1] - eye_right_width, eye_right_mean[0] + eye_right_width, eye_right_mean[1] + eye_right_width,),
-            scale=1,
-            padding=-1
-        )
-        img_eye_left  = face[bbox_eye_left.top():bbox_eye_left.bottom(), bbox_eye_left.left():bbox_eye_left.right()]
-        img_eye_right = face[bbox_eye_right.top():bbox_eye_right.bottom(), bbox_eye_right.left():bbox_eye_right.right()]
-        face = face[rect.top():rect.bottom(), rect.left():rect.right()]
-
+    def plot_frame(self, frame: np.ndarray, rect: Optional[dlib.rectangle], shape: Optional[np.ndarray]) -> None:
         self.plotting.image_frame.setImage(frame)
-        self.plotting.image_face.setImage(face)
-        self.plotting.image_eye_left.setImage(img_eye_left)
-        self.plotting.image_eye_right.setImage(img_eye_right)
+
+        if rect is not None or shape is not None:
+            face = np.copy(frame)
+            eye_left  = shape[self.eye_blinking_classifier.eye_left_slice]
+            eye_right = shape[self.eye_blinking_classifier.eye_right_slice]
+            # get the outer region of the plot
+            eye_left_mean  = np.nanmean(eye_left, axis=0).astype(np.int32)
+            eye_right_mean = np.nanmean(eye_right, axis=0).astype(np.int32)
+
+            self.draw_shape(face, eye_left,  color=(0, 0, 255))
+            self.draw_shape(face, eye_right, color=(255, 0, 0))
+
+            eye_left_width  = (np.nanmax(eye_left, axis=0)[0] - np.nanmin(eye_left, axis=0)[0]) // 2
+            eye_right_width = (np.nanmax(eye_right, axis=0)[0] - np.nanmin(eye_right, axis=0)[0]) // 2
+
+            bbox_eye_left = scale_bbox(
+                bbox=dlib.rectangle(eye_left_mean[0] - eye_left_width, eye_left_mean[1] - eye_left_width, eye_left_mean[0] + eye_left_width, eye_left_mean[1] + eye_left_width,),
+                scale=1,
+                padding=-1
+            )
+            bbox_eye_right = scale_bbox(
+                bbox=dlib.rectangle(eye_right_mean[0] - eye_right_width, eye_right_mean[1] - eye_right_width, eye_right_mean[0] + eye_right_width, eye_right_mean[1] + eye_right_width,),
+                scale=1,
+                padding=-1
+            )
+            img_eye_left  = face[bbox_eye_left.top():bbox_eye_left.bottom(), bbox_eye_left.left():bbox_eye_left.right()]
+            img_eye_right = face[bbox_eye_right.top():bbox_eye_right.bottom(), bbox_eye_right.left():bbox_eye_right.right()]
+            face = face[rect.top():rect.bottom(), rect.left():rect.right()]
+
+            self.plotting.image_face.setImage(face)
+            self.plotting.image_eye_left.setImage(img_eye_left)
+            self.plotting.image_eye_right.setImage(img_eye_right)
+        else:
+            self.plotting.image_face.setImage(np.zeros((20, 20)))
+            self.plotting.image_eye_left.setImage(np.zeros((20, 20)))
+            self.plotting.image_eye_right.setImage(np.zeros((20, 20)))
 
     def closed_text(self, value: bool) -> str:
         return "closed" if value else "open"
@@ -441,7 +452,8 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
                         f"{'closed' if self.closed_eye_left[i] else 'open'};"
                         f"{'closed' if self.closed_eye_right[i] else 'open'};"
                         f"{self.score_eye_left[i]};"
-                        f"{self.score_eye_right[i]}"
+                        f"{self.score_eye_right[i]};"
+                        f"{self.valid[i]}"
                         f"\n"
                     )
                 f.write(line)

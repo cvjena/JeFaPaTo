@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, List, Tuple
+from typing import Any, List, Tuple, Union
 from dataclasses import dataclass
 
 import dlib
@@ -22,6 +22,7 @@ class EyeBlinkingResult:
     ear_right: float
     closed_left: bool
     closed_right: bool
+    valid: bool
 
 
 class EyeBlinking68Classifier(Classifier):
@@ -50,6 +51,11 @@ class EyeBlinking68Classifier(Classifier):
         return (score_left < threshold, score_right < threshold)
 
     def classify(self, features: List[Tuple[dlib.rectangle, np.ndarray]]) -> Any:
+        # if features is None, it means the feature extracture could not
+        # create the featureas we wanted, hence, we return an value which is not 
+        # possible!
+        if not features:
+            return [EyeBlinkingResult(1.0, 1.0, False, False, False)]
 
         classes: List[EyeBlinkingResult] = list()
 
@@ -62,6 +68,6 @@ class EyeBlinking68Classifier(Classifier):
 
             closed_left, closed_right = self.check_closing(ear_left, ear_right, self.threshold)
 
-            classes.append(EyeBlinkingResult(ear_left, ear_right, closed_left, closed_right))
+            classes.append(EyeBlinkingResult(ear_left, ear_right, closed_left, closed_right, True))
 
         return classes

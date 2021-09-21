@@ -35,7 +35,7 @@ class Analyser(ABC):
         self.data_amount: int = 0
         self.logger = logging.getLogger("analyser")
 
-    def analyse(self, data: Any):
+    def analyse(self, data: Any) -> None:
         # TODO allow more feature extractors and classifier on the same data?
         features = self.feature_extractor.extract_features(data)
         self.features.append(features)
