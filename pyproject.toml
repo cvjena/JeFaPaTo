@@ -1,6 +1,0 @@
-[tool.black]
-line-length = 88
-experimental_string_processing = true
-
-[tool.flake8]
-max-line-legnth = 88
