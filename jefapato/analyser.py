@@ -13,20 +13,23 @@ import numpy as np
 import psutil
 import logging
 
-MAX_RAM_SIZE = 4 << 30 # ~4GB
+MAX_RAM_SIZE = 4 << 30  # ~4GB
+
 
 class Analyser(ABC):
-    def __init__(self, data_loader_class: Type[DataLoader], feature_extractor, classifier) -> None:
+    def __init__(
+        self, data_loader_class: Type[DataLoader], feature_extractor, classifier
+    ) -> None:
         super().__init__()
         self.data_loader_class: Type[DataLoader] = data_loader_class
         self.feature_extractor: FeatureExtractor = feature_extractor
         self.classifier: Classifier = classifier
-        
-        self.features: List[Any] = list()
-        self.classes:  List[Any] = list()
 
-        self.functions_processing_started:  List[Callable] = list()
-        self.functions_processing_updated:  List[Callable] = list()
+        self.features: List[Any] = list()
+        self.classes: List[Any] = list()
+
+        self.functions_processing_started: List[Callable] = list()
+        self.functions_processing_updated: List[Callable] = list()
         self.functions_processing_finished: List[Callable] = list()
         self.functions_processed_percentage: List[Callable] = list()
 
@@ -87,7 +90,7 @@ class Analyser(ABC):
         available_memory = min(psutil.virtual_memory().available, MAX_RAM_SIZE)
         item_size = self.get_item_size_in_bytes()
         items_to_place = available_memory // item_size
-        
+
         self.logger.info(f"Item dimesion: {self.get_item_size()}")
         self.logger.info(f"Item size in bytes: {self.get_item_size_in_bytes()}")
         self.logger.info(f"Available memory: {available_memory}")
@@ -95,16 +98,18 @@ class Analyser(ABC):
 
         self.data_loader = self.data_loader_class(self.get_next_item, items_to_place)
         self.data_loader.start()
-        
+
         self.logger.info(f"Started data loader thread.")
 
-        self.data_processor = DataProcessor(self.analyse, self.get_data_amount(), self.data_loader)
+        self.data_processor = DataProcessor(
+            self.analyse, self.get_data_amount(), self.data_loader
+        )
         for f in self.functions_processing_started:
             self.data_processor.processingStarted.connect(f)
 
         for f in self.functions_processing_updated:
             self.data_processor.processingUpdated.connect(f)
-        
+
         for f in self.functions_processing_finished:
             self.data_processor.processingFinished.connect(f)
 
@@ -156,20 +161,25 @@ class Analyser(ABC):
         self.data_loader.stopped = True
         self.data_processor.stopped = True
 
+
 class ResourcePathNotSetException(Exception):
     pass
 
 
 class VideoAnalyser(Analyser):
-    def __init__(self, feature_extractor: FeatureExtractor, classifier: Classifier) -> None:
+    def __init__(
+        self, feature_extractor: FeatureExtractor, classifier: Classifier
+    ) -> None:
         super().__init__(
             data_loader_class=VideoDataLoader,
             feature_extractor=feature_extractor,
-            classifier=classifier
-            )
+            classifier=classifier,
+        )
 
     def load_resource(self):
-        self.resource: cv2.VideoCapture = cv2.VideoCapture(self.resource_path.as_posix())
+        self.resource: cv2.VideoCapture = cv2.VideoCapture(
+            self.resource_path.as_posix()
+        )
         self.set_data_amount()
 
     def release_resource(self):
@@ -177,7 +187,7 @@ class VideoAnalyser(Analyser):
 
     def get_next_item(self) -> Tuple[bool, np.ndarray]:
         return self.resource.read()
-        
+
     def set_data_amount(self):
         self.data_amount = self.resource.get(cv2.CAP_PROP_FRAME_COUNT)
 
@@ -191,14 +201,14 @@ class VideoAnalyser(Analyser):
         self.resource.set(cv2.CAP_PROP_POS_FRAMES, value)
 
     def get_item_size_in_bytes(self):
-        width    = self.resource.get(cv2.CAP_PROP_FRAME_WIDTH)
-        height   = self.resource.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        width = self.resource.get(cv2.CAP_PROP_FRAME_WIDTH)
+        height = self.resource.get(cv2.CAP_PROP_FRAME_HEIGHT)
         channels = 3
         data_size_in_bytes = 1
         return width * height * channels * data_size_in_bytes
 
     def get_item_size(self):
-        width    = self.resource.get(cv2.CAP_PROP_FRAME_WIDTH)
-        height   = self.resource.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        width = self.resource.get(cv2.CAP_PROP_FRAME_WIDTH)
+        height = self.resource.get(cv2.CAP_PROP_FRAME_HEIGHT)
         channels = 3
         return width, height, channels
