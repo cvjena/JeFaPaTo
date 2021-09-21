@@ -1,6 +1,5 @@
 import logging
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Tuple, Type, Union
 
@@ -8,7 +7,8 @@ import cv2
 import dlib
 import numpy as np
 import psutil
-import pyqtgraph as pg
+
+from jefapato.plotter import EyeBlinkingPlotter
 
 from .classifier import Classifier, EyeBlinking68Classifier, EyeBlinkingResult
 from .data_loader import DataLoader, VideoDataLoader
@@ -216,27 +216,8 @@ class VideoAnalyser(Analyser):
         return width, height, channels
 
 
-@dataclass
-class EyeBlinkingPlotting:
-    plot: pg.PlotWidget
-    curve_eye_left: pg.PlotDataItem
-    curve_eye_right: pg.PlotDataItem
-
-    label_eye_left: pg.LabelItem
-    label_eye_right: pg.LabelItem
-
-    image_frame: pg.ImageItem
-    image_face: pg.ImageItem
-    image_eye_left: pg.ImageItem
-    image_eye_right: pg.ImageItem
-
-    indicator_frame: pg.InfiniteLine
-
-    grid: pg.GridItem
-
-
 class EyeBlinkingVideoAnalyser(VideoAnalyser):
-    def __init__(self, plotting: EyeBlinkingPlotting) -> None:
+    def __init__(self, plotter: EyeBlinkingPlotter) -> None:
 
         self.eye_blinking_classifier = EyeBlinking68Classifier(threshold=0.2)
         super().__init__(
@@ -248,7 +229,7 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
             "closed_left;closed_right;ear_score_left;ear_score_rigth;valid\n"
         )
 
-        self.plotting: EyeBlinkingPlotting = plotting
+        self.plotter: EyeBlinkingPlotter = plotter
 
         self.connect_on_started([self.__on_start])
         self.connect_on_updated([self.__on_update])
@@ -275,10 +256,7 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
         self.closed_eye_left = list()
         self.closed_eye_right = list()
         self.valid = list()
-
-        self.plotting.plot.enableAutoRange(axis="x")
-        self.plotting.plot.setMouseEnabled(x=False, y=False)
-        self.plotting.grid.setTickSpacing(x=[self.get_fps()], y=None)
+        self.plotter.start(self.get_fps())
 
     def __on_update(self, frame: np.ndarray, frame_id: int):
         # currently we only check the first one
@@ -300,9 +278,8 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
 
     def update_plot_data(self) -> None:
         # plotting of the data
-        self.plotting.indicator_frame.setPos(self.current_frame)
-        self.plotting.curve_eye_left.setData(self.score_eye_left)
-        self.plotting.curve_eye_right.setData(self.score_eye_right)
+        self.plotter.indicator_frame.setPos(self.current_frame)
+        self.plotter.set_ear_scores(self.score_eye_left, self.score_eye_right)
 
     def update_plot_frame(self, frame: np.ndarray) -> None:
         # TODO plotting of the frame and extracted faces
@@ -313,9 +290,7 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
             rect, shape = None, None
 
         self.plot_frame(frame, rect, shape)
-        self.plotting.plot.setLimits(
-            xMin=self.current_frame - 100, xMax=self.current_frame
-        )
+        self.plotter.update_limits(self.current_frame)
 
     def set_current_frame(self) -> None:
         # clip the frame into the maximum valid range
@@ -323,10 +298,10 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
         value = int(
             max(
                 0,
-                min(int(self.plotting.indicator_frame.pos()[0]), self.data_amount - 1),
+                min(int(self.plotter.indicator_frame.pos()[0]), self.data_amount - 1),
             )
         )
-        self.plotting.indicator_frame.setPos(value)
+        self.plotter.indicator_frame.setPos(value)
         self.current_frame = value
         if not self.resource_is_loaded():
             return
@@ -354,11 +329,9 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
         self.plot_frame(frame, rect, shape)
 
     def plot_label(self):
-        self.plotting.label_eye_left.setText(
-            self.closed_text(self.closed_eye_left[self.current_frame])
-        )
-        self.plotting.label_eye_right.setText(
-            self.closed_text(self.closed_eye_right[self.current_frame])
+        self.plotter.set_labels(
+            self.closed_eye_left[self.current_frame],
+            self.closed_eye_right[self.current_frame],
         )
 
     def plot_frame(
@@ -367,10 +340,10 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
         rect: Optional[dlib.rectangle],
         shape: Optional[np.ndarray],
     ) -> None:
-        self.plotting.image_frame.setImage(frame)
-        self.plotting.image_face.setImage(np.zeros((20, 20)))
-        self.plotting.image_eye_left.setImage(np.zeros((20, 20)))
-        self.plotting.image_eye_right.setImage(np.zeros((20, 20)))
+        self.plotter.image_frame.setImage(frame)
+        self.plotter.image_face.setImage(np.zeros((20, 20)))
+        self.plotter.image_eye_left.setImage(np.zeros((20, 20)))
+        self.plotter.image_eye_right.setImage(np.zeros((20, 20)))
 
         if rect is not None or shape is not None:
             eye_left = shape[self.eye_blinking_classifier.eye_left_slice]
@@ -419,18 +392,13 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
             ]
             frame = frame[rect.top() : rect.bottom(), rect.left() : rect.right()]
 
-            self.plotting.image_face.setImage(frame)
-            self.plotting.image_eye_left.setImage(img_eye_left)
-            self.plotting.image_eye_right.setImage(img_eye_right)
-
-    def closed_text(self, value: bool) -> str:
-        return "closed" if value else "open"
+            self.plotter.image_face.setImage(frame)
+            self.plotter.image_eye_left.setImage(img_eye_left)
+            self.plotter.image_eye_right.setImage(img_eye_right)
 
     def __on_finished(self):
         self.save_results()
-        self.plotting.plot.setLimits(xMin=0, xMax=self.current_frame)
-        self.plotting.plot.setXRange(self.current_frame - 100, self.current_frame)
-        self.plotting.plot.setMouseEnabled(x=True, y=False)
+        self.plotter.finish(self.current_frame)
 
     def save_results(self):
         resource_path = self.get_resource_path()
