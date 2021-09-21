@@ -65,6 +65,11 @@ class view_eye_blinking(QWidget):
         # buttons
         self.button_video_load:    QPushButton = self.findChild(QPushButton, "button_video_load")
         self.button_video_analyze: QPushButton = self.findChild(QPushButton, "button_video_analyze")
+        
+        self.button_video_analyze_stop: QPushButton = QPushButton("Stop Analyze")
+        self.button_video_analyze_stop.setDisabled(True)
+        self.button_video_analyze_stop.clicked.connect(self.stop_analyze)
+
         self.progressbar_analyze: QProgressBar = self.findChild(QProgressBar, "progressbar_analyze")
         # image holders
         image_settings = {
@@ -110,6 +115,8 @@ class view_eye_blinking(QWidget):
         self.vlayout_left.addWidget(self.layout_frame)
         self.vlayout_left.addWidget(self.evaluation_plot)
         self.vlayout_right.insertWidget(0, self.layout_detail)
+
+        self.vlayout_right.insertWidget(4, self.button_video_analyze_stop)
         
         self.hlayout_mw.setStretchFactor(self.vlayout_left, 4)
         self.hlayout_mw.setStretchFactor(self.vlayout_right, 1)
@@ -210,6 +217,7 @@ class view_eye_blinking(QWidget):
     def gui_analysis_start(self):
         self.button_video_load.setDisabled(True)
         self.button_video_analyze.setDisabled(True)
+        self.button_video_analyze_stop.setDisabled(False)
         self.checkbox_analysis.setDisabled(True)
         self.edit_threshold.setDisabled(True)
 
@@ -220,6 +228,8 @@ class view_eye_blinking(QWidget):
         self.button_video_load.setDisabled(False)
         self.button_video_analyze.setText("Video Analysieren")
         self.button_video_analyze.setDisabled(False)
+        self.button_video_analyze_stop.setDisabled(True)
+
         self.checkbox_analysis.setDisabled(False)
         self.edit_threshold.setDisabled(False)
 
@@ -258,6 +268,9 @@ class view_eye_blinking(QWidget):
             self.checkbox_analysis.setDisabled(False)
         else:
             self.logger.info(f"No video file was selected")
+
+    def stop_analyze(self) -> None:
+        self.ea.stop()
 
 from jefapato.analyser import VideoAnalyser
 from jefapato.feature_extractor import LandMarkFeatureExtractor, scale_bbox

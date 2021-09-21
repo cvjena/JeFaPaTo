@@ -147,6 +147,10 @@ class Analyser(ABC):
     def resource_is_loaded(self):
         return self.resource is not None
 
+    def stop(self):
+        self.data_loader.stopped = True
+        self.data_processor.stopped = True
+
 class ResourcePathNotSetException(Exception):
     pass
 

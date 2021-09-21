@@ -17,6 +17,7 @@ class DataProcessor(QThread):
         self.analyse_func: Callable = analyse_func
         self.data_loader: DataLoader = data_loader
         self.data_amount: int = data_amount
+        self.stopped = False
 
     def __del__(self):
         self.wait()
@@ -26,7 +27,7 @@ class DataProcessor(QThread):
         self.processingStarted.emit()
 
         processed = 0
-        while processed != self.data_amount:
+        while processed != self.data_amount and not self.stopped:
             data = self.data_loader.data_queue.get()
 
             self.analyse_func(data)
