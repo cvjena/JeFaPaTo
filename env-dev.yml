@@ -15,5 +15,7 @@ dependencies:
   - pip:
     - pyqtgraph~=0.12
     - snakeviz
+    - yappi
     - PyQt5-stubs
     - psutil==5.8
+    - pre-commit
