@@ -268,11 +268,6 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
 
         if widget_threshhold is not None:
             self.widget_threshold.setReadOnly(True)
-            self.widget_graph.signal_y_ruler_changed.connect(
-                lambda value: self.widget_threshold.setText(
-                    f"{round(value, 2)}".strip()
-                )
-            )
 
     def set_threshold(self, value: float):
         self.eye_blinking_classifier.threshold = value
@@ -286,6 +281,8 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
                     self.score_eye_l[self.current_frame] < self.get_threshold(),
                     self.score_eye_r[self.current_frame] < self.get_threshold(),
                 )
+        if self.widget_threshold is not None:
+            self.widget_threshold.setText(f"{round(value, 2)}".strip())
 
     def get_threshold(self) -> float:
         return self.eye_blinking_classifier.threshold

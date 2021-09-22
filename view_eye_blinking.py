@@ -1,16 +1,14 @@
 import logging
 from pathlib import Path
 
-import numpy as np
-import pyqtgraph as pg
-from PyQt5 import uic
 from PyQt5.QtWidgets import (
     QCheckBox,
     QFileDialog,
-    QHBoxLayout,
+    QFormLayout,
     QLineEdit,
     QProgressBar,
     QPushButton,
+    QSplitter,
     QVBoxLayout,
     QWidget,
 )
@@ -19,73 +17,54 @@ from jefapato.analyser import EyeBlinkingVideoAnalyser
 from jefapato.plotter import EyeDetailWidget, FrameWidget, GraphWidget
 
 
-class view_eye_blinking(QWidget):
+class view_eye_blinking(QSplitter):
     def __init__(self):
         super().__init__()
-
-        # we set this for all images, as we do not expect
-        # the images to be in a different orientation
-        pg.setConfigOption(opt="imageAxisOrder", value="row-major")
-        pg.setConfigOption(opt="background", value=pg.mkColor(255, 255, 255))
-
-        # ==============================================================================
-        # PROPERTIES
-        self.current_image: np.ndarray = None
         self.video_file_path: Path = None
 
-        self.disply_width = 640
-        self.display_height = 480
-
         self.logger = logging.getLogger("eyeBlinkingDetection")
-        # ==============================================================================
-        # GUI ELEMENTS
-        uic.loadUi("ui/view_eye_blinking.ui", self)
 
         self.widget_frame = FrameWidget()
         self.widget_detail = EyeDetailWidget()
         self.widget_graph = GraphWidget()
 
-        # layouts
-        self.hlayout_mw: QHBoxLayout = self.findChild(QHBoxLayout, "hlayout_mw")
-        self.vlayout_ls: QVBoxLayout = self.findChild(QVBoxLayout, "vlayout_left")
-        self.vlayout_rs: QVBoxLayout = self.findChild(QVBoxLayout, "vlayout_right")
+        widget_l = QWidget()
+        widget_r = QWidget()
 
-        # edits
-        self.le_threshold: QLineEdit = self.findChild(QLineEdit, "edit_threshold")
-        self.le_bmp_l: QLineEdit = self.findChild(
-            QLineEdit, "blinkingPerMinuteLeftLineEdit"
-        )
-        self.le_bmp_r: QLineEdit = self.findChild(
-            QLineEdit, "blinkingPerMinuteRightLineEdit"
-        )
+        self.vlayout_ls = QVBoxLayout()
+        self.vlayout_rs = QVBoxLayout()
+        self.flayout_se = QFormLayout()
 
-        self.cb_anal: QCheckBox = self.findChild(QCheckBox, "checkbox_analysis")
+        widget_l.setLayout(self.vlayout_ls)
+        widget_r.setLayout(self.vlayout_rs)
 
-        # buttons
-        self.bt_open: QPushButton = self.findChild(QPushButton, "button_video_load")
-        self.bt_anal: QPushButton = self.findChild(QPushButton, "button_video_analyze")
+        self.addWidget(widget_l)
+        self.addWidget(widget_r)
 
-        self.bt_anal_stop: QPushButton = QPushButton("Stop Analyze")
-        self.bt_anal_stop.setDisabled(True)
-        self.bt_anal_stop.clicked.connect(self.stop_analyze)
+        self.le_threshold = QLineEdit()
+        self.le_bmp_l = QLineEdit()
+        self.le_bmp_r = QLineEdit()
 
-        self.pb_anal: QProgressBar = self.findChild(QProgressBar, "progressbar_analyze")
+        self.cb_anal = QCheckBox()
+        self.bt_open = QPushButton("Open Video File")
+        self.bt_anal = QPushButton("Analyze Video")
+        self.bt_anal_stop: QPushButton = QPushButton("Cancel")
 
-        # ==============================================================================
-        # Add widgets to layout
+        self.pb_anal = QProgressBar()
+
         self.vlayout_ls.addWidget(self.widget_frame)
         self.vlayout_ls.addWidget(self.widget_graph)
-        self.vlayout_rs.insertWidget(0, self.widget_detail)
 
-        self.vlayout_rs.insertWidget(4, self.bt_anal_stop)
+        self.vlayout_rs.addWidget(self.widget_detail)
+        self.vlayout_rs.addLayout(self.flayout_se)
 
-        self.hlayout_mw.setStretchFactor(self.vlayout_ls, 4)
-        self.hlayout_mw.setStretchFactor(self.vlayout_rs, 1)
-
-        # ==============================================================================
-        # INITIALIZATION ROUTINES
-        # connect the functions
-        # add slot connections
+        self.flayout_se.addRow(self.bt_open)
+        self.flayout_se.addRow(self.bt_anal)
+        self.flayout_se.addRow(self.bt_anal_stop)
+        self.flayout_se.addRow("Progress:", self.pb_anal)
+        self.flayout_se.addRow("Threshold:", self.le_threshold)
+        self.flayout_se.addRow("Blinking Rate Left:", self.le_bmp_l)
+        self.flayout_se.addRow("Blinking Rate Right:", self.le_bmp_r)
 
         self.ea = EyeBlinkingVideoAnalyser(
             self.widget_frame,
@@ -101,20 +80,27 @@ class view_eye_blinking(QWidget):
         self.ea.connect_processed_percentage([self.pb_anal.setValue])
 
         self.bt_open.clicked.connect(self.load_video)
-        self.bt_anal.clicked.connect(self.start_anaysis)
+        self.bt_anal.clicked.connect(self.ea.analysis_start)
+        self.bt_anal_stop.clicked.connect(self.ea.stop)
 
         # disable analyse button and check box
         self.bt_anal.setDisabled(True)
         self.cb_anal.setDisabled(True)
+        self.bt_anal_stop.setDisabled(True)
+
+        self.le_bmp_r.setReadOnly(True)
+        self.le_bmp_l.setReadOnly(True)
+        self.le_threshold.setReadOnly(True)
+
+        self.ea.set_threshold(0.20)
+
+        self.setStretchFactor(0, 7)
+        self.setStretchFactor(1, 3)
 
     def compute_blinking_per_minute(self):
         self.bpm_l, self.bpm_r = self.ea.blinking_rate()
         self.le_bmp_l.setText(f"{self.bpm_l:5.2f}")
         self.le_bmp_r.setText(f"{self.bpm_r:5.2f}")
-
-    def start_anaysis(self):
-        self.logger.info("User started analysis.")
-        self.ea.analysis_start()
 
     def gui_analysis_start(self):
         self.bt_open.setDisabled(True)
@@ -125,7 +111,7 @@ class view_eye_blinking(QWidget):
 
     def gui_analysis_finished(self):
         self.bt_open.setDisabled(False)
-        self.bt_anal.setText("Video Analysieren")
+        self.bt_anal.setText("Analyze Video")
         self.bt_anal.setDisabled(False)
         self.bt_anal_stop.setDisabled(True)
 
@@ -150,6 +136,3 @@ class view_eye_blinking(QWidget):
             self.cb_anal.setDisabled(False)
         else:
             self.logger.info("No video file was selected")
-
-    def stop_analyze(self) -> None:
-        self.ea.stop()

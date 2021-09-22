@@ -3,6 +3,7 @@ import logging.config
 import sys
 from pathlib import Path
 
+import pyqtgraph as pg
 from PyQt5.QtWidgets import QApplication, QTabWidget
 
 from view_emotion_recognition import view_emotion_recognition
@@ -15,6 +16,11 @@ class jefapato(QTabWidget):
     def __init__(self, parent=None):
         super(jefapato, self).__init__(parent)
         self.setWindowTitle("JeFaPaTo - Jena Facial Palsy Tool")
+        self.showMaximized()
+
+        # the images to be in a different orientation
+        pg.setConfigOption(opt="imageAxisOrder", value="row-major")
+        pg.setConfigOption(opt="background", value=pg.mkColor(255, 255, 255))
 
         self.VERSION = "2021.08.11"
 
