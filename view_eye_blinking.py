@@ -104,11 +104,6 @@ class view_eye_blinking(QWidget):
         )
         self.ea.connect_processed_percentage([self.progressbar_analyze.setValue])
 
-        self.plotter.connect_ruler_dragged(self.display_certain_frame)
-        self.plotter.connect_threshold_dragged(self.change_threshold_per_line)
-
-        self.plotter.singalFrameChanged.connect(self.display_certain_frame)
-
         self.button_video_load.clicked.connect(self.load_video)
         self.button_video_analyze.clicked.connect(self.start_anaysis)
 
@@ -130,9 +125,6 @@ class view_eye_blinking(QWidget):
         self.edit_bmp_l.setText(f"{self.bpm_l:5.2f}")
         self.edit_bmp_r.setText(f"{self.bpm_r:5.2f}")
 
-    def display_certain_frame(self):
-        self.ea.set_current_frame()
-
     def start_anaysis(self):
         self.logger.info("User started analysis.")
         self.ea.analysis_start()
@@ -144,8 +136,6 @@ class view_eye_blinking(QWidget):
         self.checkbox_analysis.setDisabled(True)
         self.edit_threshold.setDisabled(True)
 
-        self.plotter.disable()
-
     def gui_analysis_finished(self):
         self.button_video_load.setDisabled(False)
         self.button_video_analyze.setText("Video Analysieren")
@@ -154,20 +144,14 @@ class view_eye_blinking(QWidget):
 
         self.checkbox_analysis.setDisabled(False)
         self.edit_threshold.setDisabled(False)
-        self.plotter.enable()
 
     def change_threshold_per_edit(self):
         try:
             value: float = float(self.edit_threshold.text())
             self.ea.set_threshold(value)
-            self.plotter.set_threshold(value)
         except ValueError:
             self.edit_threshold.setText("Ungültige Zahl")
             return
-        self.change_threshold()
-
-    def change_threshold_per_line(self):
-        self.ea.set_threshold(self.plotter.get_threshold())
         self.change_threshold()
 
     def change_threshold(self):

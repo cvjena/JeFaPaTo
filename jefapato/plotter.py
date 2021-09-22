@@ -1,4 +1,4 @@
-from typing import Callable, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -107,100 +107,117 @@ class DetailWidget(pg.GraphicsLayoutWidget):
         return "closed" if value else "open"
 
 
-class EyeBlinkingPlotter(QWidget):
+class GraphWidget(pg.PlotWidget):
 
-    singalFrameChanged = pyqtSignal()
+    signal_x_ruler_changed = pyqtSignal(float)
+    signal_y_ruler_changed = pyqtSignal(float)
+    signal_graph_clicked = pyqtSignal(float)
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, parent=None, background="default", plotItem=None, **kargs):
+        super().__init__(
+            parent=parent, background=background, plotItem=plotItem, **kargs
+        )
 
-        self._threshold: float = 0.20
-        self._current_frame: int = 0
+        self._x_ruler_val: float = 0.0
+        self._y_ruler_val: float = 0.2
+        self._grid_spacing: float = 30.0
+        self._grid_range: float = 100.0
 
-        self.widget_frame = FrameWidget()
-        self.widget_detail = DetailWidget()
-
-        # plotting
-        self.widget_graph: pg.PlotWidget = pg.PlotWidget()
-        self.widget_graph.setTitle("EAR Score")
-        self.widget_graph.setMouseEnabled(x=True, y=False)
-        self.widget_graph.setLimits(xMin=0)
-        self.widget_graph.setYRange(0, 0.5)
-        self.widget_graph.disableAutoRange()
-        self.curve_left_eye: pg.PlotDataItem = self.widget_graph.plot()
-        self.curve_right_eye: pg.PlotDataItem = self.widget_graph.plot()
-        self.curve_left_eye.setPen(pg.mkPen(pg.mkColor(0, 0, 255), width=2))
-        self.curve_right_eye.setPen(pg.mkPen(pg.mkColor(255, 0, 0), width=2))
+        # self.setTitle("EAR Score")
+        self.setMouseEnabled(x=True, y=False)
+        self.setLimits(xMin=0)
+        self.setYRange(0, 0.5)
+        self.disableAutoRange()
 
         self.grid_item: pg.GridItem = pg.GridItem()
         self.grid_item.setTickSpacing(x=[1.0], y=[0.1])
-        self.widget_graph.addItem(self.grid_item)
+        self.addItem(self.grid_item)
 
         bar_pen = pg.mkPen(width=2, color="k")
-        self.indicator_frame: pg.InfiniteLine = pg.InfiniteLine(
-            0, movable=False, pen=bar_pen
+        self._x_ruler: pg.InfiniteLine = pg.InfiniteLine(
+            self._x_ruler_val, movable=False, pen=bar_pen
         )
-        self.indicator_threshold: pg.InfiniteLine = pg.InfiniteLine(
-            0.2, angle=0, movable=True, pen=bar_pen
+        self._y_ruler: pg.InfiniteLine = pg.InfiniteLine(
+            self._y_ruler_val, angle=0, movable=True, pen=bar_pen
+        )
+
+        self._x_ruler.sigDragged.connect(
+            lambda _: self.signal_x_ruler_changed.emit(self._x_ruler.getPos()[0])
+        )
+        self._y_ruler.sigDragged.connect(
+            lambda _: self.signal_y_ruler_changed.emit(self._y_ruler.getPos()[1])
         )
 
         # add the sliders to the plot
-        self.widget_graph.addItem(self.indicator_frame)
-        self.widget_graph.addItem(self.indicator_threshold)
+        self.addItem(self._x_ruler)
+        self.addItem(self._y_ruler)
 
-        self.connect_on_graph_clicked(self.move_line)
+        self.scene().sigMouseClicked.connect(
+            lambda ev: self.signal_graph_clicked.emit(self.move_line(ev))
+        )
 
-    def connect_on_graph_clicked(self, func: Callable) -> None:
-        self.widget_graph.scene().sigMouseClicked.connect(func)
+        self.curves: List[pg.PlotDataItem] = list()
 
-    def connect_ruler_dragged(self, func: Callable) -> None:
-        self.indicator_frame.sigDragged.connect(func)
-
-    def connect_threshold_dragged(self, func: Callable) -> None:
-        self.indicator_threshold.sigDragged.connect(func)
-
-    def move_line(self, mouseClickEvent):
+    def move_line(self, mouseClickEvent) -> Optional[float]:
         # this code  calculates the index of the underlying data entry
         # and moves the indicator to it
-        vb = self.widget_graph.getPlotItem().vb
+        vb = self.getPlotItem().vb
         mousePoint = vb.mapSceneToView(mouseClickEvent._scenePos)
-        if self.widget_graph.sceneBoundingRect().contains(mouseClickEvent._scenePos):
+        if self.sceneBoundingRect().contains(mouseClickEvent._scenePos):
             mousePoint = vb.mapSceneToView(mouseClickEvent._scenePos)
-            index = int(mousePoint.x())
-            self.indicator_frame.setPos(index)
-            self.singalFrameChanged.emit()
+            self.set_x_ruler(mousePoint.x())
+            return self._x_ruler_val
+
+        return None
+
+    def add_curve(self, settings: Dict[str, Any]) -> pg.PlotDataItem:
+        curve: pg.PlotDataItem = self.plot()
+        curve.setPen(pg.mkPen(settings))
+
+        self.curves.append(curve)
+        return curve
 
     def enable(self) -> None:
-        self.indicator_frame.setMovable(True)
-        self.indicator_threshold.setMovable(True)
+        self._x_ruler.setMovable(True)
+        self._y_ruler.setMovable(True)
 
     def disable(self) -> None:
-        self.indicator_frame.setMovable(False)
-        self.indicator_threshold.setMovable(False)
+        self._x_ruler.setMovable(False)
+        self._y_ruler.setMovable(False)
 
-    def set_threshold(self, value: float) -> None:
-        self._threshold = value
-        self.indicator_threshold.setPos(self._threshold)
+    def set_x_ruler(self, value: float) -> None:
+        self._x_ruler_val = value
+        self._x_ruler.setPos(self._x_ruler_val)
 
-    def get_threshold(self) -> float:
-        return self._threshold
-
-    def update_limits(self, right_border) -> None:
-        self.widget_graph.setLimits(xMin=right_border - 100, xMax=right_border)
-
-    def enable_mouse(self, x: bool, y: bool) -> None:
-        self.widget_graph.setMouseEnabled(x, y)
+    def set_y_ruler(self, value: float) -> None:
+        self._y_ruler_val = value
+        self._y_ruler.setPos(self._y_ruler_val)
 
     def start(self, fps: float = 30.0) -> None:
-        self.widget_graph.enableAutoRange(axis="x")
-        self.widget_graph.setMouseEnabled(x=False, y=False)
-        self.grid_item.setTickSpacing(x=[int(fps)], y=None)
+        self.enableAutoRange(axis="x")
+        self.setMouseEnabled(x=False, y=False)
+        self.set_grid_range(fps)
+        self.disable()
 
-    def finish(self, last_frame: int):
-        self.widget_graph.setLimits(xMin=0, xMax=last_frame)
-        self.widget_graph.setXRange(last_frame - 100, last_frame)
-        self.widget_graph.setMouseEnabled(x=True, y=False)
+    def update(self, location: float) -> None:
+        self.setLimits(xMin=location - self._grid_range, xMax=location)
+        self.set_x_ruler(location)
 
-    def set_ear_scores(self, left: List[float], right: List[float]) -> None:
-        self.curve_left_eye.setData(left)
-        self.curve_right_eye.setData(right)
+    def finish(self, location: float):
+        self.setLimits(xMin=0, xMax=location)
+        self.setXRange(location - self._grid_range, location)
+        self.setMouseEnabled(x=True, y=False)
+        self.enable()
+
+    def set_grid_range(self, value: float) -> None:
+        self._grid_range = value
+        self.grid_item.setTickSpacing(x=[int(self._grid_spacing)], y=None)
+
+
+class EyeBlinkingPlotter(QWidget):
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.widget_frame = FrameWidget()
+        self.widget_detail = DetailWidget()
+        self.widget_graph = GraphWidget()

@@ -244,8 +244,25 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
 
         self.current_frame: int = 0
 
+        if self.plotter is not None:
+            self.curve_l = self.plotter.widget_graph.add_curve(
+                {"color": "#00F", "width": 2}
+            )
+            self.curve_r = self.plotter.widget_graph.add_curve(
+                {"color": "#F00", "width": 2}
+            )
+
+            self.plotter.widget_graph.signal_graph_clicked.connect(
+                self.set_current_frame
+            )
+            self.plotter.widget_graph.signal_x_ruler_changed.connect(
+                self.set_current_frame
+            )
+            self.plotter.widget_graph.signal_y_ruler_changed.connect(self.set_threshold)
+
     def set_threshold(self, value: float):
         self.eye_blinking_classifier.threshold = value
+        self.plotter.widget_graph.set_y_ruler(value)
 
     def get_threshold(self) -> float:
         return self.eye_blinking_classifier.threshold
@@ -256,7 +273,11 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
         self.closed_eye_left = list()
         self.closed_eye_right = list()
         self.valid = list()
-        self.plotter.start(self.get_fps())
+        self.plotter.widget_graph.start(self.get_fps())
+
+    def __on_finished(self):
+        self.plotter.widget_graph.finish(self.current_frame)
+        self.save_results()
 
     def __on_update(self, frame: np.ndarray, frame_id: int):
         # currently we only check the first one
@@ -264,9 +285,9 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
         self.current_frame = frame_id
 
         self.append_classification()
-        self.update_plot_data()
-        self.plot_label()
-        self.update_plot_frame(frame)
+        self.update_frame(frame)
+        self.update_detail(frame)
+        self.update_graph()
 
     def append_classification(self) -> None:
         latest_value: EyeBlinkingResult = self.classes[-1][0]
@@ -276,33 +297,30 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
         self.closed_eye_right.append(latest_value.closed_right)
         self.valid.append(latest_value.valid)
 
-    def update_plot_data(self) -> None:
-        # plotting of the data
-        self.plotter.indicator_frame.setPos(self.current_frame)
-        self.plotter.set_ear_scores(self.score_eye_left, self.score_eye_right)
+    def update_graph(self) -> None:
+        self.plotter.widget_graph.update(self.current_frame)
 
-    def update_plot_frame(self, frame: np.ndarray) -> None:
-        # TODO plotting of the frame and extracted faces
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        try:
-            rect, shape = self.features[-1][0]
-        except IndexError:
-            rect, shape = None, None
+        if self.curve_l is not None:
+            self.curve_l.setData(self.score_eye_left)
+        if self.curve_r is not None:
+            self.curve_r.setData(self.score_eye_right)
 
-        self.plot_frame(frame, rect, shape)
-        self.plotter.update_limits(self.current_frame)
+    def update_frame(self, frame: np.ndarray) -> None:
+        img = np.copy(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+        self.plotter.widget_frame.frame.set_image(img)
 
-    def set_current_frame(self) -> None:
+    def set_current_frame(self, frame: float) -> None:
         # clip the frame into the maximum valid range
         # cast to int, just to be sure
         value = int(
             max(
                 0,
-                min(int(self.plotter.indicator_frame.pos()[0]), self.data_amount - 1),
+                min(int(frame), self.data_amount - 1),
             )
         )
-        self.plotter.indicator_frame.setPos(value)
+        self.plotter.widget_graph.set_x_ruler(value)
         self.current_frame = value
+
         if not self.resource_is_loaded():
             return
 
@@ -313,34 +331,20 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
         if not grabbed:
             return
 
+        self.update_frame(frame)
+        self.update_detail(frame)
+
+    def update_detail(self, frame: np.ndarray) -> None:
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         try:
             rect, shape = self.features[self.current_frame][0]
         except IndexError:
-            logging.exception(
-                (
-                    "User probably clicked on the plot without anaylizing the video."
-                    "Silent error."
-                )
-            )
-            return
+            rect, shape = None, None
 
-        self.plot_label()
-        self.plot_frame(frame, rect, shape)
-
-    def plot_label(self):
         self.plotter.widget_detail.set_labels(
             self.closed_eye_left[self.current_frame],
             self.closed_eye_right[self.current_frame],
         )
-
-    def plot_frame(
-        self,
-        frame: np.ndarray,
-        rect: Optional[dlib.rectangle],
-        shape: Optional[np.ndarray],
-    ) -> None:
-        self.plotter.widget_frame.frame.set_image(frame)
         self.plotter.widget_detail.frame_d.set_image(np.zeros((20, 20)))
         self.plotter.widget_detail.frame_l.set_image(np.zeros((20, 20)))
         self.plotter.widget_detail.frame_r.set_image(np.zeros((20, 20)))
@@ -395,10 +399,6 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
             self.plotter.widget_detail.frame_d.set_image(frame)
             self.plotter.widget_detail.frame_l.set_image(img_eye_left)
             self.plotter.widget_detail.frame_r.set_image(img_eye_right)
-
-    def __on_finished(self):
-        self.save_results()
-        self.plotter.finish(self.current_frame)
 
     def save_results(self):
         resource_path = self.get_resource_path()
