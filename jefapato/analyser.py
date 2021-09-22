@@ -83,6 +83,10 @@ class Analyser(ABC):
     def get_item_size(self):
         pass
 
+    @abstractmethod
+    def call_after_resource_load(self, data: Any) -> None:
+        pass
+
     def analysis_start(self):
         self.features = list()
         self.classes = list()
@@ -133,11 +137,10 @@ class Analyser(ABC):
             value = Path(value)
         self.resource_path = value
         self.load_resource()
-        read, data = self.get_next_item()
+        _, data = self.get_next_item()
         # set to inital index again because we just loaded it
         self.set_next_item_by_id(0)
-
-        return data
+        self.call_after_resource_load()
 
     def get_resource_path(self) -> Union[Path, None]:
         return self.resource_path
@@ -163,6 +166,10 @@ class Analyser(ABC):
     def stop(self):
         self.data_loader.stopped = True
         self.data_processor.stopped = True
+
+    def reset(self):
+        self.features = list()
+        self.classes = list()
 
 
 class ResourcePathNotSetException(Exception):
@@ -245,8 +252,8 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
         self.connect_on_updated([self.__on_update])
         self.connect_on_finished([self.__on_finished])
 
-        self.score_eye_left: List[float] = list()
-        self.score_eye_right: List[float] = list()
+        self.score_eye_l: List[float] = list()
+        self.score_eye_r: List[float] = list()
         self.valid: List[bool] = list()
 
         self.current_frame: int = 0
@@ -273,19 +280,19 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
         if self.widget_graph is not None:
             self.widget_graph.set_y_ruler(value)
 
-            if self.widget_detail is not None and self.score_eye_right:
+            if self.widget_detail is not None and self.score_eye_r:
 
                 self.widget_detail.set_labels(
-                    self.score_eye_left[self.current_frame] < self.get_threshold(),
-                    self.score_eye_right[self.current_frame] < self.get_threshold(),
+                    self.score_eye_l[self.current_frame] < self.get_threshold(),
+                    self.score_eye_r[self.current_frame] < self.get_threshold(),
                 )
 
     def get_threshold(self) -> float:
         return self.eye_blinking_classifier.threshold
 
     def __on_start(self):
-        self.score_eye_left = list()
-        self.score_eye_right = list()
+        self.score_eye_l = list()
+        self.score_eye_r = list()
         self.valid = list()
 
         if self.widget_graph is not None:
@@ -312,17 +319,17 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
 
     def append_classification(self) -> None:
         latest_value: EyeBlinkingResult = self.classes[-1][0]
-        self.score_eye_left.append(latest_value.ear_left)
-        self.score_eye_right.append(latest_value.ear_right)
+        self.score_eye_l.append(latest_value.ear_left)
+        self.score_eye_r.append(latest_value.ear_right)
         self.valid.append(latest_value.valid)
 
     def update_graph(self) -> None:
         self.widget_graph.update(self.current_frame)
 
         if self.curve_l is not None:
-            self.curve_l.setData(self.score_eye_left)
+            self.curve_l.setData(self.score_eye_l)
         if self.curve_r is not None:
-            self.curve_r.setData(self.score_eye_right)
+            self.curve_r.setData(self.score_eye_r)
 
     def update_frame(self, frame: np.ndarray) -> None:
         img = np.copy(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
@@ -363,10 +370,13 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
         except IndexError:
             rect, shape = None, None
 
-        self.widget_detail.set_labels(
-            self.score_eye_left[self.current_frame] < self.get_threshold(),
-            self.score_eye_right[self.current_frame] < self.get_threshold(),
-        )
+        try:
+            self.widget_detail.set_labels(
+                self.score_eye_l[self.current_frame] < self.get_threshold(),
+                self.score_eye_r[self.current_frame] < self.get_threshold(),
+            )
+        except IndexError:
+            pass
         self.widget_detail.set_frame(frame, rect, shape)
 
     def save_results(self):
@@ -376,13 +386,13 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
         with open(result_path, "w") as f:
             f.write(self.results_file_header)
             th = self.get_threshold()
-            for i in range(len(self.score_eye_right)):
+            for i in range(len(self.score_eye_r)):
                 # fancy String literal concatenation
                 line = (
-                    f"{self.score_eye_left[i] < th};"
-                    f"{self.score_eye_right[i] < th};"
-                    f"{self.score_eye_left[i]};"
-                    f"{self.score_eye_right[i]};"
+                    f"{self.score_eye_l[i] < th};"
+                    f"{self.score_eye_r[i] < th};"
+                    f"{self.score_eye_l[i]};"
+                    f"{self.score_eye_r[i]};"
                     f"{self.valid[i]}"
                     f"\n"
                 )
@@ -393,11 +403,15 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
         amount_minutes = self.get_data_amount() / frames_per_minute
         th = self.get_threshold()
 
-        eye_l = [
-            i[0] for i in groupby(map(lambda x: x < th, self.score_eye_left))
-        ].count(True)
-        eye_r = [
-            i[0] for i in groupby(map(lambda x: x < th, self.score_eye_right))
-        ].count(True)
+        eye_l = [i[0] for i in groupby(map(lambda x: x < th, self.score_eye_l))].count(
+            True
+        )
+        eye_r = [i[0] for i in groupby(map(lambda x: x < th, self.score_eye_r))].count(
+            True
+        )
 
         return (eye_l / amount_minutes, eye_r / amount_minutes)
+
+    def call_after_resource_load(self) -> None:
+        self.reset()
+        self.__set_current_frame(self.current_frame)

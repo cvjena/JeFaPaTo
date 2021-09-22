@@ -47,49 +47,40 @@ class view_eye_blinking(QWidget):
 
         # layouts
         self.hlayout_mw: QHBoxLayout = self.findChild(QHBoxLayout, "hlayout_mw")
-        self.vlayout_left: QVBoxLayout = self.findChild(QVBoxLayout, "vlayout_left")
-        self.vlayout_right: QVBoxLayout = self.findChild(QVBoxLayout, "vlayout_right")
+        self.vlayout_ls: QVBoxLayout = self.findChild(QVBoxLayout, "vlayout_left")
+        self.vlayout_rs: QVBoxLayout = self.findChild(QVBoxLayout, "vlayout_right")
 
         # edits
-        self.edit_threshold: QLineEdit = self.findChild(QLineEdit, "edit_threshold")
-        self.edit_bmp_l: QLineEdit = self.findChild(
+        self.le_threshold: QLineEdit = self.findChild(QLineEdit, "edit_threshold")
+        self.le_bmp_l: QLineEdit = self.findChild(
             QLineEdit, "blinkingPerMinuteLeftLineEdit"
         )
-        self.edit_bmp_r: QLineEdit = self.findChild(
+        self.le_bmp_r: QLineEdit = self.findChild(
             QLineEdit, "blinkingPerMinuteRightLineEdit"
         )
 
-        # checkboxes
-        self.checkbox_analysis: QCheckBox = self.findChild(
-            QCheckBox, "checkbox_analysis"
-        )
+        self.cb_anal: QCheckBox = self.findChild(QCheckBox, "checkbox_analysis")
 
         # buttons
-        self.button_video_load: QPushButton = self.findChild(
-            QPushButton, "button_video_load"
-        )
-        self.button_video_analyze: QPushButton = self.findChild(
-            QPushButton, "button_video_analyze"
-        )
+        self.bt_open: QPushButton = self.findChild(QPushButton, "button_video_load")
+        self.bt_anal: QPushButton = self.findChild(QPushButton, "button_video_analyze")
 
-        self.button_video_analyze_stop: QPushButton = QPushButton("Stop Analyze")
-        self.button_video_analyze_stop.setDisabled(True)
-        self.button_video_analyze_stop.clicked.connect(self.stop_analyze)
+        self.bt_anal_stop: QPushButton = QPushButton("Stop Analyze")
+        self.bt_anal_stop.setDisabled(True)
+        self.bt_anal_stop.clicked.connect(self.stop_analyze)
 
-        self.progressbar_analyze: QProgressBar = self.findChild(
-            QProgressBar, "progressbar_analyze"
-        )
+        self.pb_anal: QProgressBar = self.findChild(QProgressBar, "progressbar_analyze")
 
         # ==============================================================================
         # Add widgets to layout
-        self.vlayout_left.addWidget(self.widget_frame)
-        self.vlayout_left.addWidget(self.widget_graph)
-        self.vlayout_right.insertWidget(0, self.widget_detail)
+        self.vlayout_ls.addWidget(self.widget_frame)
+        self.vlayout_ls.addWidget(self.widget_graph)
+        self.vlayout_rs.insertWidget(0, self.widget_detail)
 
-        self.vlayout_right.insertWidget(4, self.button_video_analyze_stop)
+        self.vlayout_rs.insertWidget(4, self.bt_anal_stop)
 
-        self.hlayout_mw.setStretchFactor(self.vlayout_left, 4)
-        self.hlayout_mw.setStretchFactor(self.vlayout_right, 1)
+        self.hlayout_mw.setStretchFactor(self.vlayout_ls, 4)
+        self.hlayout_mw.setStretchFactor(self.vlayout_rs, 1)
 
         # ==============================================================================
         # INITIALIZATION ROUTINES
@@ -100,48 +91,46 @@ class view_eye_blinking(QWidget):
             self.widget_frame,
             self.widget_detail,
             self.widget_graph,
-            self.edit_threshold,
+            self.le_threshold,
         )
 
-        self.ea.connect_on_started(
-            [self.gui_analysis_start, self.progressbar_analyze.reset]
-        )
+        self.ea.connect_on_started([self.gui_analysis_start, self.pb_anal.reset])
         self.ea.connect_on_finished(
             [self.gui_analysis_finished, self.compute_blinking_per_minute]
         )
-        self.ea.connect_processed_percentage([self.progressbar_analyze.setValue])
+        self.ea.connect_processed_percentage([self.pb_anal.setValue])
 
-        self.button_video_load.clicked.connect(self.load_video)
-        self.button_video_analyze.clicked.connect(self.start_anaysis)
+        self.bt_open.clicked.connect(self.load_video)
+        self.bt_anal.clicked.connect(self.start_anaysis)
 
         # disable analyse button and check box
-        self.button_video_analyze.setDisabled(True)
-        self.checkbox_analysis.setDisabled(True)
+        self.bt_anal.setDisabled(True)
+        self.cb_anal.setDisabled(True)
 
     def compute_blinking_per_minute(self):
         self.bpm_l, self.bpm_r = self.ea.blinking_rate()
-        self.edit_bmp_l.setText(f"{self.bpm_l:5.2f}")
-        self.edit_bmp_r.setText(f"{self.bpm_r:5.2f}")
+        self.le_bmp_l.setText(f"{self.bpm_l:5.2f}")
+        self.le_bmp_r.setText(f"{self.bpm_r:5.2f}")
 
     def start_anaysis(self):
         self.logger.info("User started analysis.")
         self.ea.analysis_start()
 
     def gui_analysis_start(self):
-        self.button_video_load.setDisabled(True)
-        self.button_video_analyze.setDisabled(True)
-        self.button_video_analyze_stop.setDisabled(False)
-        self.checkbox_analysis.setDisabled(True)
-        self.edit_threshold.setDisabled(True)
+        self.bt_open.setDisabled(True)
+        self.bt_anal.setDisabled(True)
+        self.bt_anal_stop.setDisabled(False)
+        self.cb_anal.setDisabled(True)
+        self.le_threshold.setDisabled(True)
 
     def gui_analysis_finished(self):
-        self.button_video_load.setDisabled(False)
-        self.button_video_analyze.setText("Video Analysieren")
-        self.button_video_analyze.setDisabled(False)
-        self.button_video_analyze_stop.setDisabled(True)
+        self.bt_open.setDisabled(False)
+        self.bt_anal.setText("Video Analysieren")
+        self.bt_anal.setDisabled(False)
+        self.bt_anal_stop.setDisabled(True)
 
-        self.checkbox_analysis.setDisabled(False)
-        self.edit_threshold.setDisabled(False)
+        self.cb_anal.setDisabled(False)
+        self.le_threshold.setDisabled(False)
 
     def load_video(self):
         self.logger.info("Open file explorer")
@@ -156,11 +145,9 @@ class view_eye_blinking(QWidget):
             self.logger.info(f"Load video file: {fileName}")
             self.video_file_path = Path(fileName)
 
-            first_frame = self.ea.set_resource_path(self.video_file_path)
-            self.button_video_analyze.setDisabled(False)
-            self.checkbox_analysis.setDisabled(False)
-
-            self.widget_frame.frame.set_image(first_frame, bgr=True)
+            self.ea.set_resource_path(self.video_file_path)
+            self.bt_anal.setDisabled(False)
+            self.cb_anal.setDisabled(False)
         else:
             self.logger.info("No video file was selected")
 
