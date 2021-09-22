@@ -1,11 +1,13 @@
 import logging
 from abc import ABC, abstractmethod
+from itertools import groupby
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Tuple, Type, Union
 
 import cv2
 import numpy as np
 import psutil
+from PyQt5.QtWidgets import QLineEdit
 
 from jefapato.plotter import EyeDetailWidget, FrameWidget, GraphWidget
 
@@ -221,6 +223,7 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
         widget_frame: Optional[FrameWidget],
         widget_detail: Optional[EyeDetailWidget],
         widget_graph: Optional[GraphWidget],
+        widget_threshhold: Optional[QLineEdit],
     ) -> None:
 
         self.eye_blinking_classifier = EyeBlinking68Classifier(threshold=0.2)
@@ -236,6 +239,7 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
         self.widget_frame = widget_frame
         self.widget_detail = widget_detail
         self.widget_graph = widget_graph
+        self.widget_threshold = widget_threshhold
 
         self.connect_on_started([self.__on_start])
         self.connect_on_updated([self.__on_update])
@@ -243,9 +247,6 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
 
         self.score_eye_left: List[float] = list()
         self.score_eye_right: List[float] = list()
-
-        self.closed_eye_left: List[bool] = list()
-        self.closed_eye_right: List[bool] = list()
         self.valid: List[bool] = list()
 
         self.current_frame: int = 0
@@ -258,11 +259,26 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
             self.widget_graph.signal_x_ruler_changed.connect(self.__set_current_frame)
             self.widget_graph.signal_y_ruler_changed.connect(self.set_threshold)
 
+        if widget_threshhold is not None:
+            self.widget_threshold.setReadOnly(True)
+            self.widget_graph.signal_y_ruler_changed.connect(
+                lambda value: self.widget_threshold.setText(
+                    f"{round(value, 2)}".strip()
+                )
+            )
+
     def set_threshold(self, value: float):
         self.eye_blinking_classifier.threshold = value
 
         if self.widget_graph is not None:
             self.widget_graph.set_y_ruler(value)
+
+            if self.widget_detail is not None and self.score_eye_right:
+
+                self.widget_detail.set_labels(
+                    self.score_eye_left[self.current_frame] < self.get_threshold(),
+                    self.score_eye_right[self.current_frame] < self.get_threshold(),
+                )
 
     def get_threshold(self) -> float:
         return self.eye_blinking_classifier.threshold
@@ -270,8 +286,6 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
     def __on_start(self):
         self.score_eye_left = list()
         self.score_eye_right = list()
-        self.closed_eye_left = list()
-        self.closed_eye_right = list()
         self.valid = list()
 
         if self.widget_graph is not None:
@@ -300,8 +314,6 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
         latest_value: EyeBlinkingResult = self.classes[-1][0]
         self.score_eye_left.append(latest_value.ear_left)
         self.score_eye_right.append(latest_value.ear_right)
-        self.closed_eye_left.append(latest_value.closed_left)
-        self.closed_eye_right.append(latest_value.closed_right)
         self.valid.append(latest_value.valid)
 
     def update_graph(self) -> None:
@@ -352,8 +364,8 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
             rect, shape = None, None
 
         self.widget_detail.set_labels(
-            self.closed_eye_left[self.current_frame],
-            self.closed_eye_right[self.current_frame],
+            self.score_eye_left[self.current_frame] < self.get_threshold(),
+            self.score_eye_right[self.current_frame] < self.get_threshold(),
         )
         self.widget_detail.set_frame(frame, rect, shape)
 
@@ -363,14 +375,29 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
 
         with open(result_path, "w") as f:
             f.write(self.results_file_header)
+            th = self.get_threshold()
             for i in range(len(self.score_eye_right)):
                 # fancy String literal concatenation
                 line = (
-                    f"{'closed' if self.closed_eye_left[i] else 'open'};"
-                    f"{'closed' if self.closed_eye_right[i] else 'open'};"
+                    f"{self.score_eye_left[i] < th};"
+                    f"{self.score_eye_right[i] < th};"
                     f"{self.score_eye_left[i]};"
                     f"{self.score_eye_right[i]};"
                     f"{self.valid[i]}"
                     f"\n"
                 )
                 f.write(line)
+
+    def blinking_rate(self) -> Tuple[float, float]:
+        frames_per_minute = int(self.get_fps()) * 60
+        amount_minutes = self.get_data_amount() / frames_per_minute
+        th = self.get_threshold()
+
+        eye_l = [
+            i[0] for i in groupby(map(lambda x: x < th, self.score_eye_left))
+        ].count(True)
+        eye_r = [
+            i[0] for i in groupby(map(lambda x: x < th, self.score_eye_right))
+        ].count(True)
+
+        return (eye_l / amount_minutes, eye_r / amount_minutes)

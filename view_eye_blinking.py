@@ -1,5 +1,4 @@
 import logging
-from itertools import groupby
 from pathlib import Path
 
 import numpy as np
@@ -98,7 +97,10 @@ class view_eye_blinking(QWidget):
         # add slot connections
 
         self.ea = EyeBlinkingVideoAnalyser(
-            self.widget_frame, self.widget_detail, self.widget_graph
+            self.widget_frame,
+            self.widget_detail,
+            self.widget_graph,
+            self.edit_threshold,
         )
 
         self.ea.connect_on_started(
@@ -112,21 +114,12 @@ class view_eye_blinking(QWidget):
         self.button_video_load.clicked.connect(self.load_video)
         self.button_video_analyze.clicked.connect(self.start_anaysis)
 
-        self.edit_threshold.editingFinished.connect(self.change_threshold_per_edit)
-
         # disable analyse button and check box
         self.button_video_analyze.setDisabled(True)
         self.checkbox_analysis.setDisabled(True)
 
     def compute_blinking_per_minute(self):
-        frames_per_minute = int(self.ea.get_fps()) * 60
-        amount_minutes = self.ea.get_data_amount() / frames_per_minute
-
-        eye_l = [i[0] for i in groupby(self.ea.closed_eye_left)].count(True)
-        eye_r = [i[0] for i in groupby(self.ea.closed_eye_right)].count(True)
-
-        self.bpm_l = eye_l / amount_minutes
-        self.bpm_r = eye_r / amount_minutes
+        self.bpm_l, self.bpm_r = self.ea.blinking_rate()
         self.edit_bmp_l.setText(f"{self.bpm_l:5.2f}")
         self.edit_bmp_r.setText(f"{self.bpm_r:5.2f}")
 
@@ -149,19 +142,6 @@ class view_eye_blinking(QWidget):
 
         self.checkbox_analysis.setDisabled(False)
         self.edit_threshold.setDisabled(False)
-
-    def change_threshold_per_edit(self):
-        try:
-            value: float = float(self.edit_threshold.text())
-            self.ea.set_threshold(value)
-        except ValueError:
-            self.edit_threshold.setText("Ungültige Zahl")
-            return
-        self.change_threshold()
-
-    def change_threshold(self):
-        self.edit_threshold.setText(f"{self.ea.get_threshold():8.2f}".strip())
-        self.logger.info(f"User updated threshold to: {self.ea.get_threshold():8.2f}")
 
     def load_video(self):
         self.logger.info("Open file explorer")
