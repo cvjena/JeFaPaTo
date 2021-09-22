@@ -58,6 +58,7 @@ class FrameViewBox(pg.ViewBox):
 
         self.frame = pg.ImageItem()
         self.addItem(self.frame)
+        self.setMouseEnabled(x=True, y=True)
 
     def set_image(
         self,
@@ -195,6 +196,9 @@ class GraphWidget(pg.PlotWidget):
         self._grid_spacing: float = 30.0
         self._grid_range: float = 100.0
 
+        self.axis_b: pg.AxisItem = self.getAxis("bottom")
+        self.axis_b.setTickSpacing(300, self._grid_spacing)
+
         # self.setTitle("EAR Score")
         self.setMouseEnabled(x=True, y=False)
         self.setLimits(xMin=0)
@@ -202,7 +206,7 @@ class GraphWidget(pg.PlotWidget):
         self.disableAutoRange()
 
         self.grid_item: pg.GridItem = pg.GridItem()
-        self.grid_item.setTickSpacing(x=[1.0], y=[0.1])
+        self.grid_item.setTickSpacing(x=[300], y=[0.1])
         self.addItem(self.grid_item)
 
         bar_pen = pg.mkPen(width=2, color="k")
@@ -268,10 +272,11 @@ class GraphWidget(pg.PlotWidget):
     def start(self, fps: float = 30.0) -> None:
         self.enableAutoRange(axis="x")
         self.setMouseEnabled(x=False, y=False)
-        self.set_grid_range(fps)
+        self.set_grid_spacing(fps)
         self.disable()
 
     def update(self, location: float) -> None:
+        self.setXRange(location - self._grid_range, location)
         self.setLimits(xMin=location - self._grid_range, xMax=location)
         self.set_x_ruler(location)
 
@@ -281,6 +286,5 @@ class GraphWidget(pg.PlotWidget):
         self.setMouseEnabled(x=True, y=False)
         self.enable()
 
-    def set_grid_range(self, value: float) -> None:
-        self._grid_range = value
-        self.grid_item.setTickSpacing(x=[int(self._grid_spacing)], y=None)
+    def set_grid_spacing(self, value: float) -> None:
+        self._grid_spacing = value

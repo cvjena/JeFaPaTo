@@ -297,10 +297,12 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
 
         if self.widget_graph is not None:
             self.widget_graph.start(self.get_fps())
+            self.widget_graph.signal_graph_clicked.disconnect(self.__set_current_frame)
 
     def __on_finished(self):
         if self.widget_graph is not None:
             self.widget_graph.finish(self.current_frame)
+            self.widget_graph.signal_graph_clicked.connect(self.__set_current_frame)
 
         self.save_results()
 
