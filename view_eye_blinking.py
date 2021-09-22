@@ -17,7 +17,7 @@ from PyQt5.QtWidgets import (
 )
 
 from jefapato.analyser import EyeBlinkingVideoAnalyser
-from jefapato.plotter import EyeBlinkingPlotter
+from jefapato.plotter import EyeDetailWidget, FrameWidget, GraphWidget
 
 
 class view_eye_blinking(QWidget):
@@ -42,7 +42,9 @@ class view_eye_blinking(QWidget):
         # GUI ELEMENTS
         uic.loadUi("ui/view_eye_blinking.ui", self)
 
-        self.plotter = EyeBlinkingPlotter()
+        self.widget_frame = FrameWidget()
+        self.widget_detail = EyeDetailWidget()
+        self.widget_graph = GraphWidget()
 
         # layouts
         self.hlayout_mw: QHBoxLayout = self.findChild(QHBoxLayout, "hlayout_mw")
@@ -81,9 +83,9 @@ class view_eye_blinking(QWidget):
 
         # ==============================================================================
         # Add widgets to layout
-        self.vlayout_left.addWidget(self.plotter.widget_frame)
-        self.vlayout_left.addWidget(self.plotter.widget_graph)
-        self.vlayout_right.insertWidget(0, self.plotter.widget_detail)
+        self.vlayout_left.addWidget(self.widget_frame)
+        self.vlayout_left.addWidget(self.widget_graph)
+        self.vlayout_right.insertWidget(0, self.widget_detail)
 
         self.vlayout_right.insertWidget(4, self.button_video_analyze_stop)
 
@@ -95,7 +97,10 @@ class view_eye_blinking(QWidget):
         # connect the functions
         # add slot connections
 
-        self.ea = EyeBlinkingVideoAnalyser(self.plotter)
+        self.ea = EyeBlinkingVideoAnalyser(
+            self.widget_frame, self.widget_detail, self.widget_graph
+        )
+
         self.ea.connect_on_started(
             [self.gui_analysis_start, self.progressbar_analyze.reset]
         )
@@ -175,7 +180,7 @@ class view_eye_blinking(QWidget):
             self.button_video_analyze.setDisabled(False)
             self.checkbox_analysis.setDisabled(False)
 
-            self.plotter.widget_frame.frame.set_image(first_frame, bgr=True)
+            self.widget_frame.frame.set_image(first_frame, bgr=True)
         else:
             self.logger.info("No video file was selected")
 

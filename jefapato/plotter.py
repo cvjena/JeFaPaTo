@@ -1,16 +1,25 @@
-from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 
 import cv2
+import dlib
 import numpy as np
 import pyqtgraph as pg
 from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import QWidget
 
 IMAGE_SETTINGS = {
     "invertY": True,
     "lockAspect": True,
     "enableMouse": False,
 }
+
+
+@dataclass
+class BoundingBox:
+    l: int = 0
+    r: int = -1
+    t: int = 0
+    b: int = -1
 
 
 class FrameWidget(pg.GraphicsLayoutWidget):
@@ -50,27 +59,20 @@ class FrameViewBox(pg.ViewBox):
         self.frame = pg.ImageItem()
         self.addItem(self.frame)
 
-    def set_image(self, image: np.ndarray, bgr: bool = False) -> None:
+    def set_image(
+        self,
+        image: np.ndarray,
+        bbox: BoundingBox = BoundingBox(),
+        bgr: bool = False,
+    ) -> None:
         if bgr:
             image = image[..., ::-1]
 
+        image = image[bbox.t : bbox.b, bbox.l : bbox.r]
         self.frame.setImage(image)
 
-    def set_image_draw(
-        self, image: np.ndarray, shape: np.ndarray, color: Tuple, bgr: bool = False
-    ) -> None:
-        for (x, y) in shape:
-            cv2.circle(image, (x, y), 1, color, -1)
-        self.set_image(image, bgr)
 
-    def set_image_draw_connected(
-        self, image: np.ndarray, shape: np.ndarray, color: Tuple, bgr: bool = False
-    ) -> None:
-        # TODO
-        self.set_image(image, bgr)
-
-
-class DetailWidget(pg.GraphicsLayoutWidget):
+class EyeDetailWidget(pg.GraphicsLayoutWidget):
     def __init__(self, parent=None, show=False, size=None, title=None, **kargs):
         super().__init__(parent=parent, show=show, size=size, title=title, **kargs)
 
@@ -103,8 +105,78 @@ class DetailWidget(pg.GraphicsLayoutWidget):
         self.label_l.setText(self.closed_text(left))
         self.label_r.setText(self.closed_text(right))
 
+    def set_frame(
+        self,
+        frame: np.ndarray,
+        rect: dlib.rectangle,
+        shape: np.ndarray,
+        eye_padding: float = 1.5,
+    ) -> None:
+        self.frame_d.set_image(np.zeros((20, 20)))
+        self.frame_l.set_image(np.zeros((20, 20)))
+        self.frame_r.set_image(np.zeros((20, 20)))
+
+        if rect is not None or shape is not None:
+            eye_l = shape[slice(42, 48)]
+            eye_r = shape[slice(36, 42)]
+
+            eye_l_m = np.nanmean(eye_l, axis=0).astype(np.int32)
+            eye_r_m = np.nanmean(eye_r, axis=0).astype(np.int32)
+
+            eye_l_w = (np.nanmax(eye_l, axis=0)[0] - np.nanmin(eye_l, axis=0)[0]) // 2
+            eye_r_w = (np.nanmax(eye_r, axis=0)[0] - np.nanmin(eye_r, axis=0)[0]) // 2
+            eye_l_w = int(eye_padding * eye_l_w)
+            eye_r_w = int(eye_padding * eye_r_w)
+
+            crop = eye_l_w if eye_l_w > eye_r_w else eye_r_w
+
+            bbox_l = BoundingBox(
+                l=eye_l_m[0] - crop,
+                r=eye_l_m[0] + crop,
+                t=eye_l_m[1] - crop,
+                b=eye_l_m[1] + crop,
+            )
+            bbox_r = BoundingBox(
+                l=eye_r_m[0] - crop,
+                r=eye_r_m[0] + crop,
+                t=eye_r_m[1] - crop,
+                b=eye_r_m[1] + crop,
+            )
+
+            bbox_f = BoundingBox(
+                l=rect.left(),
+                t=rect.top(),
+                r=rect.right(),
+                b=rect.bottom(),
+            )
+
+            self.draw_points(frame, eye_l, (0, 0, 255))
+            self.draw_points(frame, eye_r, (255, 0, 0))
+
+            self.draw_ratio(frame, eye_l, (0, 0, 255))
+            self.draw_ratio(frame, eye_r, (255, 0, 0))
+
+            self.frame_d.set_image(frame, bbox_f)
+            self.frame_l.set_image(frame, bbox_l)
+            self.frame_r.set_image(frame, bbox_r)
+
     def closed_text(self, value: bool) -> str:
         return "closed" if value else "open"
+
+    def draw_points(self, frame, shape, color):
+        for (x, y) in shape:
+            cv2.circle(frame, (x, y), 1, color, -1)
+
+    def draw_ratio(self, frame, shape, color):
+        # horizontal line
+        cv2.line(
+            frame, (shape[0][0], shape[0][1]), (shape[3][0], shape[3][1]), color, 1
+        )
+
+        # vertical line
+        t = (shape[1] + shape[2]) // 2
+        b = (shape[4] + shape[5]) // 2
+        cv2.line(frame, (t[0], t[1]), (b[0], b[1]), color, 1)
 
 
 class GraphWidget(pg.PlotWidget):
@@ -212,12 +284,3 @@ class GraphWidget(pg.PlotWidget):
     def set_grid_range(self, value: float) -> None:
         self._grid_range = value
         self.grid_item.setTickSpacing(x=[int(self._grid_spacing)], y=None)
-
-
-class EyeBlinkingPlotter(QWidget):
-    def __init__(self) -> None:
-        super().__init__()
-
-        self.widget_frame = FrameWidget()
-        self.widget_detail = DetailWidget()
-        self.widget_graph = GraphWidget()
