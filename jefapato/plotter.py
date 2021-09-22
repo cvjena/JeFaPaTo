@@ -145,10 +145,10 @@ class EyeDetailWidget(pg.GraphicsLayoutWidget):
             )
 
             bbox_f = BoundingBox(
-                l=rect.left(),
-                t=rect.top(),
-                r=rect.right(),
-                b=rect.bottom(),
+                l=bbox_r.l,
+                r=bbox_l.r,
+                t=min(bbox_l.t, bbox_r.t),
+                b=max(bbox_l.b, bbox_r.b),
             )
 
             self.draw_points(frame, eye_l, (0, 0, 255))
