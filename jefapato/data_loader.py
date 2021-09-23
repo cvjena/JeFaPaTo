@@ -1,9 +1,8 @@
 from abc import ABC, abstractmethod
-from threading import Thread
-from typing import Callable
-
 from queue import Queue
+from threading import Thread
 from time import sleep
+from typing import Callable
 
 
 class DataLoader(ABC, Thread):
@@ -44,6 +43,6 @@ class VideoDataLoader(DataLoader):
             else:
                 # we have to put it to sleep, else it will freeze
                 # the main thread somehow
-                sleep(1)
+                sleep(0.5)
 
         self.stopped = True

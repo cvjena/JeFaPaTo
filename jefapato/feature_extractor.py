@@ -4,11 +4,10 @@ from typing import Any, List, Tuple
 import cv2
 import dlib
 import numpy as np
-
 from imutils import face_utils
 
 
-def scale_bbox(bbox: dlib.rectangle, scale: float, padding: int = 0) -> dlib.rectangle:
+def scale_bbox(bbox: dlib.rectangle, scale: float) -> dlib.rectangle:
     """Scale and pad a dlib.rectangle
 
     Copyright: Tim Büchner tim.buechner@uni-jena.de
@@ -26,22 +25,16 @@ def scale_bbox(bbox: dlib.rectangle, scale: float, padding: int = 0) -> dlib.rec
     Returns:
         dlib.rectangle: newly scaled (and optionally padded) dlib.rectangle
     """
-    left: int = int(bbox.left() * scale)
-    top: int = int(bbox.top() * scale)
-    right: int = int(bbox.right() * scale)
-    bottom: int = int(bbox.bottom() * scale)
-
-    width = right - left
-    height = bottom - top
-
-    padding_w = width // 4 if padding == -1 else padding
-    padding_h = height // 4 if padding == -1 else padding
+    left = int(bbox.left() * scale)
+    top = int(bbox.top() * scale)
+    right = int(bbox.right() * scale)
+    bottom = int(bbox.bottom() * scale)
 
     return dlib.rectangle(
-        left=left - padding_w,
-        top=top - padding_h,
-        right=right + padding_w,
-        bottom=bottom + padding_h,
+        left=left,
+        top=top,
+        right=right,
+        bottom=bottom,
     )
 
 
@@ -69,7 +62,11 @@ class LandMarkFeatureExtractor(FeatureExtractor):
         self.detector = dlib.get_frontal_face_detector()
         self.predictor = dlib.shape_predictor(self.shape_predictor_file)
 
-        self.scale_factor = 0.25
+        self.height_resize = 480
+        self.skip_count = 5
+        self.rects: List[dlib.rectangle] = list()
+        self.iter = 0
+        self.scale_factor = 0.0
 
     def extract_features(
         self, data: np.ndarray
@@ -86,23 +83,26 @@ class LandMarkFeatureExtractor(FeatureExtractor):
             List[Tuple[dlib.rectangle, np.ndarray]]: A list of tuple which describe
                 the bounding box including the 68 facial features
         """
-        # TODO should we do some handling in the case the given data is faulty?
-        data_sc = cv2.resize(
-            data,
-            (
-                int(data.shape[1] * self.scale_factor),
-                int(data.shape[0] * self.scale_factor),
-            ),
-            interpolation=cv2.INTER_LINEAR,
-        )
-        rects = self.detector(data_sc, 1)
+        if self.iter % self.skip_count == 0:
+            height = data.shape[0]
+            self.scale_factor = 1 / (float(height) / self.height_resize)
+
+            data_sc = cv2.resize(
+                data,
+                None,
+                fx=self.scale_factor,
+                fy=self.scale_factor,
+                interpolation=cv2.INTER_LINEAR,
+            )
+            self.rects = self.detector(data_sc, 0)
 
         results: List[Tuple[dlib.rectangle, np.ndarray]] = []
 
-        for i, rect in enumerate(rects):
+        for _, rect in enumerate(self.rects):
             rect = scale_bbox(rect, 1 / self.scale_factor)
             shape = self.predictor(data, rect)
             shape = face_utils.shape_to_np(shape)
             results.append((rect, shape))
 
+        self.iter += 1
         return results
