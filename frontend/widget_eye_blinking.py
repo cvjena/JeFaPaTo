@@ -18,7 +18,7 @@ from jefapato.analyser import EyeBlinkingVideoAnalyser
 from jefapato.plotter import EyeDetailWidget, FrameWidget, GraphWidget
 
 
-class view_eye_blinking(QSplitter):
+class WidgetEyeBlinking(QSplitter):
     def __init__(self):
         super().__init__()
         self.video_file_path: Path = None
