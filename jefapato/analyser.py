@@ -294,6 +294,9 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
     def set_frame_skip(self, value: int) -> None:
         self.update_skip = value
 
+    def set_face_detect_skip(self, value: int) -> None:
+        self.feature_extractor.set_skip(value)
+
     def __on_start(self):
         self.score_eye_l = list()
         self.score_eye_r = list()

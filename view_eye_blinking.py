@@ -52,6 +52,7 @@ class view_eye_blinking(QSplitter):
         self.bt_anal_stop: QPushButton = QPushButton("Cancel")
 
         self.pb_anal = QProgressBar()
+        self.face_skipper = QSpinBox()
         self.frame_skipper = QSpinBox()
 
         self.vlayout_ls.addWidget(self.widget_frame)
@@ -63,6 +64,7 @@ class view_eye_blinking(QSplitter):
         self.flayout_se.addRow(self.bt_open)
         self.flayout_se.addRow(self.bt_anal)
         self.flayout_se.addRow(self.bt_anal_stop)
+        self.flayout_se.addRow("Skip Frame for Face Detection:", self.face_skipper)
         self.flayout_se.addRow("Skip Frames For Display:", self.frame_skipper)
         self.flayout_se.addRow("Progress:", self.pb_anal)
         self.flayout_se.addRow("Threshold:", self.le_threshold)
@@ -85,6 +87,10 @@ class view_eye_blinking(QSplitter):
         self.bt_open.clicked.connect(self.load_video)
         self.bt_anal.clicked.connect(self.ea.analysis_start)
         self.bt_anal_stop.clicked.connect(self.ea.stop)
+
+        self.face_skipper.setRange(3, 20)
+        self.face_skipper.setValue(5)
+        self.face_skipper.valueChanged.connect(self.ea.set_face_detect_skip)
 
         self.frame_skipper.setRange(1, 20)
         self.frame_skipper.setValue(5)
@@ -115,6 +121,7 @@ class view_eye_blinking(QSplitter):
         self.bt_anal_stop.setDisabled(False)
         self.cb_anal.setDisabled(True)
         self.le_threshold.setDisabled(True)
+        self.face_skipper.setDisabled(True)
         self.frame_skipper.setDisabled(True)
 
     def gui_analysis_finished(self):
@@ -125,6 +132,7 @@ class view_eye_blinking(QSplitter):
 
         self.cb_anal.setDisabled(False)
         self.le_threshold.setDisabled(False)
+        self.face_skipper.setDisabled(False)
         self.frame_skipper.setDisabled(False)
 
     def load_video(self):

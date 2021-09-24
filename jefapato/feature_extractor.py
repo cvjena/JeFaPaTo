@@ -63,10 +63,13 @@ class LandMarkFeatureExtractor(FeatureExtractor):
         self.predictor = dlib.shape_predictor(self.shape_predictor_file)
 
         self.height_resize = 480
-        self.skip_count = 5
+        self.skip_count = 10
         self.rects: List[dlib.rectangle] = list()
         self.iter = 0
         self.scale_factor = 0.0
+
+    def set_skip(self, value: int) -> None:
+        self.skip_count = value
 
     def extract_features(
         self, data: np.ndarray
