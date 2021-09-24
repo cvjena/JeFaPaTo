@@ -1,3 +1,4 @@
+import datetime
 import logging
 from abc import ABC, abstractmethod
 from itertools import groupby
@@ -380,7 +381,8 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
 
     def save_results(self):
         resource_path = self.get_resource_path()
-        result_path = resource_path.parent / (resource_path.stem + ".csv")
+        ts = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        result_path = resource_path.parent / (resource_path.stem + f"_{ts}.csv")
 
         with open(result_path, "w") as f:
             f.write(self.results_file_header)
