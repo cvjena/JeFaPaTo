@@ -8,8 +8,8 @@ from PyQt5.QtWidgets import QApplication, QTabWidget
 
 from frontend.widget_emotion_recognition import WidgetEmotionRecognition
 from frontend.widget_eye_blinking import WidgetEyeBlinking
-from view_landmark_distances_2D import view_landmark_distances_2D
-from view_landmark_distances_3D import view_landmark_distances_3D
+from frontend.widget_landmark_distance_2d import WidgetLandmarkDistance2D
+from frontend.widget_landmark_distance_3d import WidgetLandmarkDistance3D
 
 
 class jefapato(QTabWidget):
@@ -25,8 +25,8 @@ class jefapato(QTabWidget):
         self.VERSION = "2021.08.11"
 
         self.tab1 = WidgetEyeBlinking()
-        self.tab2 = view_landmark_distances_2D()
-        self.tab3 = view_landmark_distances_3D()
+        self.tab2 = WidgetLandmarkDistance2D()
+        self.tab3 = WidgetLandmarkDistance3D()
         self.tab4 = WidgetEmotionRecognition()
 
         self.addTab(self.tab1, "Eye Blinking Analyses")

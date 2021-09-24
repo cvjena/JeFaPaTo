@@ -1,28 +1,32 @@
-import os
-import numpy as np
-import cv2
 import logging
-
+import os
 from pathlib import Path
 
-
-from PyQt5.QtCore import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtGui import *
-from PyQt5.QtMultimedia import *
-from PyQt5 import uic
-
+import cv2
+import numpy as np
 import pyqtgraph as pg
-from pyqtgraph.GraphicsScene import mouseEvents
+from PyQt5 import uic
+from PyQt5.QtCore import QThread
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtWidgets import (
+    QCheckBox,
+    QFileDialog,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 from landmark_distances import LandmarkDistance3D
 
-class view_landmark_distances_3D(QWidget):
+
+class WidgetLandmarkDistance3D(QWidget):
     def __init__(self):
         super().__init__()
 
-        # ==============================================================================================================
-        ## PROPERTIES
+        # ==============================================================================
+        # PROPERTIES
         self.current_image: np.ndarray = None
         self.landmark_file_path: Path = None
         self.image_files = []
@@ -31,7 +35,7 @@ class view_landmark_distances_3D(QWidget):
 
         self.results_file = None
         self.results_file_path: Path = Path("./results_distances_3D.csv")
-        self.results_file_header = 'left distance; right distance\n'
+        self.results_file_header = "left distance; right distance\n"
 
         self.display_width = 640
         self.display_height = 480
@@ -41,8 +45,8 @@ class view_landmark_distances_3D(QWidget):
 
         self.logger = logging.getLogger("landmarkDistances3D")
 
-        # ==============================================================================================================
-        ## GUI ELEMENTS
+        # ==============================================================================
+        # GUI ELEMENTS
         uic.loadUi("ui/view_landmark_distances_3D.ui", self)
 
         # label
@@ -56,19 +60,31 @@ class view_landmark_distances_3D(QWidget):
         self.label_framenumber: QLabel = self.findChild(QLabel, "label_framenumber")
 
         # edits
-        self.lineEdit_idx1_left: QLineEdit = self.findChild(QLineEdit, "lineEdit_idx1_left")
-        self.lineEdit_idx1_right: QLineEdit = self.findChild(QLineEdit, "lineEdit_idx1_right")
-        self.lineEdit_idx2_left: QLineEdit = self.findChild(QLineEdit, "lineEdit_idx2_left")
-        self.lineEdit_idx2_right: QLineEdit = self.findChild(QLineEdit, "lineEdit_idx2_right")
+        self.lineEdit_idx1_left: QLineEdit = self.findChild(
+            QLineEdit, "lineEdit_idx1_left"
+        )
+        self.lineEdit_idx1_right: QLineEdit = self.findChild(
+            QLineEdit, "lineEdit_idx1_right"
+        )
+        self.lineEdit_idx2_left: QLineEdit = self.findChild(
+            QLineEdit, "lineEdit_idx2_left"
+        )
+        self.lineEdit_idx2_right: QLineEdit = self.findChild(
+            QLineEdit, "lineEdit_idx2_right"
+        )
 
         self.edit_threshold: QLineEdit = self.findChild(QLineEdit, "edit_threshhold")
 
         # checkboxes
-        self.checkbox_analysis: QCheckBox = self.findChild(QCheckBox, "checkbox_analysis")
+        self.checkbox_analysis: QCheckBox = self.findChild(
+            QCheckBox, "checkbox_analysis"
+        )
 
         # buttons
         self.button_lm_load: QPushButton = self.findChild(QPushButton, "button_lm_load")
-        self.button_lm_analyze: QPushButton = self.findChild(QPushButton, "button_lm_analyze")
+        self.button_lm_analyze: QPushButton = self.findChild(
+            QPushButton, "button_lm_analyze"
+        )
 
         # images
         self.view_image: QLabel = self.findChild(QLabel, "view_image")
@@ -79,23 +95,29 @@ class view_landmark_distances_3D(QWidget):
 
         self.curve_left.setPen(pg.mkPen(pg.mkColor(0, 0, 255)))
         self.curve_right.setPen(pg.mkPen(pg.mkColor(255, 0, 0)))
-        self.vertical_line: pg.InfiniteLine = pg.InfiniteLine(self.analyzer.frame, movable=True)
-        self.horizontal_line: pg.InfiniteLine = pg.InfiniteLine(self.analyzer.threshold, angle=0, movable=True)
+        self.vertical_line: pg.InfiniteLine = pg.InfiniteLine(
+            self.analyzer.frame, movable=True
+        )
+        self.horizontal_line: pg.InfiniteLine = pg.InfiniteLine(
+            self.analyzer.threshold, angle=0, movable=True
+        )
         self.evaluation_plot.addItem(self.vertical_line)
         self.evaluation_plot.addItem(self.horizontal_line)
 
         self.vertical_line.sigDragged.connect(self.change_frame)
-        #self.horizontal_line.sigDragged.connect(self.change_threshold_per_line)
+        # self.horizontal_line.sigDragged.connect(self.change_threshold_per_line)
 
         self.vlayout_left: QVBoxLayout = self.findChild(QVBoxLayout, "vlayout_left")
         self.vlayout_left.addWidget(self.evaluation_plot)
 
-        # ==============================================================================================================
-        ## INITIALIZATION ROUTINES
-        self.landmark_distance_3D.set_landmark_ids(int(self.lineEdit_idx1_left.text()),
-                                                   int(self.lineEdit_idx2_left.text()),
-                                                   int(self.lineEdit_idx1_right.text()),
-                                                   int(self.lineEdit_idx2_right.text()))
+        # ==============================================================================
+        # INITIALIZATION ROUTINES
+        self.landmark_distance_3D.set_landmark_ids(
+            int(self.lineEdit_idx1_left.text()),
+            int(self.lineEdit_idx2_left.text()),
+            int(self.lineEdit_idx1_right.text()),
+            int(self.lineEdit_idx2_right.text()),
+        )
 
         self.edit_threshold.editingFinished.connect(self.change_threshold_per_edit)
 
@@ -113,41 +135,56 @@ class view_landmark_distances_3D(QWidget):
 
     def update_image(self):
         if len(self.image_files) > self.current_frame_idx:
-            image_path = os.path.join(str(self.landmark_file_path.parent), self.image_files[self.current_frame_idx])
+            image_path = os.path.join(
+                str(self.landmark_file_path.parent),
+                self.image_files[self.current_frame_idx],
+            )
             image = cv2.imread(image_path)
-            img_frame: QPixmap     = self.convert_cv_qt(image, self.disply_width, self.display_height)
+            img_frame: QPixmap = self.convert_cv_qt(
+                image, self.disply_width, self.display_height
+            )
             self.view_image.setPixmap(img_frame)
 
     def update_distances(self):
-        distance_left = self.landmark_distance_3D.get_distances_from_frame(self.current_frame_idx)[0]
-        distance_right = self.landmark_distance_3D.get_distances_from_frame(self.current_frame_idx)[1]
+        distance_left = self.landmark_distance_3D.get_distances_from_frame(
+            self.current_frame_idx
+        )[0]
+        distance_right = self.landmark_distance_3D.get_distances_from_frame(
+            self.current_frame_idx
+        )[1]
 
         self.label_dist_left.setText(f"{distance_left:8.4f}".strip())
         self.label_dist_right.setText(f"{distance_right:8.4f}".strip())
 
     def load_landmark_file(self):
         self.logger.info("Open file explorer")
-        fileName, _ = QFileDialog.getOpenFileName(self, "Select 3D landmark file",
-                                                  ".", "Text Files (*.txt)")
+        fileName, _ = QFileDialog.getOpenFileName(
+            self, "Select 3D landmark file", ".", "Text Files (*.txt)"
+        )
 
-        if fileName != '':
+        if fileName != "":
             self.logger.info(f"Load landmark file: {fileName}")
             self.landmark_file_path = Path(fileName)
-            self.results_file_path = self.landmark_file_path.parent / (self.landmark_file_path.stem + ".csv")
-            self.results_file_header = 'left distance (' + str(self.lineEdit_idx1_left.text()) + ',' + str(self.lineEdit_idx2_left.text()) + ');right distance ('  + str(self.lineEdit_idx1_right.text()) + ',' + str(self.lineEdit_idx2_right.text()) + ')\n'
+            self.results_file_path = self.landmark_file_path.parent / (
+                self.landmark_file_path.stem + ".csv"
+            )
 
             self.analyzer.reset()
             self.analyzer.set_landmark_file_path(self.landmark_file_path)
             self.analyzer.read_landmarks(self.landmark_file_path)
 
             # read image files if available
-            image_files = [f for f in os.listdir(self.landmark_file_path.parent) if f.endswith('.png')]
+            image_files = [
+                f
+                for f in os.listdir(self.landmark_file_path.parent)
+                if f.endswith(".png")
+            ]
             self.image_files = image_files.sort()
 
             self.button_lm_analyze.setDisabled(False)
             self.checkbox_analysis.setDisabled(False)
         else:
-            self.logger.info(f"No landmark file was selected")
+            self.logger.info("No landmark file was selected")
 
     def update_plot(self):
         self.curve_left.setData(self.analyzer.distance_left)
@@ -174,8 +211,11 @@ class view_landmark_distances_3D(QWidget):
         self.thread_analyze = AnalyzeThread(self)
         self.thread_analyze.start()
 
-class Analyzer():
-    def __init__(self, veb: view_landmark_distances_3D, landmark_distance_3D: LandmarkDistance3D) -> None:
+
+class Analyzer:
+    def __init__(
+        self, veb: WidgetLandmarkDistance3D, landmark_distance_3D: LandmarkDistance3D
+    ) -> None:
         self.veb = veb
         self.landmark_distance_3D = landmark_distance_3D
 
@@ -208,7 +248,10 @@ class Analyzer():
         self.landmark_distance_3D.get_distances_from_frame(self.current_frame)
 
     def analyze_complete(self):
-        self.distance_left, self.distance_right = self.landmark_distance_3D.get_distances()
+        (
+            self.distance_left,
+            self.distance_right,
+        ) = self.landmark_distance_3D.get_distances()
 
     def append_values(self):
         self.distances_left.append(self.distance_left)
@@ -219,10 +262,10 @@ class Analyzer():
 
     def read_landmarks(self, path: Path):
         self.landmark_file_path = path
-        self.landmark_coordinates = self.landmark_distance_3D.read_landmark_file(self.landmark_file_path)
+        self.landmark_coordinates = self.landmark_distance_3D.read_landmark_file(
+            self.landmark_file_path
+        )
         self.set_frame_total(len(self.landmark_coordinates))
-
-
 
     def set_frame_total(self, value):
         self.veb.logger.info(f"Landmark file contains {int(value)} frames")
@@ -236,20 +279,17 @@ class Analyzer():
 
     def save_results(self):
         # open results output file and write header
-        self.results_file = open(self.veb.results_file_path, 'w')
+        self.results_file = open(self.veb.results_file_path, "w")
         self.results_file.write(self.veb.results_file_header)
         for i in range(len(self.distance_left)):
             # fancy String literal concatenation
-            line = (
-                f"{self.distance_left[i]};"
-                f"{self.distance_right[i]}"
-                f"\n"
-            )
+            line = f"{self.distance_left[i]};" f"{self.distance_right[i]}" f"\n"
             self.results_file.write(line)
         self.results_file.close()
 
+
 class AnalyzeThread(QThread):
-    def __init__(self, veb: view_landmark_distances_3D) -> None:
+    def __init__(self, veb: WidgetLandmarkDistance3D) -> None:
         super().__init__()
         self.veb = veb
         self.analyzer: Analyzer = self.veb.analyzer
@@ -259,7 +299,7 @@ class AnalyzeThread(QThread):
         self.wait()
 
     def run(self):
-        self.veb.logger.info(f"Analyse complete landmark file")
+        self.veb.logger.info("Analyse complete landmark file")
         # reset the values inside the analyzer
         self.analyzer.reset()
         self.analyzer.analyze_complete()
@@ -268,4 +308,4 @@ class AnalyzeThread(QThread):
 
         self.analyzer.set_run()
         self.analyzer.save_results()
-        #self.veb.button_lm_analyze.setText("Video Analysieren")
+        # self.veb.button_lm_analyze.setText("Video Analysieren")
