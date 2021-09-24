@@ -17,7 +17,7 @@ from .data_loader import DataLoader, VideoDataLoader
 from .data_processor import DataProcessor
 from .feature_extractor import FeatureExtractor, LandMarkFeatureExtractor
 
-MAX_RAM_SIZE = 4 << 30  # ~4GB
+MAX_RAM_SIZE = 4 << 29  # ~4GB
 
 
 class Analyser(ABC):
@@ -270,6 +270,9 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
         if widget_threshhold is not None:
             self.widget_threshold.setReadOnly(True)
 
+        self.update_counter = -1
+        self.update_skip = 20
+
     def set_threshold(self, value: float):
         self.eye_blinking_classifier.threshold = value
 
@@ -287,6 +290,9 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
 
     def get_threshold(self) -> float:
         return self.eye_blinking_classifier.threshold
+
+    def set_frame_skip(self, value: int) -> None:
+        self.update_skip = value
 
     def __on_start(self):
         self.score_eye_l = list()
@@ -308,8 +314,12 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
         # currently we only check the first one
         # TODO make possible for more faces
         self.current_frame = frame_id
-
         self.append_classification()
+        self.update_counter += 1
+
+        if self.update_counter % self.update_skip != 0:
+            return
+
         if self.widget_frame is not None:
             self.update_frame(frame)
         if self.widget_detail is not None:
