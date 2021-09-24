@@ -17,7 +17,7 @@ from .data_loader import DataLoader, VideoDataLoader
 from .data_processor import DataProcessor
 from .feature_extractor import FeatureExtractor, LandMarkFeatureExtractor
 
-MAX_RAM_SIZE = 4 << 29  # ~4GB
+MAX_RAM_SIZE = 4 << 28  # ~4GB
 
 
 class Analyser(ABC):

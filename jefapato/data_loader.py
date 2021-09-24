@@ -43,6 +43,6 @@ class VideoDataLoader(DataLoader):
             else:
                 # we have to put it to sleep, else it will freeze
                 # the main thread somehow
-                sleep(0.5)
+                sleep(0.1)
 
         self.stopped = True
