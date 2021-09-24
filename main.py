@@ -6,8 +6,8 @@ from pathlib import Path
 import pyqtgraph as pg
 from PyQt5.QtWidgets import QApplication, QTabWidget
 
+from frontend.widget_emotion_recognition import WidgetEmotionRecognition
 from frontend.widget_eye_blinking import WidgetEyeBlinking
-from view_emotion_recognition import view_emotion_recognition
 from view_landmark_distances_2D import view_landmark_distances_2D
 from view_landmark_distances_3D import view_landmark_distances_3D
 
@@ -27,7 +27,7 @@ class jefapato(QTabWidget):
         self.tab1 = WidgetEyeBlinking()
         self.tab2 = view_landmark_distances_2D()
         self.tab3 = view_landmark_distances_3D()
-        self.tab4 = view_emotion_recognition()
+        self.tab4 = WidgetEmotionRecognition()
 
         self.addTab(self.tab1, "Eye Blinking Analyses")
         self.addTab(self.tab2, "Landmark Analyses 2D")
