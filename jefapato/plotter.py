@@ -205,10 +205,6 @@ class GraphWidget(pg.PlotWidget):
         self.setYRange(0, 0.5)
         self.disableAutoRange()
 
-        self.grid_item: pg.GridItem = pg.GridItem()
-        self.grid_item.setTickSpacing(x=[300], y=[0.1])
-        self.addItem(self.grid_item)
-
         bar_pen = pg.mkPen(width=2, color="k")
         self._x_ruler: pg.InfiniteLine = pg.InfiniteLine(
             self._x_ruler_val, movable=False, pen=bar_pen
@@ -233,6 +229,18 @@ class GraphWidget(pg.PlotWidget):
         )
 
         self.curves: List[pg.PlotDataItem] = list()
+        self.scatters: List[pg.ScatterPlotItem] = list()
+
+    def add_grid(self) -> None:
+        self.grid_item: pg.GridItem = pg.GridItem()
+        self.grid_item.setTickSpacing(x=[300], y=[0.1])
+        self.addItem(self.grid_item)
+
+    def remove_grid(self) -> None:
+        try:
+            self.removeItem(self.grid_item)
+        except AttributeError:
+            pass
 
     def move_line(self, mouseClickEvent) -> Optional[float]:
         # this code  calculates the index of the underlying data entry
@@ -252,6 +260,12 @@ class GraphWidget(pg.PlotWidget):
 
         self.curves.append(curve)
         return curve
+
+    def add_scatter(self, settigns: Dict[str, Any] = None) -> pg.ScatterPlotItem:
+        scatter: pg.ScatterPlotItem = pg.ScatterPlotItem()
+        self.addItem(scatter)
+        self.scatters.append(scatter)
+        return scatter
 
     def enable(self) -> None:
         self._x_ruler.setMovable(True)

@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import QApplication, QTabWidget
 
 from frontend.widget_emotion_recognition import WidgetEmotionRecognition
 from frontend.widget_eye_blinking import WidgetEyeBlinking
+from frontend.widget_eye_blinking_freq import WidgetEyeBlinkingFreq
 from frontend.widget_landmark_distance_2d import WidgetLandmarkDistance2D
 from frontend.widget_landmark_distance_3d import WidgetLandmarkDistance3D
 
@@ -22,17 +23,21 @@ class jefapato(QTabWidget):
         pg.setConfigOption(opt="imageAxisOrder", value="row-major")
         pg.setConfigOption(opt="background", value=pg.mkColor(255, 255, 255))
 
-        self.VERSION = "2021.08.11"
+        self.VERSION = "2021.10.22"
 
-        self.tab1 = WidgetEyeBlinking()
-        self.tab2 = WidgetLandmarkDistance2D()
-        self.tab3 = WidgetLandmarkDistance3D()
-        self.tab4 = WidgetEmotionRecognition()
+        self.tab_eye_blinking = WidgetEyeBlinking()
+        self.tab_eye_blinking_freq = WidgetEyeBlinkingFreq()
+        self.tab_landmark_2d = WidgetLandmarkDistance2D()
+        self.tab_landmark_3d = WidgetLandmarkDistance3D()
+        self.tab_emotion_rec = WidgetEmotionRecognition()
 
-        self.addTab(self.tab1, "Eye Blinking Analyses")
-        self.addTab(self.tab2, "Landmark Analyses 2D")
-        self.addTab(self.tab3, "Landmark Analyses 3D")
-        self.addTab(self.tab4, "Emotion Recognition")
+        self.addTab(self.tab_eye_blinking, "Eye Blinking Extraction")
+        self.addTab(self.tab_eye_blinking_freq, "Eye Blinking Frequency")
+        self.addTab(self.tab_landmark_2d, "Landmark Analyses 2D")
+        self.addTab(self.tab_landmark_3d, "Landmark Analyses 3D")
+        self.addTab(self.tab_emotion_rec, "Emotion Recognition")
+
+        self.setCurrentIndex(1)
 
 
 def main(argv):
