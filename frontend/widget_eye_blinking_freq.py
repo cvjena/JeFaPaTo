@@ -91,6 +91,9 @@ class WidgetEyeBlinkingFreq(QSplitter):
         self.le_fps = QLineEdit("240")
         self.le_fps.setValidator(QtGui.QIntValidator())
 
+        self.le_prominence = QLineEdit("0.05")
+        self.le_width = QLineEdit("10")
+
         self.le_smooth_size = QLineEdit("51")
         self.le_smooth_size.setEnabled(self.smooth.isChecked())
         self.le_smooth_size.setValidator(QtGui.QIntValidator())
@@ -109,9 +112,14 @@ class WidgetEyeBlinkingFreq(QSplitter):
         self.settings.addRow("Threshold Left:", self.le_th_l)
         self.settings.addRow("Threshhold Rirgt", self.le_th_r)
         self.settings.addRow("FPS:", self.le_fps)
+
+        self.settings.addRow("Min. Prom:", self.le_prominence)
+        self.settings.addRow("Min. Width:", self.le_width)
+
         self.settings.addRow("Smooth:", self.smooth)
         self.settings.addRow("Smooth Window:", self.le_smooth_size)
         self.settings.addRow("Smooth Polynom:", self.le_smooth_poly)
+
         self.settings.addRow(self.button_anal)
         self.settings.addRow(self.te_results_g)
 
@@ -133,6 +141,9 @@ class WidgetEyeBlinkingFreq(QSplitter):
 
         fps = int(self.le_fps.text())
 
+        prominence = float(self.le_prominence.text())
+        width = float(self.le_width.text())
+
         val_l = np.array(self.ear_l)
         val_r = np.array(self.ear_r)
 
@@ -145,10 +156,34 @@ class WidgetEyeBlinkingFreq(QSplitter):
             val_l = savgol_filter(val_l, w_size, polyorder=polynom)
             val_r = savgol_filter(val_r, w_size, polyorder=polynom)
 
+        val_l = val_l.round(4)
+        val_r = val_r.round(4)
+
         self._set_data(val_l.tolist(), val_r.tolist())
 
-        peaks_l, _ = find_peaks(-val_l, distance=150)
-        peaks_r, _ = find_peaks(-val_r, distance=150)
+        peaks_l, props_l = find_peaks(
+            -val_l, distance=150, prominence=prominence, width=width
+        )
+        peaks_r, props_r = find_peaks(
+            -val_r, distance=150, prominence=prominence, width=width
+        )
+
+        # get the properties of the peaks
+        # height
+        prom_l = props_l["prominences"][val_l[peaks_l] < th_l].round(4)
+        prom_r = props_r["prominences"][val_r[peaks_r] < th_r].round(4)
+
+        # starting frame
+        leftips_l = props_l["left_ips"][val_l[peaks_l] < th_l].astype(np.int32)
+        leftips_r = props_r["left_ips"][val_r[peaks_r] < th_r].astype(np.int32)
+
+        # ending frame
+        rightips_l = props_l["right_ips"][val_l[peaks_l] < th_l].astype(np.int32)
+        rightips_r = props_r["right_ips"][val_r[peaks_r] < th_r].astype(np.int32)
+
+        # length
+        width_l = rightips_l - leftips_l
+        width_r = rightips_r - leftips_r
 
         peaks_l = peaks_l[val_l[peaks_l] < th_l]
         peaks_r = peaks_r[val_r[peaks_r] < th_r]
@@ -173,9 +208,11 @@ class WidgetEyeBlinkingFreq(QSplitter):
         result = "===Video Info===\n"
         result += f"File: {self.file.as_posix()}\n"
         result += f"Runtime: {minutes}m {seconds:.2f}s [total: {total_seconds:.2f}s]\n"
-        result += f"FPS: {fps}\n"
         result += f"Threshold Left: {th_l}\n"
         result += f"Threshold Right: {th_r}\n"
+        result += f"FPS: {fps}\n"
+        result += f"Minimum Prominence: {prominence}\n"
+        result += f"Minimum Width: {width}\n"
 
         parameter = f"[Window Size: {w_size}, Polynomial: {polynom}]" if smooth else ""
         result += f"Smooth: {smooth} {parameter}\n"
@@ -202,6 +239,10 @@ class WidgetEyeBlinkingFreq(QSplitter):
             items = [
                 QtGui.QStandardItem(str(p)),
                 QtGui.QStandardItem(str(val_l[p])),
+                QtGui.QStandardItem(str(prom_l[i])),
+                QtGui.QStandardItem(str(width_l[i])),
+                QtGui.QStandardItem(str(leftips_l[i])),
+                QtGui.QStandardItem(str(rightips_l[i])),
             ]
             self.model_l.appendRow(items)
             result += f"{i+1:03d}; Frame {p: 7d}; EAR_SCORE {val_l[p]:05.3f}\n"
@@ -212,6 +253,10 @@ class WidgetEyeBlinkingFreq(QSplitter):
             items = [
                 QtGui.QStandardItem(str(p)),
                 QtGui.QStandardItem(str(val_r[p])),
+                QtGui.QStandardItem(str(prom_r[i])),
+                QtGui.QStandardItem(str(width_r[i])),
+                QtGui.QStandardItem(str(leftips_r[i])),
+                QtGui.QStandardItem(str(rightips_r[i])),
             ]
             self.model_r.appendRow(items)
             result += f"{i+1:03d}; Frame {p: 7d}; EAR_SCORE {val_r[p]:05.3f}\n"
@@ -225,8 +270,12 @@ class WidgetEyeBlinkingFreq(QSplitter):
             QHeaderView.ResizeMode.Stretch
         )
 
-        self.model_l.setHorizontalHeaderLabels(["Frame", "EAR_SCORE"])
-        self.model_r.setHorizontalHeaderLabels(["Frame", "EAR_SCORE"])
+        self.model_l.setHorizontalHeaderLabels(
+            ["Frame", "EAR_SCORE", "prominence", "width", "left_ips", "right_ips"]
+        )
+        self.model_r.setHorizontalHeaderLabels(
+            ["Frame", "EAR_SCORE", "prominence", "width", "left_ips", "right_ips"]
+        )
 
     def _show_peaks(
         self, plot: pg.ScatterPlotItem, data: np.ndarray, peaks: np.ndarray
@@ -257,19 +306,22 @@ class WidgetEyeBlinkingFreq(QSplitter):
                 self.ear_l.append(float(row[2]))
                 self.ear_r.append(float(row[3]))
 
-            self._set_data(self.ear_l, self.ear_r)
+            self._set_data(self.ear_l, self.ear_r, vis_update=True)
             self.model_l.clear()
             self.model_r.clear()
             self.te_results_g.setText("")
 
-    def _set_data(self, data_l: List[float], data_r: List[float]) -> None:
+    def _set_data(
+        self, data_l: List[float], data_r: List[float], vis_update=False
+    ) -> None:
         fps = int(self.le_fps.text())
 
         self.plot_ear_l.setData(data_l)
         self.plot_ear_r.setData(data_r)
 
-        self.graph.setLimits(xMin=0, xMax=len(data_l))
-        self.graph.setXRange(0, len(self.ear_l))
+        if vis_update:
+            self.graph.setLimits(xMin=0, xMax=len(data_l))
+            self.graph.setXRange(0, len(self.ear_l))
 
         if len(data_l) > 10000:
             self.graph.remove_grid()
