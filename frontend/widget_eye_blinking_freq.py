@@ -35,6 +35,7 @@ class Blinking:
     ips_l: int
     ips_r: int
     width: int
+    height: float
 
     def to_table_row(self) -> List[QtGui.QStandardItem]:
         return [
@@ -44,6 +45,7 @@ class Blinking:
             QtGui.QStandardItem(str(self.ips_l)),
             QtGui.QStandardItem(str(self.ips_r)),
             QtGui.QStandardItem(str(self.width)),
+            QtGui.QStandardItem(str(self.height)),
         ]
 
     def __repr__(self) -> str:
@@ -54,7 +56,8 @@ class Blinking:
             f"Prominence {self.prominence: 6.4f}; "
             f"IPS_Left {self.ips_l: 6d}; "
             f"IPS_Right {self.ips_r: 6d}; "
-            f"Width {self.width: 4d}"
+            f"Width {self.width: 4d};"
+            f"Height {self.height: 6.4f}"
             "\n"
         )
 
@@ -129,11 +132,11 @@ class WidgetEyeBlinkingFreq(QSplitter):
         self.le_prominence = QLineEdit("0.05")
         self.le_width = QLineEdit("10")
 
-        self.le_smooth_size = QLineEdit("51")
+        self.le_smooth_size = QLineEdit("91")
         self.le_smooth_size.setEnabled(self.smooth.isChecked())
         self.le_smooth_size.setValidator(QtGui.QIntValidator())
 
-        self.le_smooth_poly = QLineEdit("3")
+        self.le_smooth_poly = QLineEdit("5")
         self.le_smooth_poly.setEnabled(self.smooth.isChecked())
         self.le_smooth_poly.setValidator(QtGui.QIntValidator())
 
@@ -167,6 +170,8 @@ class WidgetEyeBlinkingFreq(QSplitter):
 
         self.plot_peaks_l = self.graph.add_scatter()
         self.plot_peaks_r = self.graph.add_scatter()
+
+        self.lines = list()
 
         self.file = Path("/home/tim/data/JeFaPaTo/Proband 06_2021-09-24_14-56-34.csv")
         self._load_file(self.file)
@@ -205,8 +210,12 @@ class WidgetEyeBlinkingFreq(QSplitter):
             val_r, threshold=th_r, distance=distance, prominence=prominence, width=width
         )
 
-        self._show_peaks(self.plot_peaks_l, val_l, peaks_l)
-        self._show_peaks(self.plot_peaks_r, val_r, peaks_r)
+        for ll in self.lines:
+            ll.clear()
+        self.lines.clear()
+
+        self._show_peaks(self.plot_peaks_l, blinking_l, {"color": "#00F", "width": 2})
+        self._show_peaks(self.plot_peaks_r, blinking_r, {"color": "#F00", "width": 2})
 
         result = ""
 
@@ -272,12 +281,17 @@ class WidgetEyeBlinkingFreq(QSplitter):
             QHeaderView.ResizeMode.Stretch
         )
 
-        self.model_l.setHorizontalHeaderLabels(
-            ["Frame", "EAR_SCORE", "prominence", "left_ips", "right_ips", "width"]
-        )
-        self.model_r.setHorizontalHeaderLabels(
-            ["Frame", "EAR_SCORE", "prominence", "left_ips", "right_ips", "width"]
-        )
+        head = [
+            "Frame",
+            "EAR_SCORE",
+            "prominence",
+            "left_ips",
+            "right_ips",
+            "width",
+            "height",
+        ]
+        self.model_l.setHorizontalHeaderLabels(head)
+        self.model_r.setHorizontalHeaderLabels(head)
 
     def _find_peaks(
         self,
@@ -302,6 +316,7 @@ class WidgetEyeBlinkingFreq(QSplitter):
             p = props["prominences"][idx].round(4)
             li = props["left_ips"][idx].astype(np.int32)
             ri = props["right_ips"][idx].astype(np.int32)
+            hei = -props["width_heights"][idx].round(4)
 
             blinking.append(
                 Blinking(
@@ -312,14 +327,27 @@ class WidgetEyeBlinkingFreq(QSplitter):
                     ips_l=li,
                     ips_r=ri,
                     width=ri - li,
+                    height=hei,
                 )
             )
         return peaks, blinking
 
     def _show_peaks(
-        self, plot: pg.ScatterPlotItem, data: np.ndarray, peaks: np.ndarray
+        self, plot: pg.ScatterPlotItem, blinking: Blinking, settings: dict
     ) -> None:
-        plot.setData(x=peaks.tolist(), y=data[peaks].tolist())
+        peaks = [b.frame for b in blinking]
+        score = [b.ear_score for b in blinking]
+
+        pen = pg.mkPen(settings)
+        plot.setData(x=peaks, y=score, pen=pen)
+
+        for b in blinking:
+            lh = self.graph.plot([b.ips_l, b.ips_r], [b.height, b.height], pen=pen)
+            lv = self.graph.plot(
+                [b.frame, b.frame], [b.ear_score, b.ear_score + b.prominence], pen=pen
+            )
+            self.lines.append(lh)
+            self.lines.append(lv)
 
     def _load(self) -> None:
         fileName, _ = QFileDialog.getOpenFileName(
@@ -351,8 +379,11 @@ class WidgetEyeBlinkingFreq(QSplitter):
             self.te_results_g.setText("")
 
     def _set_data(
-        self, data_l: List[float], data_r: List[float], vis_update=False
+        self, data_l: List[float], data_r: List[float], vis_update=False, clear=False
     ) -> None:
+        if clear:
+            self.graph.clear()
+
         fps = int(self.le_fps.text())
 
         self.plot_ear_l.setData(data_l)
