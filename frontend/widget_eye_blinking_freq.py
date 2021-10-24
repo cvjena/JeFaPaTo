@@ -129,16 +129,25 @@ class WidgetEyeBlinkingFreq(QSplitter):
         self.le_fps.setValidator(QtGui.QIntValidator())
 
         self.le_distance = QLineEdit("150")
+        self.le_distance.setToolTip("Minimum distance between peaks.")
         self.le_prominence = QLineEdit("0.05")
+        self.le_prominence.setToolTip("Minimum height of a peak.")
         self.le_width = QLineEdit("10")
+        self.le_width.setToolTip("Minimum width of a peak.")
 
         self.le_smooth_size = QLineEdit("91")
         self.le_smooth_size.setEnabled(self.smooth.isChecked())
         self.le_smooth_size.setValidator(QtGui.QIntValidator())
+        self.le_smooth_size.setToolTip(
+            "Amount of points consired for smoothing a point."
+        )
 
         self.le_smooth_poly = QLineEdit("5")
         self.le_smooth_poly.setEnabled(self.smooth.isChecked())
         self.le_smooth_poly.setValidator(QtGui.QIntValidator())
+        self.le_smooth_poly.setToolTip(
+            "Order of the smoothing function. The smaller the flatter the curve."
+        )
 
         self.smooth.toggled.connect(lambda value: self.le_smooth_size.setEnabled(value))
         self.smooth.toggled.connect(lambda value: self.le_smooth_poly.setEnabled(value))
