@@ -58,7 +58,6 @@ class Blinking:
             f"IPS_Right {self.ips_r: 6d}; "
             f"Width {self.width: 4d};"
             f"Height {self.height: 6.4f}"
-            "\n"
         )
 
 
@@ -226,11 +225,26 @@ class WidgetEyeBlinkingFreq(QSplitter):
         self._show_peaks(self.plot_peaks_l, blinking_l, {"color": "#00F", "width": 2})
         self._show_peaks(self.plot_peaks_r, blinking_r, {"color": "#F00", "width": 2})
 
-        result = ""
-
         total_seconds = len(val_l) / fps
         minutes = int(total_seconds // 60)
         seconds = total_seconds % 60
+
+        self._reset()
+
+        self._add("===Video Info===")
+        self._add(f"File: {self.file.as_posix()}")
+        self._add(f"Runtime: {minutes}m {seconds:.2f}s [total: {total_seconds:.2f}s]")
+        self._add(f"Threshold Left: {th_l}")
+        self._add(f"Threshold Right: {th_r}")
+        self._add(f"FPS: {fps}")
+        self._add(f"Minimum Distance: {distance}")
+        self._add(f"Minimum Prominence: {prominence}")
+        self._add(f"Minimum Width: {width}")
+
+        parameter = f"[Window Size: {w_size}, Polynomial: {polynom}]" if smooth else ""
+        self._add(f"Smooth: {smooth} {parameter}")
+
+        self._add()
 
         bins = list()
         # plus 2 so we have all minutes and the remaining seconds
@@ -240,48 +254,70 @@ class WidgetEyeBlinkingFreq(QSplitter):
         hist_l, _ = np.histogram(peaks_l, bins=bins)
         hist_r, _ = np.histogram(peaks_r, bins=bins)
 
-        result = "===Video Info===\n"
-        result += f"File: {self.file.as_posix()}\n"
-        result += f"Runtime: {minutes}m {seconds:.2f}s [total: {total_seconds:.2f}s]\n"
-        result += f"Threshold Left: {th_l}\n"
-        result += f"Threshold Right: {th_r}\n"
-        result += f"FPS: {fps}\n"
-        result += f"Minimum Distance: {distance}\n"
-        result += f"Minimum Prominence: {prominence}\n"
-        result += f"Minimum Width: {width}\n"
+        self._add("===Blinking Info===")
+        self._add(f"Blinks Per Mintue Left: {hist_l.tolist()}")
+        self._add(f"Blinks Per Mintue Right: {hist_r.tolist()}")
 
-        parameter = f"[Window Size: {w_size}, Polynomial: {polynom}]" if smooth else ""
-        result += f"Smooth: {smooth} {parameter}\n"
+        self._add(f"Average Left: {np.mean(hist_l): 6.3f}")
+        self._add(f"Average Right: {np.mean(hist_r): 6.3f}")
 
-        result += "\n"
+        self._add(f"Average[wo/ last minute] Left: {np.mean(hist_l[:-1]): 6.3f}")
+        self._add(f"Average[wo/ last minute] Right: {np.mean(hist_r[:-1]): 6.3f}")
 
-        result += "===Blinking Info===\n"
-        result += f"Blinks Per Mintue Left: {hist_l.tolist()}\n"
-        result += f"Blinks Per Mintue Right: {hist_r.tolist()}\n"
+        self._add()
 
-        result += f"Average Left: {np.mean(hist_l): 6.3f}\n"
-        result += f"Average Right: {np.mean(hist_r): 6.3f}\n"
+        total = 0
+        blinking_len_avg_l = list()
+        for h in hist_l:
+            temp = 0
+            for _ in range(h):
+                temp += blinking_l[total].width
+                total += 1
+            blinking_len_avg_l.append(round(temp / h, 4))
 
-        result += f"Average[wo/ last minute] Left: {np.mean(hist_l[:-1]): 6.3f}\n"
-        result += f"Average[wo/ last minute] Right: {np.mean(hist_r[:-1]): 6.3f}\n"
+        self._add(f"Average Blink Length p.M. Left: {blinking_len_avg_l}")
+
+        total = 0
+        blinking_len_avg_r = list()
+        for h in hist_r:
+            temp = 0
+            for _ in range(h):
+                temp += blinking_r[total].width
+                total += 1
+            blinking_len_avg_r.append(round(temp / h, 2))
+        self._add(f"Average Blink Length p.M. Right: {blinking_len_avg_r}")
+
+        self._add(f"Average Blink Length Left: {np.nanmean(blinking_len_avg_l): 6.3f}")
+        self._add(f"Average Blink Length Right: {np.nanmean(blinking_len_avg_r): 6.3f}")
+
+        self._add(
+            (
+                "Average[wo/ last minute] Blink Length Left:"
+                f"{np.nanmean(blinking_len_avg_l[:-1]): 6.3f}"
+            )
+        )
+        self._add(
+            (
+                "Average[wo/ last minute] Blink Length Right:"
+                f"{np.nanmean(blinking_len_avg_r[:-1]): 6.3f}"
+            )
+        )
 
         self.model_l.clear()
         self.model_r.clear()
 
-        result += "\n"
+        self._add("")
 
-        result += "===Detail Left Info===\n"
+        self._add("===Detail Left Info===")
         for b in blinking_l:
             self.model_l.appendRow(b.to_table_row())
-            result += str(b)
+            self._add(str(b))
 
-        result += "\n"
-        result += "===Detail Right Info===\n"
+        self._add("")
+        self._add("===Detail Right Info===")
         for b in blinking_r:
             self.model_r.appendRow(b.to_table_row())
-            result += str(b)
-
-        self.te_results_g.setText(result)
+            self._add(str(b))
 
         self.table_l.horizontalHeader().setSectionResizeMode(
             QHeaderView.ResizeMode.Stretch
@@ -357,6 +393,18 @@ class WidgetEyeBlinkingFreq(QSplitter):
             )
             self.lines.append(lh)
             self.lines.append(lv)
+
+    def _reset(self) -> None:
+        self.te_results_g.setText("")
+
+    def _add(self, text: str = "") -> None:
+        t = self.te_results_g.toPlainText()
+        self.te_results_g.setText(t + text + "\n")
+
+    def _write_blinking_results(
+        self, blinking_l: List[Blinking], blinking_r: List[Blinking]
+    ) -> None:
+        pass
 
     def _load(self) -> None:
         fileName, _ = QFileDialog.getOpenFileName(
