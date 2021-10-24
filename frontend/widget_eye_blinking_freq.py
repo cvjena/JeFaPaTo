@@ -1,6 +1,7 @@
 import csv
+from dataclasses import dataclass
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 import pyqtgraph as pg
@@ -23,6 +24,39 @@ from PyQt5.QtWidgets import (
 from scipy.signal import find_peaks, savgol_filter
 
 from jefapato.plotter import GraphWidget
+
+
+@dataclass
+class Blinking:
+    index: int
+    frame: int
+    ear_score: float
+    prominence: float
+    ips_l: int
+    ips_r: int
+    width: int
+
+    def to_table_row(self) -> List[QtGui.QStandardItem]:
+        return [
+            QtGui.QStandardItem(str(self.frame)),
+            QtGui.QStandardItem(str(self.ear_score)),
+            QtGui.QStandardItem(str(self.prominence)),
+            QtGui.QStandardItem(str(self.ips_l)),
+            QtGui.QStandardItem(str(self.ips_r)),
+            QtGui.QStandardItem(str(self.width)),
+        ]
+
+    def __repr__(self) -> str:
+        return (
+            f"[{self.index: 03d}]; "
+            f"Frame {self.frame: 6d}; "
+            f"EAR_Score {self.ear_score: 6.4f}; "
+            f"Prominence {self.prominence: 6.4f}; "
+            f"IPS_Left {self.ips_l: 6d}; "
+            f"IPS_Right {self.ips_r: 6d}; "
+            f"Width {self.width: 4d}"
+            "\n"
+        )
 
 
 class WidgetEyeBlinkingFreq(QSplitter):
@@ -91,6 +125,7 @@ class WidgetEyeBlinkingFreq(QSplitter):
         self.le_fps = QLineEdit("240")
         self.le_fps.setValidator(QtGui.QIntValidator())
 
+        self.le_distance = QLineEdit("150")
         self.le_prominence = QLineEdit("0.05")
         self.le_width = QLineEdit("10")
 
@@ -107,13 +142,14 @@ class WidgetEyeBlinkingFreq(QSplitter):
 
         self.te_results_g = QTextEdit()
         self.te_results_g.setFontFamily("mono")
+        self.te_results_g.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
 
         self.settings.addRow(self.button_load)
         self.settings.addRow("Threshold Left:", self.le_th_l)
         self.settings.addRow("Threshhold Rirgt", self.le_th_r)
         self.settings.addRow("FPS:", self.le_fps)
-
-        self.settings.addRow("Min. Prom:", self.le_prominence)
+        self.settings.addRow("Min. Distance:", self.le_distance)
+        self.settings.addRow("Min. Prominence:", self.le_prominence)
         self.settings.addRow("Min. Width:", self.le_width)
 
         self.settings.addRow("Smooth:", self.smooth)
@@ -141,6 +177,7 @@ class WidgetEyeBlinkingFreq(QSplitter):
 
         fps = int(self.le_fps.text())
 
+        distance = float(self.le_distance.text())
         prominence = float(self.le_prominence.text())
         width = float(self.le_width.text())
 
@@ -161,32 +198,12 @@ class WidgetEyeBlinkingFreq(QSplitter):
 
         self._set_data(val_l.tolist(), val_r.tolist())
 
-        peaks_l, props_l = find_peaks(
-            -val_l, distance=150, prominence=prominence, width=width
+        peaks_l, blinking_l = self._find_peaks(
+            val_l, threshold=th_l, distance=distance, prominence=prominence, width=width
         )
-        peaks_r, props_r = find_peaks(
-            -val_r, distance=150, prominence=prominence, width=width
+        peaks_r, blinking_r = self._find_peaks(
+            val_r, threshold=th_r, distance=distance, prominence=prominence, width=width
         )
-
-        # get the properties of the peaks
-        # height
-        prom_l = props_l["prominences"][val_l[peaks_l] < th_l].round(4)
-        prom_r = props_r["prominences"][val_r[peaks_r] < th_r].round(4)
-
-        # starting frame
-        leftips_l = props_l["left_ips"][val_l[peaks_l] < th_l].astype(np.int32)
-        leftips_r = props_r["left_ips"][val_r[peaks_r] < th_r].astype(np.int32)
-
-        # ending frame
-        rightips_l = props_l["right_ips"][val_l[peaks_l] < th_l].astype(np.int32)
-        rightips_r = props_r["right_ips"][val_r[peaks_r] < th_r].astype(np.int32)
-
-        # length
-        width_l = rightips_l - leftips_l
-        width_r = rightips_r - leftips_r
-
-        peaks_l = peaks_l[val_l[peaks_l] < th_l]
-        peaks_r = peaks_r[val_r[peaks_r] < th_r]
 
         self._show_peaks(self.plot_peaks_l, val_l, peaks_l)
         self._show_peaks(self.plot_peaks_r, val_r, peaks_r)
@@ -211,6 +228,7 @@ class WidgetEyeBlinkingFreq(QSplitter):
         result += f"Threshold Left: {th_l}\n"
         result += f"Threshold Right: {th_r}\n"
         result += f"FPS: {fps}\n"
+        result += f"Minimum Distance: {distance}\n"
         result += f"Minimum Prominence: {prominence}\n"
         result += f"Minimum Width: {width}\n"
 
@@ -235,31 +253,15 @@ class WidgetEyeBlinkingFreq(QSplitter):
         result += "\n"
 
         result += "===Detail Left Info===\n"
-        for i, p in enumerate(peaks_l):
-            items = [
-                QtGui.QStandardItem(str(p)),
-                QtGui.QStandardItem(str(val_l[p])),
-                QtGui.QStandardItem(str(prom_l[i])),
-                QtGui.QStandardItem(str(width_l[i])),
-                QtGui.QStandardItem(str(leftips_l[i])),
-                QtGui.QStandardItem(str(rightips_l[i])),
-            ]
-            self.model_l.appendRow(items)
-            result += f"{i+1:03d}; Frame {p: 7d}; EAR_SCORE {val_l[p]:05.3f}\n"
+        for b in blinking_l:
+            self.model_l.appendRow(b.to_table_row())
+            result += str(b)
 
         result += "\n"
         result += "===Detail Right Info===\n"
-        for i, p in enumerate(peaks_r):
-            items = [
-                QtGui.QStandardItem(str(p)),
-                QtGui.QStandardItem(str(val_r[p])),
-                QtGui.QStandardItem(str(prom_r[i])),
-                QtGui.QStandardItem(str(width_r[i])),
-                QtGui.QStandardItem(str(leftips_r[i])),
-                QtGui.QStandardItem(str(rightips_r[i])),
-            ]
-            self.model_r.appendRow(items)
-            result += f"{i+1:03d}; Frame {p: 7d}; EAR_SCORE {val_r[p]:05.3f}\n"
+        for b in blinking_r:
+            self.model_r.appendRow(b.to_table_row())
+            result += str(b)
 
         self.te_results_g.setText(result)
 
@@ -271,11 +273,48 @@ class WidgetEyeBlinkingFreq(QSplitter):
         )
 
         self.model_l.setHorizontalHeaderLabels(
-            ["Frame", "EAR_SCORE", "prominence", "width", "left_ips", "right_ips"]
+            ["Frame", "EAR_SCORE", "prominence", "left_ips", "right_ips", "width"]
         )
         self.model_r.setHorizontalHeaderLabels(
-            ["Frame", "EAR_SCORE", "prominence", "width", "left_ips", "right_ips"]
+            ["Frame", "EAR_SCORE", "prominence", "left_ips", "right_ips", "width"]
         )
+
+    def _find_peaks(
+        self,
+        val: np.ndarray,
+        threshold: float = 0.2,
+        distance: int = 150,
+        prominence: float = 0.05,
+        width: int = 10,
+    ) -> Tuple[np.ndarray, Blinking]:
+        peaks, props = find_peaks(
+            -val, distance=distance, prominence=prominence, width=width
+        )
+
+        blinking: list[Blinking] = list()
+
+        for k in props:
+            props[k] = props[k][val[peaks] < threshold]
+
+        peaks = peaks[val[peaks] < threshold]
+
+        for idx, peak in enumerate(peaks):
+            p = props["prominences"][idx].round(4)
+            li = props["left_ips"][idx].astype(np.int32)
+            ri = props["right_ips"][idx].astype(np.int32)
+
+            blinking.append(
+                Blinking(
+                    index=idx,
+                    frame=peak,
+                    ear_score=val[peak],
+                    prominence=p,
+                    ips_l=li,
+                    ips_r=ri,
+                    width=ri - li,
+                )
+            )
+        return peaks, blinking
 
     def _show_peaks(
         self, plot: pg.ScatterPlotItem, data: np.ndarray, peaks: np.ndarray
