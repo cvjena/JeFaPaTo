@@ -273,8 +273,10 @@ class WidgetEyeBlinkingFreq(QSplitter):
             for _ in range(h):
                 temp += blinking_l[total].width
                 total += 1
-            blinking_len_avg_l.append(round(temp / h, 4))
-
+            if temp != 0:
+                blinking_len_avg_l.append(round(temp / h, 4))
+            else:
+                blinking_len_avg_l.append(0)
         self._add(f"Average Blink Length p.M. Left: {blinking_len_avg_l}")
 
         total = 0
@@ -284,7 +286,11 @@ class WidgetEyeBlinkingFreq(QSplitter):
             for _ in range(h):
                 temp += blinking_r[total].width
                 total += 1
-            blinking_len_avg_r.append(round(temp / h, 2))
+            if temp != 0:
+                blinking_len_avg_r.append(round(temp / h, 4))
+            else:
+                blinking_len_avg_r.append(0)
+
         self._add(f"Average Blink Length p.M. Right: {blinking_len_avg_r}")
 
         self._add(f"Average Blink Length Left: {np.nanmean(blinking_len_avg_l): 6.3f}")
