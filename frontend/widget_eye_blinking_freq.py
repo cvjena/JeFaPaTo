@@ -127,12 +127,17 @@ class WidgetEyeBlinkingFreq(QSplitter):
         self.le_fps = QLineEdit("240")
         self.le_fps.setValidator(QtGui.QIntValidator())
 
-        self.le_distance = QLineEdit("150")
+        self.le_distance = QLineEdit("80")
         self.le_distance.setToolTip("Minimum distance between peaks.")
         self.le_prominence = QLineEdit("0.05")
         self.le_prominence.setToolTip("Minimum height of a peak.")
-        self.le_width = QLineEdit("10")
-        self.le_width.setToolTip("Minimum width of a peak.")
+
+        self.le_width_min = QLineEdit("10")
+        self.le_width_min.setToolTip("Minimum width of a peak.")
+        self.le_width_min.setValidator(QtGui.QIntValidator())
+        self.le_width_max = QLineEdit("150")
+        self.le_width_max.setToolTip("Maximum width of a peak")
+        self.le_width_max.setValidator(QtGui.QIntValidator())
 
         self.le_smooth_size = QLineEdit("91")
         self.le_smooth_size.setEnabled(self.smooth.isChecked())
@@ -161,7 +166,8 @@ class WidgetEyeBlinkingFreq(QSplitter):
         self.settings.addRow("FPS:", self.le_fps)
         self.settings.addRow("Min. Distance:", self.le_distance)
         self.settings.addRow("Min. Prominence:", self.le_prominence)
-        self.settings.addRow("Min. Width:", self.le_width)
+        self.settings.addRow("Min. Peak Width:", self.le_width_min)
+        self.settings.addRow("Max. Peak Width:", self.le_width_max)
 
         self.settings.addRow("Smooth:", self.smooth)
         self.settings.addRow("Smooth Window:", self.le_smooth_size)
@@ -194,7 +200,8 @@ class WidgetEyeBlinkingFreq(QSplitter):
 
         distance = float(self.le_distance.text())
         prominence = float(self.le_prominence.text())
-        width = float(self.le_width.text())
+        width_min = int(self.le_width_min.text())
+        width_max = int(self.le_width_max.text())
 
         val_l = np.array(self.ear_l)
         val_r = np.array(self.ear_r)
@@ -214,10 +221,20 @@ class WidgetEyeBlinkingFreq(QSplitter):
         self._set_data(val_l.tolist(), val_r.tolist())
 
         peaks_l, blinking_l = self._find_peaks(
-            val_l, threshold=th_l, distance=distance, prominence=prominence, width=width
+            val_l,
+            threshold=th_l,
+            distance=distance,
+            prominence=prominence,
+            width_min=width_min,
+            width_max=width_max,
         )
         peaks_r, blinking_r = self._find_peaks(
-            val_r, threshold=th_r, distance=distance, prominence=prominence, width=width
+            val_r,
+            threshold=th_r,
+            distance=distance,
+            prominence=prominence,
+            width_min=width_min,
+            width_max=width_max,
         )
 
         for ll in self.lines:
@@ -241,7 +258,8 @@ class WidgetEyeBlinkingFreq(QSplitter):
         self._add(f"FPS: {fps}")
         self._add(f"Minimum Distance: {distance}")
         self._add(f"Minimum Prominence: {prominence}")
-        self._add(f"Minimum Width: {width}")
+        self._add(f"Minimum Width: {width_min}")
+        self._add(f"Maximum Width: {width_max}")
 
         parameter = f"[Window Size: {w_size}, Polynomial: {polynom}]" if smooth else ""
         self._add(f"Smooth: {smooth} {parameter}")
@@ -352,10 +370,11 @@ class WidgetEyeBlinkingFreq(QSplitter):
         threshold: float = 0.2,
         distance: int = 150,
         prominence: float = 0.05,
-        width: int = 10,
+        width_min: int = 10,
+        width_max: int = 150,
     ) -> Tuple[np.ndarray, Blinking]:
         peaks, props = find_peaks(
-            -val, distance=distance, prominence=prominence, width=width
+            -val, distance=distance, prominence=prominence, width=width_min
         )
 
         blinking: list[Blinking] = list()
@@ -365,11 +384,17 @@ class WidgetEyeBlinkingFreq(QSplitter):
 
         peaks = peaks[val[peaks] < threshold]
 
+        to_remove = list()
         for idx, peak in enumerate(peaks):
             p = props["prominences"][idx].round(4)
             li = props["left_ips"][idx].astype(np.int32)
             ri = props["right_ips"][idx].astype(np.int32)
             hei = -props["width_heights"][idx].round(4)
+            width = ri - li
+
+            if width > width_max:
+                to_remove.append(idx)
+                continue
 
             blinking.append(
                 Blinking(
@@ -379,11 +404,13 @@ class WidgetEyeBlinkingFreq(QSplitter):
                     prominence=p,
                     ips_l=li,
                     ips_r=ri,
-                    width=ri - li,
+                    width=width,
                     height=hei,
                 )
             )
-        return peaks, blinking
+        mask = np.ones(len(peaks), np.bool)
+        mask[to_remove] = 0
+        return peaks[mask], blinking
 
     def _show_peaks(
         self, plot: pg.ScatterPlotItem, blinking: Blinking, settings: dict
@@ -427,9 +454,6 @@ class WidgetEyeBlinkingFreq(QSplitter):
             self._load_file(self.file)
 
     def _load_file(self, path: Path) -> None:
-        self.ear_l.clear()
-        self.ear_r.clear()
-
         df = pd.read_csv(path.as_posix(), sep=";")
         self.ear_l = df["ear_score_left"].values
         self.ear_r = df["ear_score_rigth"].values
@@ -437,6 +461,12 @@ class WidgetEyeBlinkingFreq(QSplitter):
         self._set_data(self.ear_l.tolist(), self.ear_r.tolist(), vis_update=True)
         self.model_l.clear()
         self.model_r.clear()
+        for line in self.lines():
+            line.clear()
+
+        self.plot_peaks_l.clear()
+        self.plot_peaks_r.clear()
+
         self.te_results_g.setText("")
 
     def _set_data(
