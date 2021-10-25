@@ -461,7 +461,7 @@ class WidgetEyeBlinkingFreq(QSplitter):
         self._set_data(self.ear_l.tolist(), self.ear_r.tolist(), vis_update=True)
         self.model_l.clear()
         self.model_r.clear()
-        for line in self.lines():
+        for line in self.lines:
             line.clear()
 
         self.plot_peaks_l.clear()

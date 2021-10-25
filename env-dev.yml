@@ -20,3 +20,4 @@ dependencies:
     - psutil==5.8
     - pre-commit
     - pandas
+    - nuitka
