@@ -1,9 +1,9 @@
-import csv
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Tuple
 
 import numpy as np
+import pandas as pd
 import pyqtgraph as pg
 from PyQt5 import QtGui
 from PyQt5.QtCore import Qt
@@ -102,9 +102,9 @@ class WidgetEyeBlinkingFreq(QSplitter):
         self.top_splitter.addWidget(w_t_l)
         self.top_splitter.addWidget(w_t_r)
 
-        self.top_splitter.setStretchFactor(0, 3)
-        self.top_splitter.setStretchFactor(1, 3)
-        self.top_splitter.setStretchFactor(2, 3)
+        self.top_splitter.setStretchFactor(0, 40)
+        self.top_splitter.setStretchFactor(1, 30)
+        self.top_splitter.setStretchFactor(2, 30)
 
         self.button_load = QPushButton("Load CSV File")
         self.button_load.clicked.connect(self._load)
@@ -181,10 +181,12 @@ class WidgetEyeBlinkingFreq(QSplitter):
 
         self.lines = list()
 
-        self.file = Path("/home/tim/data/JeFaPaTo/Proband 06_2021-09-24_14-56-34.csv")
-        self._load_file(self.file)
+        self.file = None
 
     def _analyse(self) -> None:
+        if self.file is None:
+            return
+
         th_l = float(self.le_th_l.text())
         th_r = float(self.le_th_r.text())
 
@@ -428,18 +430,14 @@ class WidgetEyeBlinkingFreq(QSplitter):
         self.ear_l.clear()
         self.ear_r.clear()
 
-        with open(path) as file:
+        df = pd.read_csv(path.as_posix(), sep=";")
+        self.ear_l = df["ear_score_left"].values
+        self.ear_r = df["ear_score_rigth"].values
 
-            reader = csv.reader(file, delimiter=";")
-            next(reader)
-            for row in reader:
-                self.ear_l.append(float(row[2]))
-                self.ear_r.append(float(row[3]))
-
-            self._set_data(self.ear_l, self.ear_r, vis_update=True)
-            self.model_l.clear()
-            self.model_r.clear()
-            self.te_results_g.setText("")
+        self._set_data(self.ear_l.tolist(), self.ear_r.tolist(), vis_update=True)
+        self.model_l.clear()
+        self.model_r.clear()
+        self.te_results_g.setText("")
 
     def _set_data(
         self, data_l: List[float], data_r: List[float], vis_update=False, clear=False
