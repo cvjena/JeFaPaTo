@@ -208,6 +208,9 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         self.te_results_g.setFontFamily("mono")
         self.te_results_g.setLineWrapMode(QtWidgets.QTextEdit.LineWrapMode.NoWrap)
 
+        self.progress = QtWidgets.QProgressBar()
+        self.progress.setRange(0, 100)
+
         self.settings.addRow(self.button_load)
         self.settings.addRow("Threshold Left:", self.le_th_l)
         self.settings.addRow("Threshhold Rirgt", self.le_th_r)
@@ -223,6 +226,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
 
         self.settings.addRow(self.button_anal)
         self.settings.addRow(self.te_results_g)
+        self.settings.addRow(self.progress)
 
         self.ear_l: list[float] = list()
         self.ear_r: list[float] = list()
@@ -245,6 +249,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         if self.file is None:
             return
 
+        self.progress.setValue(0)
         th_l = float(self.le_th_l.text())
         th_r = float(self.le_th_r.text())
 
@@ -257,6 +262,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
 
         val_l = np.array(self.ear_l)
         val_r = np.array(self.ear_r)
+        self.progress.setValue(10)
 
         smooth = self.smooth.isChecked()
         w_size = int(self.le_smooth_size.text())
@@ -269,9 +275,10 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
 
         val_l = val_l.round(4)
         val_r = val_r.round(4)
+        self.progress.setValue(30)
 
         self._set_data(val_l.tolist(), val_r.tolist())
-
+        self.progress.setValue(40)
         peaks_l, blinking_l = self._find_peaks(
             val_l,
             threshold=th_l,
@@ -281,6 +288,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
             width_max=width_max,
             fps=fps,
         )
+        self.progress.setValue(50)
         peaks_r, blinking_r = self._find_peaks(
             val_r,
             threshold=th_r,
@@ -290,19 +298,22 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
             width_max=width_max,
             fps=fps,
         )
+        self.progress.setValue(60)
 
         for ll in self.lines:
             ll.clear()
         self.lines.clear()
+        self.progress.setValue(70)
 
         self._show_peaks(self.plot_peaks_l, blinking_l, {"color": "#00F", "width": 2})
         self._show_peaks(self.plot_peaks_r, blinking_r, {"color": "#F00", "width": 2})
+        self.progress.setValue(75)
 
         total_seconds = len(val_l) / fps
         minutes = int(total_seconds // 60)
         seconds = total_seconds % 60
-
         self._reset()
+        self.progress.setValue(80)
 
         self._add("===Video Info===")
         self._add(f"File: {self.file.as_posix()}")
@@ -317,8 +328,8 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
 
         parameter = f"[Window Size: {w_size}, Polynomial: {polynom}]" if smooth else ""
         self._add(f"Smooth: {smooth} {parameter}")
-
         self._add()
+        self.progress.setValue(85)
 
         bins = list()
         # plus 2 so we have all minutes and the remaining seconds
@@ -387,7 +398,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         self.model_r.clear()
 
         self._add("")
-
+        self.progress.setValue(95)
         self._add("===Detail Left Info===")
         for b in blinking_l:
             self.model_l.appendRow(b.to_table_row())
@@ -408,6 +419,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
 
         self.model_l.setHorizontalHeaderLabels(TABLE_HEADER)
         self.model_r.setHorizontalHeaderLabels(TABLE_HEADER)
+        self.progress.setValue(100)
 
     def _find_peaks(
         self,
@@ -506,20 +518,24 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
             self._load_file(self.file)
 
     def _load_file(self, path: Path) -> None:
+        self.progress.setValue(0)
         df = pd.read_csv(path.as_posix(), sep=";")
         self.ear_l = df["ear_score_left"].values
         self.ear_r = df["ear_score_rigth"].values
+        self.progress.setValue(40)
 
         self._set_data(self.ear_l.tolist(), self.ear_r.tolist(), vis_update=True)
         self.model_l.clear()
         self.model_r.clear()
         for line in self.lines:
             line.clear()
+        self.progress.setValue(70)
 
         self.plot_peaks_l.clear()
         self.plot_peaks_r.clear()
 
         self.te_results_g.setText("")
+        self.progress.setValue(100)
 
     def _set_data(
         self, data_l: List[float], data_r: List[float], vis_update=False, clear=False
