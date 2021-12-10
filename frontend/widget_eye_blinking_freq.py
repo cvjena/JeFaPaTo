@@ -89,6 +89,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
                 json.dump(DEFAULTS, f)
                 config = DEFAULTS
 
+        self.result_text: str = ""
         self.config = ConfigManager(config)
 
         self.top_splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal, parent=self)
@@ -410,6 +411,8 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
             self.model_r.appendRow(b.to_table_row())
             self._add(str(b))
 
+        self._set_result_text()
+
         self.table_l.horizontalHeader().setSectionResizeMode(
             QtWidgets.QHeaderView.ResizeMode.Stretch
         )
@@ -497,8 +500,10 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         self.te_results_g.setText("")
 
     def _add(self, text: str = "") -> None:
-        t = self.te_results_g.toPlainText()
-        self.te_results_g.setText(t + text + "\n")
+        self.result_text += text + "\n"
+
+    def _set_result_text(self) -> None:
+        self.te_results_g.setText(self.result_text)
 
     def _write_blinking_results(
         self, blinking_l: List[Blinking], blinking_r: List[Blinking]
