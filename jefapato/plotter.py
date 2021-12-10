@@ -186,7 +186,9 @@ class GraphWidget(pg.PlotWidget):
     signal_y_ruler_changed = pyqtSignal(float)
     signal_graph_clicked = pyqtSignal(float)
 
-    def __init__(self, parent=None, background="default", plotItem=None, **kargs):
+    def __init__(
+        self, parent=None, background="default", plotItem=None, add_ruler=True, **kargs
+    ):
         super().__init__(
             parent=parent, background=background, plotItem=plotItem, **kargs
         )
@@ -195,6 +197,7 @@ class GraphWidget(pg.PlotWidget):
         self._y_ruler_val: float = 0.2
         self._grid_spacing: float = 30.0
         self._grid_range: float = 100.0
+        self.add_ruler = add_ruler
 
         self.axis_b: pg.AxisItem = self.getAxis("bottom")
         self.axis_b.setTickSpacing(300, self._grid_spacing)
@@ -206,23 +209,23 @@ class GraphWidget(pg.PlotWidget):
         self.disableAutoRange()
 
         bar_pen = pg.mkPen(width=2, color="k")
-        self._x_ruler: pg.InfiniteLine = pg.InfiniteLine(
-            self._x_ruler_val, movable=False, pen=bar_pen
-        )
-        self._y_ruler: pg.InfiniteLine = pg.InfiniteLine(
-            self._y_ruler_val, angle=0, movable=True, pen=bar_pen
-        )
+        if self.add_ruler:
+            self._x_ruler: pg.InfiniteLine = pg.InfiniteLine(
+                self._x_ruler_val, movable=False, pen=bar_pen
+            )
+            self._y_ruler: pg.InfiniteLine = pg.InfiniteLine(
+                self._y_ruler_val, angle=0, movable=True, pen=bar_pen
+            )
 
-        self._x_ruler.sigDragged.connect(
-            lambda _: self.signal_x_ruler_changed.emit(self._x_ruler.getPos()[0])
-        )
-        self._y_ruler.sigDragged.connect(
-            lambda _: self.signal_y_ruler_changed.emit(self._y_ruler.getPos()[1])
-        )
-
-        # add the sliders to the plot
-        self.addItem(self._x_ruler)
-        self.addItem(self._y_ruler)
+            self._x_ruler.sigDragged.connect(
+                lambda _: self.signal_x_ruler_changed.emit(self._x_ruler.getPos()[0])
+            )
+            self._y_ruler.sigDragged.connect(
+                lambda _: self.signal_y_ruler_changed.emit(self._y_ruler.getPos()[1])
+            )
+            # add the sliders to the plot
+            self.addItem(self._x_ruler)
+            self.addItem(self._y_ruler)
 
         self.scene().sigMouseClicked.connect(
             lambda ev: self.signal_graph_clicked.emit(self.move_line(ev))
@@ -243,6 +246,8 @@ class GraphWidget(pg.PlotWidget):
             pass
 
     def move_line(self, mouseClickEvent) -> Optional[float]:
+        if not self.add_ruler:
+            return None
         # this code  calculates the index of the underlying data entry
         # and moves the indicator to it
         vb = self.getPlotItem().vb

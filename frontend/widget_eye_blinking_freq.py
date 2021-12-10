@@ -33,8 +33,8 @@ DEFAULTS = {
     "fps": "240",
     "min_width": "10",
     "max_width": "150",
-    "threshold_left": "0.2",
-    "threshold_right": "0.2",
+    "threshold_left": "0.4",
+    "threshold_right": "0.4",
 }
 
 
@@ -93,7 +93,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         self.config = ConfigManager(config)
 
         self.top_splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal, parent=self)
-        self.graph = GraphWidget(self)
+        self.graph = GraphWidget(self, add_ruler=False)
         self.graph.getViewBox().enableAutoRange(enable=False)
 
         self.model_l = QtGui.QStandardItemModel(self)
@@ -134,19 +134,18 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         self.top_splitter.setStretchFactor(2, 35)
 
         self.button_load = QtWidgets.QPushButton("Load CSV File")
-        self.button_load.clicked.connect(self._load)
+        self.button_load.clicked.connect(self._load_csv)
         self.button_anal = QtWidgets.QPushButton("Analyse")
         self.button_anal.clicked.connect(self._analyse)
 
-        self.smooth = QtWidgets.QCheckBox()
-        self.smooth.toggled.connect(self._save_settings)
-        self.config.add_handler("smooth", self.smooth)
-
         self.le_th_l = QtWidgets.QLineEdit()
         self.config.add_handler("threshold_left", self.le_th_l)
+        self.le_th_l.setToolTip("Theshold for left eye")
         self.le_th_l.textChanged.connect(self._save_settings)
+
         self.le_th_r = QtWidgets.QLineEdit()
         self.config.add_handler("threshold_right", self.le_th_r)
+        self.le_th_r.setToolTip("Theshold for right eye")
         self.le_th_r.textChanged.connect(self._save_settings)
 
         self.graph.signal_y_ruler_changed.connect(
@@ -160,36 +159,50 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         self.le_fps = QtWidgets.QLineEdit()
         self.config.add_handler("fps", self.le_fps)
         self.le_fps.setValidator(QtGui.QIntValidator())
+        self.le_fps.setToolTip("This is the number of frames per second.")
         self.le_fps.textChanged.connect(self._save_settings)
 
         self.le_distance = QtWidgets.QLineEdit()
         self.config.add_handler("min_dist", self.le_distance)
-        self.le_distance.setToolTip("Minimum distance between peaks.")
+        self.le_distance.setToolTip(
+            "This value controls the minimum distance between two blinks."
+        )
         self.le_distance.textChanged.connect(self._save_settings)
 
         self.le_prominence = QtWidgets.QLineEdit()
         self.config.add_handler("min_prominence", self.le_prominence)
-        self.le_prominence.setToolTip("Minimum height of a peak.")
+        self.le_prominence.setToolTip(
+            "This value controls the minimum prominence of a blink."
+        )
         self.le_prominence.textChanged.connect(self._save_settings)
 
         self.le_width_min = QtWidgets.QLineEdit()
         self.config.add_handler("min_width", self.le_width_min)
-        self.le_width_min.setToolTip("Minimum width of a peak.")
+        self.le_width_min.setToolTip(
+            "This value controls the minimum width of a blink."
+        )
         self.le_width_min.setValidator(QtGui.QIntValidator())
         self.le_width_min.textChanged.connect(self._save_settings)
 
         self.le_width_max = QtWidgets.QLineEdit("150")
         self.config.add_handler("max_width", self.le_width_max)
-        self.le_width_max.setToolTip("Maximum width of a peak")
+        self.le_width_max.setToolTip(
+            "This value controls the maximum width of a blink."
+        )
         self.le_width_max.setValidator(QtGui.QIntValidator())
         self.le_width_max.textChanged.connect(self._save_settings)
+
+        self.smooth = QtWidgets.QCheckBox()
+        self.smooth.toggled.connect(self._save_settings)
+        self.config.add_handler("smooth", self.smooth)
+        self.smooth.setToolTip("Smooth the data")
 
         self.le_smooth_size = QtWidgets.QLineEdit()
         self.config.add_handler("smooth_size", self.le_smooth_size)
         self.le_smooth_size.setEnabled(self.smooth.isChecked())
         self.le_smooth_size.setValidator(QtGui.QIntValidator())
         self.le_smooth_size.setToolTip(
-            "Amount of points consired for smoothing a point."
+            "This value controls the size of the smoothing window."
         )
         self.le_smooth_size.textChanged.connect(self._save_settings)
 
@@ -198,7 +211,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         self.le_smooth_poly.setEnabled(self.smooth.isChecked())
         self.le_smooth_poly.setValidator(QtGui.QIntValidator())
         self.le_smooth_poly.setToolTip(
-            "Order of the smoothing function. The smaller the flatter the curve."
+            "This value controls the polynomial order of the smoothing."
         )
         self.le_smooth_poly.textChanged.connect(self._save_settings)
 
@@ -214,7 +227,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
 
         self.settings.addRow(self.button_load)
         self.settings.addRow("Threshold Left:", self.le_th_l)
-        self.settings.addRow("Threshhold Rirgt", self.le_th_r)
+        self.settings.addRow("Threshold Right", self.le_th_r)
         self.settings.addRow("FPS:", self.le_fps)
         self.settings.addRow("Min. Distance:", self.le_distance)
         self.settings.addRow("Min. Prominence:", self.le_prominence)
@@ -249,54 +262,54 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
     def _analyse(self) -> None:
         if self.file is None:
             return
-
         self.progress.setValue(0)
-        th_l = float(self.le_th_l.text())
-        th_r = float(self.le_th_r.text())
 
-        fps = int(self.le_fps.text())
+        threshold_left = float(self.config.get("threshold_left"))
+        threshold_right = float(self.config.get("threshold_right"))
+        fps = int(self.config.get("fps"))
 
-        distance = float(self.le_distance.text())
-        prominence = float(self.le_prominence.text())
-        width_min = int(self.le_width_min.text())
-        width_max = int(self.le_width_max.text())
+        min_dist = float(self.config.get("min_dist"))
+        min_prominence = float(self.config.get("min_prominence"))
+        min_width = int(self.config.get("min_width"))
+        max_width = int(self.config.get("max_width"))
 
-        val_l = np.array(self.ear_l)
-        val_r = np.array(self.ear_r)
+        ear_l = np.array(self.ear_l)
+        ear_r = np.array(self.ear_r)
         self.progress.setValue(10)
 
-        smooth = self.smooth.isChecked()
-        w_size = int(self.le_smooth_size.text())
-        w_size = w_size if w_size % 2 == 1 else (w_size + 1)
-        polynom = int(self.le_smooth_poly.text())
+        smooth = self.config.get("smooth")
+        smooth_size = int(self.config.get("smooth_size"))
+        smooth_size = smooth_size if smooth_size % 2 == 1 else (smooth_size + 1)
+        smooth_poly = int(self.config.get("smooth_poly"))
 
         if smooth:
-            val_l = savgol_filter(val_l, w_size, polyorder=polynom)
-            val_r = savgol_filter(val_r, w_size, polyorder=polynom)
+            ear_l = savgol_filter(ear_l, smooth_size, polyorder=smooth_poly)
+            ear_r = savgol_filter(ear_r, smooth_size, polyorder=smooth_poly)
 
-        val_l = val_l.round(4)
-        val_r = val_r.round(4)
+        ear_l = ear_l.round(4)
+        ear_r = ear_r.round(4)
         self.progress.setValue(30)
 
-        self._set_data(val_l.tolist(), val_r.tolist())
+        self._set_data(ear_l.tolist(), ear_r.tolist())
         self.progress.setValue(40)
+
         peaks_l, blinking_l = self._find_peaks(
-            val_l,
-            threshold=th_l,
-            distance=distance,
-            prominence=prominence,
-            width_min=width_min,
-            width_max=width_max,
+            ear_l,
+            threshold=threshold_left,
+            distance=min_dist,
+            prominence=min_prominence,
+            width_min=min_width,
+            width_max=max_width,
             fps=fps,
         )
         self.progress.setValue(50)
         peaks_r, blinking_r = self._find_peaks(
-            val_r,
-            threshold=th_r,
-            distance=distance,
-            prominence=prominence,
-            width_min=width_min,
-            width_max=width_max,
+            ear_r,
+            threshold=threshold_right,
+            distance=min_dist,
+            prominence=min_prominence,
+            width_min=min_width,
+            width_max=max_width,
             fps=fps,
         )
         self.progress.setValue(60)
@@ -310,24 +323,26 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         self._show_peaks(self.plot_peaks_r, blinking_r, {"color": "#F00", "width": 2})
         self.progress.setValue(75)
 
-        total_seconds = len(val_l) / fps
+        total_seconds = len(ear_l) / fps
         minutes = int(total_seconds // 60)
         seconds = total_seconds % 60
-        self._reset()
+        self._reset_result_text()
         self.progress.setValue(80)
 
         self._add("===Video Info===")
         self._add(f"File: {self.file.as_posix()}")
         self._add(f"Runtime: {minutes}m {seconds:.2f}s [total: {total_seconds:.2f}s]")
-        self._add(f"Threshold Left: {th_l}")
-        self._add(f"Threshold Right: {th_r}")
+        self._add(f"Threshold Left: {threshold_left}")
+        self._add(f"Threshold Right: {threshold_right}")
         self._add(f"FPS: {fps}")
-        self._add(f"Minimum Distance: {distance}")
-        self._add(f"Minimum Prominence: {prominence}")
-        self._add(f"Minimum Width: {width_min}")
-        self._add(f"Maximum Width: {width_max}")
+        self._add(f"Minimum Distance: {min_dist}")
+        self._add(f"Minimum Prominence: {min_prominence}")
+        self._add(f"Minimum Width: {min_width}")
+        self._add(f"Maximum Width: {max_width}")
 
-        parameter = f"[Window Size: {w_size}, Polynomial: {polynom}]" if smooth else ""
+        parameter = (
+            f"[Window Size: {smooth_size}, Polynomial: {smooth_poly}]" if smooth else ""
+        )
         self._add(f"Smooth: {smooth} {parameter}")
         self._add()
         self.progress.setValue(85)
@@ -496,7 +511,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
             self.lines.append(lh)
             self.lines.append(lv)
 
-    def _reset(self) -> None:
+    def _reset_result_text(self) -> None:
         self.te_results_g.setText("")
 
     def _add(self, text: str = "") -> None:
@@ -505,12 +520,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
     def _set_result_text(self) -> None:
         self.te_results_g.setText(self.result_text)
 
-    def _write_blinking_results(
-        self, blinking_l: List[Blinking], blinking_r: List[Blinking]
-    ) -> None:
-        pass
-
-    def _load(self) -> None:
+    def _load_csv(self) -> None:
         fileName, _ = QtWidgets.QFileDialog.getOpenFileName(
             self,
             "Select csv file",
