@@ -21,3 +21,5 @@ dependencies:
     - pre-commit
     - pandas
     - nuitka
+    - pyqtconfig
+    - qtpy

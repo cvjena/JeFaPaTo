@@ -11,3 +11,4 @@ logs
 *.zip
 Jefapato_Schuhmann
 jd
+config/*.json

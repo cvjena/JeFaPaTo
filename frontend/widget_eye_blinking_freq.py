@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Tuple
@@ -5,9 +6,10 @@ from typing import List, Tuple
 import numpy as np
 import pandas as pd
 import pyqtgraph as pg
-from PyQt5 import QtGui
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (
+from pyqtconfig import ConfigManager
+from qtpy import QtGui
+from qtpy.QtCore import Qt
+from qtpy.QtWidgets import (
     QCheckBox,
     QFileDialog,
     QFormLayout,
@@ -35,6 +37,20 @@ TABLE_HEADER = [
     "width",
     "height",
 ]
+
+DEFAULTS = {
+    "smooth": True,
+    "smooth_size": "91",
+    "smooth_poly": "5",
+    "min_dist": "80",
+    "min_height": "0.1",
+    "min_prominence": "0.05",
+    "fps": "240",
+    "min_width": "10",
+    "max_width": "150",
+    "threshold_left": "0.2",
+    "threshold_right": "0.2",
+}
 
 
 @dataclass
@@ -79,6 +95,16 @@ class WidgetEyeBlinkingFreq(QSplitter):
     def __init__(self):
         super().__init__()
         self.setOrientation(Qt.Vertical)
+
+        try:
+            with open("config/config_eye_blinking_freq.json", "r") as f:
+                config = json.load(f)
+        except FileNotFoundError:
+            with open("config/config_eye_blinking_freq.json", "w") as f:
+                json.dump(DEFAULTS, f)
+                config = DEFAULTS
+
+        self.config = ConfigManager(config)
 
         self.top_splitter = QSplitter(Qt.Horizontal, parent=self)
         self.graph = GraphWidget(self)
@@ -126,10 +152,15 @@ class WidgetEyeBlinkingFreq(QSplitter):
         self.button_anal.clicked.connect(self._analyse)
 
         self.smooth = QCheckBox()
-        self.smooth.setChecked(True)
+        self.smooth.toggled.connect(self._save_settings)
+        self.config.add_handler("smooth", self.smooth)
 
-        self.le_th_l = QLineEdit("0.2")
-        self.le_th_r = QLineEdit("0.2")
+        self.le_th_l = QLineEdit()
+        self.config.add_handler("threshold_left", self.le_th_l)
+        self.le_th_l.textChanged.connect(self._save_settings)
+        self.le_th_r = QLineEdit()
+        self.config.add_handler("threshold_right", self.le_th_r)
+        self.le_th_r.textChanged.connect(self._save_settings)
 
         self.graph.signal_y_ruler_changed.connect(
             lambda value: self.le_th_l.setText(f"{value:05.3f}")
@@ -138,34 +169,51 @@ class WidgetEyeBlinkingFreq(QSplitter):
             lambda value: self.le_th_r.setText(f"{value:05.3f}")
         )
 
-        self.le_fps = QLineEdit("240")
+        # settings
+        self.le_fps = QLineEdit()
+        self.config.add_handler("fps", self.le_fps)
         self.le_fps.setValidator(QtGui.QIntValidator())
+        self.le_fps.textChanged.connect(self._save_settings)
 
-        self.le_distance = QLineEdit("80")
+        self.le_distance = QLineEdit()
+        self.config.add_handler("min_dist", self.le_distance)
         self.le_distance.setToolTip("Minimum distance between peaks.")
-        self.le_prominence = QLineEdit("0.05")
-        self.le_prominence.setToolTip("Minimum height of a peak.")
+        self.le_distance.textChanged.connect(self._save_settings)
 
-        self.le_width_min = QLineEdit("10")
+        self.le_prominence = QLineEdit()
+        self.config.add_handler("min_prominence", self.le_prominence)
+        self.le_prominence.setToolTip("Minimum height of a peak.")
+        self.le_prominence.textChanged.connect(self._save_settings)
+
+        self.le_width_min = QLineEdit()
+        self.config.add_handler("min_width", self.le_width_min)
         self.le_width_min.setToolTip("Minimum width of a peak.")
         self.le_width_min.setValidator(QtGui.QIntValidator())
+        self.le_width_min.textChanged.connect(self._save_settings)
+
         self.le_width_max = QLineEdit("150")
+        self.config.add_handler("max_width", self.le_width_max)
         self.le_width_max.setToolTip("Maximum width of a peak")
         self.le_width_max.setValidator(QtGui.QIntValidator())
+        self.le_width_max.textChanged.connect(self._save_settings)
 
-        self.le_smooth_size = QLineEdit("91")
+        self.le_smooth_size = QLineEdit()
+        self.config.add_handler("smooth_size", self.le_smooth_size)
         self.le_smooth_size.setEnabled(self.smooth.isChecked())
         self.le_smooth_size.setValidator(QtGui.QIntValidator())
         self.le_smooth_size.setToolTip(
             "Amount of points consired for smoothing a point."
         )
+        self.le_smooth_size.textChanged.connect(self._save_settings)
 
-        self.le_smooth_poly = QLineEdit("5")
+        self.le_smooth_poly = QLineEdit()
+        self.config.add_handler("smooth_poly", self.le_smooth_poly)
         self.le_smooth_poly.setEnabled(self.smooth.isChecked())
         self.le_smooth_poly.setValidator(QtGui.QIntValidator())
         self.le_smooth_poly.setToolTip(
             "Order of the smoothing function. The smaller the flatter the curve."
         )
+        self.le_smooth_poly.textChanged.connect(self._save_settings)
 
         self.smooth.toggled.connect(lambda value: self.le_smooth_size.setEnabled(value))
         self.smooth.toggled.connect(lambda value: self.le_smooth_poly.setEnabled(value))
@@ -202,6 +250,10 @@ class WidgetEyeBlinkingFreq(QSplitter):
         self.lines = list()
 
         self.file = None
+
+    def _save_settings(self):
+        with (open("config/config_eye_blinking_freq.json", "w")) as f:
+            json.dump(self.config.as_dict(), f)
 
     def _analyse(self) -> None:
         if self.file is None:
