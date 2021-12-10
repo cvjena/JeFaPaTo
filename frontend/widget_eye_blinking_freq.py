@@ -7,22 +7,7 @@ import numpy as np
 import pandas as pd
 import pyqtgraph as pg
 from pyqtconfig import ConfigManager
-from qtpy import QtGui
-from qtpy.QtCore import Qt
-from qtpy.QtWidgets import (
-    QCheckBox,
-    QFileDialog,
-    QFormLayout,
-    QHeaderView,
-    QLabel,
-    QLineEdit,
-    QPushButton,
-    QSplitter,
-    QTableView,
-    QTextEdit,
-    QVBoxLayout,
-    QWidget,
-)
+from qtpy import QtCore, QtGui, QtWidgets
 from scipy.signal import find_peaks, savgol_filter
 
 from jefapato.plotter import GraphWidget
@@ -91,10 +76,10 @@ class Blinking:
         )
 
 
-class WidgetEyeBlinkingFreq(QSplitter):
+class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
     def __init__(self):
         super().__init__()
-        self.setOrientation(Qt.Vertical)
+        self.setOrientation(QtCore.Qt.Vertical)
 
         try:
             with open("config/config_eye_blinking_freq.json", "r") as f:
@@ -106,36 +91,36 @@ class WidgetEyeBlinkingFreq(QSplitter):
 
         self.config = ConfigManager(config)
 
-        self.top_splitter = QSplitter(Qt.Horizontal, parent=self)
+        self.top_splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal, parent=self)
         self.graph = GraphWidget(self)
 
         self.model_l = QtGui.QStandardItemModel(self)
         self.model_r = QtGui.QStandardItemModel(self)
 
-        self.table_l = QTableView()
+        self.table_l = QtWidgets.QTableView()
         self.table_l.setModel(self.model_l)
 
-        self.table_r = QTableView()
+        self.table_r = QtWidgets.QTableView()
         self.table_r.setModel(self.model_r)
 
-        self.settings = QFormLayout()
+        self.settings = QtWidgets.QFormLayout()
 
-        self.q = QWidget()
+        self.q = QtWidgets.QWidget()
         self.q.setLayout(self.settings)
         self.q.setMaximumHeight(600)
 
-        t_l = QVBoxLayout()
-        w_t_l = QWidget()
+        t_l = QtWidgets.QVBoxLayout()
+        w_t_l = QtWidgets.QWidget()
         w_t_l.setLayout(t_l)
 
-        t_l.addWidget(QLabel("Left Eye:"))
+        t_l.addWidget(QtWidgets.QLabel("Left Eye:"))
         t_l.addWidget(self.table_l)
 
-        t_r = QVBoxLayout()
-        w_t_r = QWidget()
+        t_r = QtWidgets.QVBoxLayout()
+        w_t_r = QtWidgets.QWidget()
         w_t_r.setLayout(t_r)
 
-        t_r.addWidget(QLabel("Right Eye:"))
+        t_r.addWidget(QtWidgets.QLabel("Right Eye:"))
         t_r.addWidget(self.table_r)
 
         self.top_splitter.addWidget(self.q)
@@ -146,19 +131,19 @@ class WidgetEyeBlinkingFreq(QSplitter):
         self.top_splitter.setStretchFactor(1, 35)
         self.top_splitter.setStretchFactor(2, 35)
 
-        self.button_load = QPushButton("Load CSV File")
+        self.button_load = QtWidgets.QPushButton("Load CSV File")
         self.button_load.clicked.connect(self._load)
-        self.button_anal = QPushButton("Analyse")
+        self.button_anal = QtWidgets.QPushButton("Analyse")
         self.button_anal.clicked.connect(self._analyse)
 
-        self.smooth = QCheckBox()
+        self.smooth = QtWidgets.QCheckBox()
         self.smooth.toggled.connect(self._save_settings)
         self.config.add_handler("smooth", self.smooth)
 
-        self.le_th_l = QLineEdit()
+        self.le_th_l = QtWidgets.QLineEdit()
         self.config.add_handler("threshold_left", self.le_th_l)
         self.le_th_l.textChanged.connect(self._save_settings)
-        self.le_th_r = QLineEdit()
+        self.le_th_r = QtWidgets.QLineEdit()
         self.config.add_handler("threshold_right", self.le_th_r)
         self.le_th_r.textChanged.connect(self._save_settings)
 
@@ -170,34 +155,34 @@ class WidgetEyeBlinkingFreq(QSplitter):
         )
 
         # settings
-        self.le_fps = QLineEdit()
+        self.le_fps = QtWidgets.QLineEdit()
         self.config.add_handler("fps", self.le_fps)
         self.le_fps.setValidator(QtGui.QIntValidator())
         self.le_fps.textChanged.connect(self._save_settings)
 
-        self.le_distance = QLineEdit()
+        self.le_distance = QtWidgets.QLineEdit()
         self.config.add_handler("min_dist", self.le_distance)
         self.le_distance.setToolTip("Minimum distance between peaks.")
         self.le_distance.textChanged.connect(self._save_settings)
 
-        self.le_prominence = QLineEdit()
+        self.le_prominence = QtWidgets.QLineEdit()
         self.config.add_handler("min_prominence", self.le_prominence)
         self.le_prominence.setToolTip("Minimum height of a peak.")
         self.le_prominence.textChanged.connect(self._save_settings)
 
-        self.le_width_min = QLineEdit()
+        self.le_width_min = QtWidgets.QLineEdit()
         self.config.add_handler("min_width", self.le_width_min)
         self.le_width_min.setToolTip("Minimum width of a peak.")
         self.le_width_min.setValidator(QtGui.QIntValidator())
         self.le_width_min.textChanged.connect(self._save_settings)
 
-        self.le_width_max = QLineEdit("150")
+        self.le_width_max = QtWidgets.QLineEdit("150")
         self.config.add_handler("max_width", self.le_width_max)
         self.le_width_max.setToolTip("Maximum width of a peak")
         self.le_width_max.setValidator(QtGui.QIntValidator())
         self.le_width_max.textChanged.connect(self._save_settings)
 
-        self.le_smooth_size = QLineEdit()
+        self.le_smooth_size = QtWidgets.QLineEdit()
         self.config.add_handler("smooth_size", self.le_smooth_size)
         self.le_smooth_size.setEnabled(self.smooth.isChecked())
         self.le_smooth_size.setValidator(QtGui.QIntValidator())
@@ -206,7 +191,7 @@ class WidgetEyeBlinkingFreq(QSplitter):
         )
         self.le_smooth_size.textChanged.connect(self._save_settings)
 
-        self.le_smooth_poly = QLineEdit()
+        self.le_smooth_poly = QtWidgets.QLineEdit()
         self.config.add_handler("smooth_poly", self.le_smooth_poly)
         self.le_smooth_poly.setEnabled(self.smooth.isChecked())
         self.le_smooth_poly.setValidator(QtGui.QIntValidator())
@@ -218,9 +203,9 @@ class WidgetEyeBlinkingFreq(QSplitter):
         self.smooth.toggled.connect(lambda value: self.le_smooth_size.setEnabled(value))
         self.smooth.toggled.connect(lambda value: self.le_smooth_poly.setEnabled(value))
 
-        self.te_results_g = QTextEdit()
+        self.te_results_g = QtWidgets.QTextEdit()
         self.te_results_g.setFontFamily("mono")
-        self.te_results_g.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
+        self.te_results_g.setLineWrapMode(QtWidgets.QTextEdit.LineWrapMode.NoWrap)
 
         self.settings.addRow(self.button_load)
         self.settings.addRow("Threshold Left:", self.le_th_l)
@@ -414,10 +399,10 @@ class WidgetEyeBlinkingFreq(QSplitter):
             self._add(str(b))
 
         self.table_l.horizontalHeader().setSectionResizeMode(
-            QHeaderView.ResizeMode.Stretch
+            QtWidgets.QHeaderView.ResizeMode.Stretch
         )
         self.table_r.horizontalHeader().setSectionResizeMode(
-            QHeaderView.ResizeMode.Stretch
+            QtWidgets.QHeaderView.ResizeMode.Stretch
         )
 
         self.model_l.setHorizontalHeaderLabels(TABLE_HEADER)
@@ -508,7 +493,7 @@ class WidgetEyeBlinkingFreq(QSplitter):
         pass
 
     def _load(self) -> None:
-        fileName, _ = QFileDialog.getOpenFileName(
+        fileName, _ = QtWidgets.QFileDialog.getOpenFileName(
             self,
             "Select csv file",
             ".",
