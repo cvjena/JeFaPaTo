@@ -35,6 +35,7 @@ DEFAULTS = {
     "max_width": "150",
     "threshold_left": "0.4",
     "threshold_right": "0.4",
+    "draw_width_height": False,
 }
 
 
@@ -76,16 +77,27 @@ class Blinking:
         )
 
 
+CONFIG_PATH = Path("config/config_eye_blinking_freq.json")
+
+
 class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
     def __init__(self):
         super().__init__()
         self.setOrientation(QtCore.Qt.Vertical)
 
         try:
-            with open("config/config_eye_blinking_freq.json", "r") as f:
+            with open(CONFIG_PATH, "r") as f:
                 config = json.load(f)
+                # if we add a new comfig item we need to add in case it is not
+                # in the config file
+                if len(config) < len(DEFAULTS):
+                    c = set(config.keys())
+                    d = set(DEFAULTS.keys())
+                    i = c.intersection(d)
+                    for k in i:
+                        config[k] = DEFAULTS[k]
         except FileNotFoundError:
-            with open("config/config_eye_blinking_freq.json", "w") as f:
+            with open(CONFIG_PATH, "w") as f:
                 json.dump(DEFAULTS, f)
                 config = DEFAULTS
 
@@ -215,6 +227,10 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         )
         self.le_smooth_poly.textChanged.connect(self._save_settings)
 
+        self.draw_width_height = QtWidgets.QCheckBox()
+        self.draw_width_height.toggled.connect(self._save_settings)
+        self.config.add_handler("draw_width_height", self.draw_width_height)
+
         self.smooth.toggled.connect(lambda value: self.le_smooth_size.setEnabled(value))
         self.smooth.toggled.connect(lambda value: self.le_smooth_poly.setEnabled(value))
 
@@ -238,6 +254,8 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         self.settings.addRow("Smooth Window:", self.le_smooth_size)
         self.settings.addRow("Smooth Polynom:", self.le_smooth_poly)
 
+        self.settings.addRow("Draw Width/Height:", self.draw_width_height)
+
         self.settings.addRow(self.button_anal)
         self.settings.addRow(self.te_results_g)
         self.settings.addRow(self.progress)
@@ -256,7 +274,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         self.file = None
 
     def _save_settings(self):
-        with (open("config/config_eye_blinking_freq.json", "w")) as f:
+        with (open(CONFIG_PATH, "w")) as f:
             json.dump(self.config.as_dict(), f)
 
     def _analyse(self) -> None:
@@ -320,14 +338,14 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         self.progress.setValue(70)
 
         self._show_peaks(self.plot_peaks_l, blinking_l, {"color": "#00F", "width": 2})
-        self._show_peaks(self.plot_peaks_r, blinking_r, {"color": "#F00", "width": 2})
         self.progress.setValue(75)
+        self._show_peaks(self.plot_peaks_r, blinking_r, {"color": "#F00", "width": 2})
+        self.progress.setValue(80)
 
         total_seconds = len(ear_l) / fps
         minutes = int(total_seconds // 60)
         seconds = total_seconds % 60
         self._reset_result_text()
-        self.progress.setValue(80)
 
         self._add("===Video Info===")
         self._add(f"File: {self.file.as_posix()}")
@@ -502,6 +520,9 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
 
         pen = pg.mkPen(settings)
         plot.setData(x=peaks, y=score, pen=pen)
+
+        if not self.config.get("draw_width_height"):
+            return
 
         for b in blinking:
             lh = self.graph.plot([b.ips_l, b.ips_r], [b.height, b.height], pen=pen)
