@@ -93,6 +93,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
 
         self.top_splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal, parent=self)
         self.graph = GraphWidget(self)
+        self.graph.getViewBox().enableAutoRange(enable=False)
 
         self.model_l = QtGui.QStandardItemModel(self)
         self.model_r = QtGui.QStandardItemModel(self)
@@ -527,6 +528,9 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
             self.graph.clear()
 
         fps = int(self.le_fps.text())
+
+        self.plot_ear_l.setDownsampling(method="mean", auto=True)
+        self.plot_ear_r.setDownsampling(method="mean", auto=True)
 
         self.plot_ear_l.setData(data_l)
         self.plot_ear_r.setData(data_r)
