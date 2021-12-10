@@ -25,11 +25,23 @@ from scipy.signal import find_peaks, savgol_filter
 
 from jefapato.plotter import GraphWidget
 
+TABLE_HEADER = [
+    "Frame",
+    "Time",
+    "EAR_SCORE",
+    "prominence",
+    "left_ips",
+    "right_ips",
+    "width",
+    "height",
+]
+
 
 @dataclass
 class Blinking:
     index: int
     frame: int
+    time: str
     ear_score: float
     prominence: float
     ips_l: int
@@ -40,6 +52,7 @@ class Blinking:
     def to_table_row(self) -> List[QtGui.QStandardItem]:
         return [
             QtGui.QStandardItem(str(self.frame)),
+            QtGui.QStandardItem(str(self.time)),
             QtGui.QStandardItem(str(self.ear_score)),
             QtGui.QStandardItem(str(self.prominence)),
             QtGui.QStandardItem(str(self.ips_l)),
@@ -52,6 +65,7 @@ class Blinking:
         return (
             f"[{self.index: 03d}]; "
             f"Frame {self.frame: 6d}; "
+            f"Time {self.time}; "
             f"EAR_Score {self.ear_score: 6.4f}; "
             f"Prominence {self.prominence: 6.4f}; "
             f"IPS_Left {self.ips_l: 6d}; "
@@ -102,9 +116,9 @@ class WidgetEyeBlinkingFreq(QSplitter):
         self.top_splitter.addWidget(w_t_l)
         self.top_splitter.addWidget(w_t_r)
 
-        self.top_splitter.setStretchFactor(0, 40)
-        self.top_splitter.setStretchFactor(1, 30)
-        self.top_splitter.setStretchFactor(2, 30)
+        self.top_splitter.setStretchFactor(0, 30)
+        self.top_splitter.setStretchFactor(1, 35)
+        self.top_splitter.setStretchFactor(2, 35)
 
         self.button_load = QPushButton("Load CSV File")
         self.button_load.clicked.connect(self._load)
@@ -227,6 +241,7 @@ class WidgetEyeBlinkingFreq(QSplitter):
             prominence=prominence,
             width_min=width_min,
             width_max=width_max,
+            fps=fps,
         )
         peaks_r, blinking_r = self._find_peaks(
             val_r,
@@ -235,6 +250,7 @@ class WidgetEyeBlinkingFreq(QSplitter):
             prominence=prominence,
             width_min=width_min,
             width_max=width_max,
+            fps=fps,
         )
 
         for ll in self.lines:
@@ -352,17 +368,8 @@ class WidgetEyeBlinkingFreq(QSplitter):
             QHeaderView.ResizeMode.Stretch
         )
 
-        head = [
-            "Frame",
-            "EAR_SCORE",
-            "prominence",
-            "left_ips",
-            "right_ips",
-            "width",
-            "height",
-        ]
-        self.model_l.setHorizontalHeaderLabels(head)
-        self.model_r.setHorizontalHeaderLabels(head)
+        self.model_l.setHorizontalHeaderLabels(TABLE_HEADER)
+        self.model_r.setHorizontalHeaderLabels(TABLE_HEADER)
 
     def _find_peaks(
         self,
@@ -372,6 +379,7 @@ class WidgetEyeBlinkingFreq(QSplitter):
         prominence: float = 0.05,
         width_min: int = 10,
         width_max: int = 150,
+        fps: int = 240,
     ) -> Tuple[np.ndarray, Blinking]:
         peaks, props = find_peaks(
             -val, distance=distance, prominence=prominence, width=width_min
@@ -396,10 +404,16 @@ class WidgetEyeBlinkingFreq(QSplitter):
                 to_remove.append(idx)
                 continue
 
+            seconds = peak / fps  # in seconds
+            minute = int(seconds / 60)
+            seconds = seconds % 60
+            time = f"{minute:02d}:{seconds:06.3f}"
+
             blinking.append(
                 Blinking(
                     index=idx,
                     frame=peak,
+                    time=time,
                     ear_score=val[peak],
                     prominence=p,
                     ips_l=li,
