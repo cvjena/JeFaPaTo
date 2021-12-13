@@ -9,6 +9,7 @@ import pyqtgraph as pg
 from pyqtconfig import ConfigManager
 from qtpy import QtCore, QtGui, QtWidgets
 from scipy.signal import find_peaks, savgol_filter
+from structlog import get_logger
 
 from jefapato.plotter import GraphWidget
 
@@ -37,6 +38,8 @@ DEFAULTS = {
     "threshold_right": "0.4",
     "draw_width_height": False,
 }
+
+log = get_logger()
 
 
 @dataclass
@@ -85,18 +88,23 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         super().__init__()
         self.setOrientation(QtCore.Qt.Vertical)
 
+        log.info("Initializing EyeBlinkingFreq widget")
+
         try:
             with open(CONFIG_PATH, "r") as f:
                 config = json.load(f)
+                log.info("Loaded config file for EyeBlinkingFreq widget")
                 # if we add a new comfig item we need to add in case it is not
                 # in the config file
                 if len(config) < len(DEFAULTS):
+                    log.info("Config file is missing some items, adding them")
                     c = set(config.keys())
                     d = set(DEFAULTS.keys())
                     i = c.intersection(d)
                     for k in i:
                         config[k] = DEFAULTS[k]
         except FileNotFoundError:
+            log.info("Config file not found, using defaults")
             with open(CONFIG_PATH, "w") as f:
                 json.dump(DEFAULTS, f)
                 config = DEFAULTS
@@ -270,8 +278,9 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         self.plot_peaks_r = self.graph.add_scatter()
 
         self.lines = list()
-
         self.file = None
+
+        log.info("Initialized EyeBlinkingFreq widget")
 
     def _save_settings(self):
         with (open(CONFIG_PATH, "w")) as f:
@@ -543,6 +552,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         self.te_results_g.setText(self.result_text)
 
     def _load_csv(self) -> None:
+        log.info("Open file dialo for loading CSV file")
         fileName, _ = QtWidgets.QFileDialog.getOpenFileName(
             self,
             "Select csv file",
@@ -551,13 +561,22 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         )
 
         if fileName != "":
+            log.info("Try to load CSV file", file=fileName)
             self.file = Path(fileName)
             self._load_file(self.file)
+            log.info("Loaded CSV file", file=fileName)
+        else:
+            log.info("No file selected")
 
     def _load_column(self, dataframe: pd.DataFrame, column: str) -> np.ndarray:
         try:
             return dataframe[column].values
         except KeyError:
+            log.warning(
+                "Column not found in CSV file",
+                column=column,
+                file=self.file.as_posix(),
+            )
             self._reset_result_text()
             self._add(f"No {column} found")
             self._set_result_text()
@@ -593,6 +612,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
     ) -> None:
         if clear:
             self.graph.clear()
+            log.info("Cleared graph", widget=self.__class__.__name__)
 
         fps = int(self.le_fps.text())
 
