@@ -533,6 +533,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
             self.lines.append(lv)
 
     def _reset_result_text(self) -> None:
+        self.result_text = ""
         self.te_results_g.setText("")
 
     def _add(self, text: str = "") -> None:
