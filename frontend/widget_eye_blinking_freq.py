@@ -554,11 +554,25 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
             self.file = Path(fileName)
             self._load_file(self.file)
 
+    def _load_column(self, dataframe: pd.DataFrame, column: str) -> np.ndarray:
+        try:
+            return dataframe[column].values
+        except KeyError:
+            self._reset_result_text()
+            self._add(f"No {column} found")
+            self._set_result_text()
+            self.progress.setValue(100)
+            return
+
     def _load_file(self, path: Path) -> None:
         self.progress.setValue(0)
         df = pd.read_csv(path.as_posix(), sep=";")
-        self.ear_l = df["ear_score_left"].values
-        self.ear_r = df["ear_score_rigth"].values
+
+        # FIX ME: spelling of right is wrong ...
+        self.ear_r = self._load_column(df, "ear_score_rigth")
+        self.ear_l = self._load_column(df, "ear_score_left")
+        if self.ear_r is None or self.ear_l is None:
+            return
         self.progress.setValue(40)
 
         self._set_data(self.ear_l.tolist(), self.ear_r.tolist(), vis_update=True)
