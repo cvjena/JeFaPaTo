@@ -5,7 +5,6 @@ from PyQt5.QtWidgets import (
     QCheckBox,
     QFileDialog,
     QFormLayout,
-    QLineEdit,
     QProgressBar,
     QPushButton,
     QSpinBox,
@@ -27,7 +26,7 @@ class WidgetEyeBlinking(QSplitter):
 
         self.widget_frame = FrameWidget()
         self.widget_detail = EyeDetailWidget()
-        self.widget_graph = GraphWidget()
+        self.widget_graph = GraphWidget(add_yruler=False)
 
         widget_l = QWidget()
         widget_r = QWidget()
@@ -41,10 +40,6 @@ class WidgetEyeBlinking(QSplitter):
 
         self.addWidget(widget_l)
         self.addWidget(widget_r)
-
-        self.le_threshold = QLineEdit()
-        self.le_bmp_l = QLineEdit()
-        self.le_bmp_r = QLineEdit()
 
         self.cb_anal = QCheckBox()
         self.bt_open = QPushButton("Open Video File")
@@ -67,21 +62,15 @@ class WidgetEyeBlinking(QSplitter):
         self.flayout_se.addRow("Skip Frame for Face Detection:", self.face_skipper)
         self.flayout_se.addRow("Skip Frames For Display:", self.frame_skipper)
         self.flayout_se.addRow("Progress:", self.pb_anal)
-        self.flayout_se.addRow("Threshold:", self.le_threshold)
-        self.flayout_se.addRow("Blinking Rate Left:", self.le_bmp_l)
-        self.flayout_se.addRow("Blinking Rate Right:", self.le_bmp_r)
 
         self.ea = EyeBlinkingVideoAnalyser(
             self.widget_frame,
             self.widget_detail,
             self.widget_graph,
-            self.le_threshold,
         )
 
         self.ea.connect_on_started([self.gui_analysis_start, self.pb_anal.reset])
-        self.ea.connect_on_finished(
-            [self.gui_analysis_finished, self.compute_blinking_per_minute]
-        )
+        self.ea.connect_on_finished([self.gui_analysis_finished])
         self.ea.connect_processed_percentage([self.pb_anal.setValue])
 
         self.bt_open.clicked.connect(self.load_video)
@@ -101,26 +90,14 @@ class WidgetEyeBlinking(QSplitter):
         self.cb_anal.setDisabled(True)
         self.bt_anal_stop.setDisabled(True)
 
-        self.le_bmp_r.setReadOnly(True)
-        self.le_bmp_l.setReadOnly(True)
-        self.le_threshold.setReadOnly(True)
-
-        self.ea.set_threshold(0.20)
-
         self.setStretchFactor(0, 7)
         self.setStretchFactor(1, 3)
-
-    def compute_blinking_per_minute(self):
-        self.bpm_l, self.bpm_r = self.ea.blinking_rate()
-        self.le_bmp_l.setText(f"{self.bpm_l:5.2f}")
-        self.le_bmp_r.setText(f"{self.bpm_r:5.2f}")
 
     def gui_analysis_start(self):
         self.bt_open.setDisabled(True)
         self.bt_anal.setDisabled(True)
         self.bt_anal_stop.setDisabled(False)
         self.cb_anal.setDisabled(True)
-        self.le_threshold.setDisabled(True)
         self.face_skipper.setDisabled(True)
         self.frame_skipper.setDisabled(True)
 
@@ -131,7 +108,6 @@ class WidgetEyeBlinking(QSplitter):
         self.bt_anal_stop.setDisabled(True)
 
         self.cb_anal.setDisabled(False)
-        self.le_threshold.setDisabled(False)
         self.face_skipper.setDisabled(False)
         self.frame_skipper.setDisabled(False)
 

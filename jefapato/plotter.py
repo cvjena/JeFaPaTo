@@ -102,9 +102,9 @@ class EyeDetailWidget(pg.GraphicsLayoutWidget):
         self.layout_l.addItem(self.frame_l, row=1, col=0)
         self.layout_l.addItem(self.label_l, row=2, col=0)
 
-    def set_labels(self, left: bool, right: bool) -> None:
-        self.label_l.setText(self.closed_text(left))
-        self.label_r.setText(self.closed_text(right))
+    def set_labels(self, left: str, right: str) -> None:
+        self.label_l.setText(left)
+        self.label_r.setText(right)
 
     def set_frame(
         self,
@@ -161,9 +161,6 @@ class EyeDetailWidget(pg.GraphicsLayoutWidget):
             self.frame_l.set_image(frame, bbox_l)
             self.frame_r.set_image(frame, bbox_r)
 
-    def closed_text(self, value: bool) -> str:
-        return "closed" if value else "open"
-
     def draw_points(self, frame, shape, color):
         for (x, y) in shape:
             cv2.circle(frame, (x, y), 1, color, -1)
@@ -187,7 +184,14 @@ class GraphWidget(pg.PlotWidget):
     signal_graph_clicked = pyqtSignal(float)
 
     def __init__(
-        self, parent=None, background="default", plotItem=None, add_ruler=True, **kargs
+        self,
+        parent=None,
+        background="default",
+        plotItem=None,
+        add_ruler=True,
+        add_xruler=True,
+        add_yruler=True,
+        **kargs
     ):
         super().__init__(
             parent=parent, background=background, plotItem=plotItem, **kargs
@@ -198,6 +202,8 @@ class GraphWidget(pg.PlotWidget):
         self._grid_spacing: float = 30.0
         self._grid_range: float = 100.0
         self.add_ruler = add_ruler
+        self.add_xruler = add_xruler
+        self.add_yruler = add_yruler
 
         self.axis_b: pg.AxisItem = self.getAxis("bottom")
         self.axis_b.setTickSpacing(300, self._grid_spacing)
@@ -210,22 +216,27 @@ class GraphWidget(pg.PlotWidget):
 
         bar_pen = pg.mkPen(width=2, color="k")
         if self.add_ruler:
-            self._x_ruler: pg.InfiniteLine = pg.InfiniteLine(
-                self._x_ruler_val, movable=False, pen=bar_pen
-            )
-            self._y_ruler: pg.InfiniteLine = pg.InfiniteLine(
-                self._y_ruler_val, angle=0, movable=True, pen=bar_pen
-            )
-
-            self._x_ruler.sigDragged.connect(
-                lambda _: self.signal_x_ruler_changed.emit(self._x_ruler.getPos()[0])
-            )
-            self._y_ruler.sigDragged.connect(
-                lambda _: self.signal_y_ruler_changed.emit(self._y_ruler.getPos()[1])
-            )
-            # add the sliders to the plot
-            self.addItem(self._x_ruler)
-            self.addItem(self._y_ruler)
+            if self.add_xruler:
+                self._x_ruler: pg.InfiniteLine = pg.InfiniteLine(
+                    self._x_ruler_val, movable=False, pen=bar_pen
+                )
+                self._x_ruler.sigDragged.connect(
+                    lambda _: self.signal_x_ruler_changed.emit(
+                        self._x_ruler.getPos()[0]
+                    )
+                )
+                self.addItem(self._x_ruler)
+            if self.add_yruler:
+                self._y_ruler: pg.InfiniteLine = pg.InfiniteLine(
+                    self._y_ruler_val, angle=0, movable=True, pen=bar_pen
+                )
+                self._y_ruler.sigDragged.connect(
+                    lambda _: self.signal_y_ruler_changed.emit(
+                        self._y_ruler.getPos()[1]
+                    )
+                )
+                # add the sliders to the plot
+                self.addItem(self._y_ruler)
 
         self.scene().sigMouseClicked.connect(
             lambda ev: self.signal_graph_clicked.emit(self.move_line(ev))
@@ -273,12 +284,16 @@ class GraphWidget(pg.PlotWidget):
         return scatter
 
     def enable(self) -> None:
-        self._x_ruler.setMovable(True)
-        self._y_ruler.setMovable(True)
+        if self.add_xruler:
+            self._x_ruler.setMovable(True)
+        if self.add_yruler:
+            self._y_ruler.setMovable(True)
 
     def disable(self) -> None:
-        self._x_ruler.setMovable(False)
-        self._y_ruler.setMovable(False)
+        if self.add_xruler:
+            self._x_ruler.setMovable(False)
+        if self.add_yruler:
+            self._y_ruler.setMovable(False)
 
     def set_x_ruler(self, value: float) -> None:
         self._x_ruler_val = value

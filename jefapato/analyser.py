@@ -1,18 +1,16 @@
 import datetime
 import logging
 from abc import ABC, abstractmethod
-from itertools import groupby
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Tuple, Type, Union
 
 import cv2
 import numpy as np
 import psutil
-from PyQt5.QtWidgets import QLineEdit
 
 from jefapato.plotter import EyeDetailWidget, FrameWidget, GraphWidget
 
-from .classifier import Classifier, EyeBlinking68Classifier, EyeBlinkingResult
+from .classifier import Classifier, EyeBlinking68EARFeature, EyeBlinkingResult
 from .data_loader import DataLoader, VideoDataLoader
 from .data_processor import DataProcessor
 from .feature_extractor import FeatureExtractor, LandMarkFeatureExtractor
@@ -231,23 +229,19 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
         widget_frame: Optional[FrameWidget],
         widget_detail: Optional[EyeDetailWidget],
         widget_graph: Optional[GraphWidget],
-        widget_threshhold: Optional[QLineEdit],
     ) -> None:
 
-        self.eye_blinking_classifier = EyeBlinking68Classifier(threshold=0.2)
+        self.eye_blinking_classifier = EyeBlinking68EARFeature()
         super().__init__(
             feature_extractor=LandMarkFeatureExtractor(),
             classifier=self.eye_blinking_classifier,
         )
 
-        self.results_file_header = (
-            "closed_left;closed_right;ear_score_left;ear_score_rigth;valid\n"
-        )
+        self.results_file_header = "ear_score_left;ear_score_right;ear_valid\n"
 
         self.widget_frame = widget_frame
         self.widget_detail = widget_detail
         self.widget_graph = widget_graph
-        self.widget_threshold = widget_threshhold
 
         self.connect_on_started([self.__on_start])
         self.connect_on_updated([self.__on_update])
@@ -265,31 +259,9 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
 
             self.widget_graph.signal_graph_clicked.connect(self.__set_current_frame)
             self.widget_graph.signal_x_ruler_changed.connect(self.__set_current_frame)
-            self.widget_graph.signal_y_ruler_changed.connect(self.set_threshold)
-
-        if widget_threshhold is not None:
-            self.widget_threshold.setReadOnly(True)
 
         self.update_counter = -1
         self.update_skip = 20
-
-    def set_threshold(self, value: float):
-        self.eye_blinking_classifier.threshold = value
-
-        if self.widget_graph is not None:
-            self.widget_graph.set_y_ruler(value)
-
-            if self.widget_detail is not None and self.score_eye_r:
-
-                self.widget_detail.set_labels(
-                    self.score_eye_l[self.current_frame] < self.get_threshold(),
-                    self.score_eye_r[self.current_frame] < self.get_threshold(),
-                )
-        if self.widget_threshold is not None:
-            self.widget_threshold.setText(f"{round(value, 2)}".strip())
-
-    def get_threshold(self) -> float:
-        return self.eye_blinking_classifier.threshold
 
     def set_frame_skip(self, value: int) -> None:
         self.update_skip = value
@@ -385,46 +357,30 @@ class EyeBlinkingVideoAnalyser(VideoAnalyser):
 
         try:
             self.widget_detail.set_labels(
-                self.score_eye_l[self.current_frame] < self.get_threshold(),
-                self.score_eye_r[self.current_frame] < self.get_threshold(),
+                str(round(self.score_eye_l[self.current_frame], 4)),
+                str(round(self.score_eye_r[self.current_frame], 4)),
             )
         except IndexError:
             pass
         self.widget_detail.set_frame(frame, rect, shape)
 
     def save_results(self):
+        # TODO make this saving way more generic
         resource_path = self.get_resource_path()
         ts = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         result_path = resource_path.parent / (resource_path.stem + f"_{ts}.csv")
 
         with open(result_path, "w") as f:
             f.write(self.results_file_header)
-            th = self.get_threshold()
             for i in range(len(self.score_eye_r)):
                 # fancy String literal concatenation
                 line = (
-                    f"{self.score_eye_l[i] < th};"
-                    f"{self.score_eye_r[i] < th};"
                     f"{self.score_eye_l[i]};"
                     f"{self.score_eye_r[i]};"
                     f"{self.valid[i]}"
                     f"\n"
                 )
                 f.write(line)
-
-    def blinking_rate(self) -> Tuple[float, float]:
-        frames_per_minute = int(self.get_fps()) * 60
-        amount_minutes = self.get_data_amount() / frames_per_minute
-        th = self.get_threshold()
-
-        eye_l = [i[0] for i in groupby(map(lambda x: x < th, self.score_eye_l))].count(
-            True
-        )
-        eye_r = [i[0] for i in groupby(map(lambda x: x < th, self.score_eye_r))].count(
-            True
-        )
-
-        return (eye_l / amount_minutes, eye_r / amount_minutes)
 
     def call_after_resource_load(self) -> None:
         self.reset()

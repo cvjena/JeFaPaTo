@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Any, List, Tuple
 from dataclasses import dataclass
+from typing import Any, List, Tuple
 
 import dlib
 import numpy as np
@@ -22,21 +22,18 @@ class EyeBlinkingResult:
 
     ear_left: float
     ear_right: float
-    closed_left: bool
-    closed_right: bool
     valid: bool
 
 
-class EyeBlinking68Classifier(Classifier):
+class EyeBlinking68EARFeature(Classifier):
     """EyeBlinking Classifier Class for 68 facial landmarks features
 
     This class implements a classifier specificly for the 68 landmarking
     schemata.
     """
 
-    def __init__(self, threshold: float) -> None:
+    def __init__(self) -> None:
         super().__init__()
-        self.threshold: float = threshold
 
         self.eye_left_slice: slice = slice(42, 48)
         self.eye_right_slice: slice = slice(36, 42)
@@ -98,23 +95,13 @@ class EyeBlinking68Classifier(Classifier):
         # create the featureas we wanted, hence, we return an value which is not
         # possible!
         if not features:
-            return [EyeBlinkingResult(1.0, 1.0, False, False, False)]
+            return [EyeBlinkingResult(1.0, 1.0, False)]
 
         classes: List[EyeBlinkingResult] = list()
 
         for _, shape in features:
-            eye_left = shape[self.eye_left_slice]
-            eye_right = shape[self.eye_right_slice]
-
-            ear_left = self.ear_score(eye_left)
-            ear_right = self.ear_score(eye_right)
-
-            closed_left, closed_right = self.check_closing(
-                ear_left, ear_right, self.threshold
-            )
-
-            classes.append(
-                EyeBlinkingResult(ear_left, ear_right, closed_left, closed_right, True)
-            )
+            ear_left = self.ear_score(shape[self.eye_left_slice])
+            ear_right = self.ear_score(shape[self.eye_right_slice])
+            classes.append(EyeBlinkingResult(ear_left, ear_right, True))
 
         return classes
