@@ -23,11 +23,25 @@ class jefapato(QtWidgets.QTabWidget):
 
         self.VERSION = "2021.10.22"
 
+        start = time.time()
         self.tab_eye_blinking = frontend.WidgetEyeBlinking()
+        logger.info("Start Time WidgetEyeBlinking", time=time.time() - start)
+
+        start = time.time()
         self.tab_eye_blinking_freq = frontend.WidgetEyeBlinkingFreq()
+        logger.info("Start Time WidgetEyeBlinkingFreq", time=time.time() - start)
+
+        start = time.time()
         self.tab_landmark_2d = frontend.WidgetLandmarkDistance2D()
+        logger.info("Start Time WidgetLandmarkDistance2D", time=time.time() - start)
+
+        start = time.time()
         self.tab_landmark_3d = frontend.WidgetLandmarkDistance3D()
+        logger.info("Start Time WidgetLandmarkDistance3D", time=time.time() - start)
+
+        start = time.time()
         self.tab_emotion_rec = frontend.WidgetEmotionRecognition()
+        logger.info("Start Time WidgetEmotionRecognition", time=time.time() - start)
 
         self.addTab(self.tab_eye_blinking, "Eye Blinking Extraction")
         self.addTab(self.tab_eye_blinking_freq, "Eye Blinking Frequency")
