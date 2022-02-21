@@ -85,6 +85,9 @@ class LandmarkExtractor(Extractor):
         logger.info("Wrote dlib shape predictor")
         return file_path.as_posix()
 
+    def set_skip_count(self, skip_count: int) -> None:
+        self.skip_count = skip_count
+
     def run(self) -> None:
         self.processingStarted.emit()
 

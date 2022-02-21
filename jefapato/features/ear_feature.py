@@ -1,4 +1,4 @@
-__all__ = ["EarFeature"]
+__all__ = ["EARFeature", "EARData"]
 
 import dataclasses
 
@@ -9,26 +9,31 @@ from .abstract_feature import Feature
 
 
 @dataclasses.dataclass
-class EyeBlinkingResult:
+class EARData:
     """A simple data class to combine the classifcation results"""
 
-    ear_left: float
-    ear_right: float
+    lm_l: np.ndarray
+    lm_r: np.ndarray
+    ear_l: float
+    ear_r: float
     valid: bool
 
 
-class EarFeature(Feature):
+class EARFeature(Feature):
     """EyeBlinking Classifier Class for 68 facial landmarks features
 
     This class implements a classifier specificly for the 68 landmarking
     schemata.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, backend: str = "dlib") -> None:
         super().__init__()
 
-        self.eye_left_slice: slice = slice(42, 48)
-        self.eye_right_slice: slice = slice(36, 42)
+        if backend == "dlib":
+            self.index_eye_l: slice = slice(42, 48)
+            self.index_eye_r: slice = slice(36, 42)
+        else:
+            raise NotImplementedError("Currently only dlib is supported")
 
     def ear_score(self, eye: np.ndarray) -> float:
         """Compute the EAR Score for eye landmarks
@@ -53,8 +58,33 @@ class EarFeature(Feature):
 
         return (A + B) / (2.0 * C)
 
-    def compute(self, in_data: np.ndarray) -> float:
-        pass
+    def compute(self, in_data: np.ndarray) -> EARData:
+        """
+        Compute the feature for the given data
+
+        Parameters
+        ----------
+        in_data : np.ndarray
+            The data to compute the feature for the EAR score
+            If the in_data is full of zeros then the landmarks failed to be computed
+            and the EAR score is set to 1.0 and marked as invalid
+
+        Returns
+        -------
+        EARData
+            The computed features with the raw data
+        """
+
+        # extract the eye landmarks
+        lm_l = in_data[self.index_eye_l]
+        lm_r = in_data[self.index_eye_r]
+        valid = not (
+            np.allclose(np.zeros_like(lm_l), lm_l)
+            and np.allclose(np.zeros_like(lm_r), lm_r)
+        )
+        ear_l = self.ear_score(lm_l) if valid else 1.0
+        ear_r = self.ear_score(lm_r) if valid else 1.0
+        return EARData(lm_l, lm_r, ear_l, ear_r, valid)
 
     # def check_closing(self, score_left, score_right, threshold) -> Tuple[bool, bool]:
     #     """Check if eyes are closed

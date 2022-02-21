@@ -1,41 +1,34 @@
 __all__ = ["LandmarkAnalyser"]
 
-from typing import List
+import collections
+from typing import Any, List, OrderedDict, Type
 
 import numpy as np
 
-from jefapato import extracting
+from jefapato import extracting, features
 
+from .abstract_analyser import hookspec
 from .video_analyser import VideoAnalyser
 
 
 class LandmarkAnalyser(VideoAnalyser):
-    def __init__(self) -> None:
+    def __init__(self, features: List[Type[features.Feature]], **kwargs) -> None:
         super().__init__(extractor_c=extracting.LandmarkExtractor)
 
+        kwargs["backend"] = kwargs.get("backend", "dlib")
+
         self.results_file_header = "ear_score_left;ear_score_right;ear_valid\n"
-
-        # self.widget_frame = widget_frame
-        # self.widget_detail = widget_detail
-        # self.widget_graph = widget_graph
-
-        # self.connect_on_started([self.__on_start])
-        # self.connect_on_updated([self.__on_update])
-        # self.connect_on_finished([self.__on_finished])
-
         self.score_eye_l: List[float] = list()
         self.score_eye_r: List[float] = list()
         self.valid: List[bool] = list()
 
-        self.current_frame: int = 0
+        self.feature_methods = collections.OrderedDict()
+        self.feature_data = collections.OrderedDict()
+        for feature in features:
+            self.feature_methods[feature.__name__] = feature(**kwargs)
+            self.feature_data[feature.__name__] = []
 
-        # if self.widget_graph is not None:
-        #     self.curve_l = self.widget_graph.add_curve({"color": "#00F", "width": 2})
-        #     self.curve_r = self.widget_graph.add_curve({"color": "#F00", "width": 2})
-
-        #     self.widget_graph.signal_graph_clicked.connect(self.__set_current_frame)
-        #     self.widget_graph.signal_x_ruler_changed.connect(self.__set_current_frame)
-
+        self.current_frame = 0
         self.update_counter = -1
         self.update_skip = 20
 
@@ -43,9 +36,12 @@ class LandmarkAnalyser(VideoAnalyser):
         self.update_skip = value
 
     def set_face_detect_skip(self, value: int) -> None:
-        self.feature_extractor.set_skip(value)
+        self.extractor.set_skip(value)
 
     def start(self) -> None:
+        for m_name in self.feature_methods:
+            self.feature_data[m_name].clear()
+
         self.analysis_setup()
         self.extractor.processingUpdated.connect(self.handle_update)
         self.analysis_start()
@@ -53,6 +49,19 @@ class LandmarkAnalyser(VideoAnalyser):
     def handle_update(self, data: np.ndarray, features: np.ndarray) -> None:
         # here would be some drawing? and storing of the features we are interested in
         self.pm.hook.updated(data=data, features=features)
+
+        temp_data = collections.OrderedDict()
+
+        for m_name, m_class in self.feature_methods.items():
+            res = m_class.compute(features)
+            self.feature_data[m_name].append(res)
+            temp_data[m_name] = res
+
+        self.pm.hook.update_feature(features=temp_data)
+
+    @hookspec
+    def update_feature(self, features: OrderedDict[str, Any]) -> None:
+        pass
 
     # def __on_start(self):
     #     self.score_eye_l = list()

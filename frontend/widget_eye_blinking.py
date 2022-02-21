@@ -1,10 +1,11 @@
 from pathlib import Path
+from typing import Any, OrderedDict
 
 import numpy as np
 import structlog
 from qtpy import QtWidgets
 
-from jefapato import analyser, plotter
+from jefapato import analyser, features, plotter
 
 logger = structlog.get_logger()
 
@@ -53,7 +54,7 @@ class WidgetEyeBlinking(QtWidgets.QSplitter):
         self.flayout_se.addRow("Skip Frames For Display:", self.frame_skipper)
         self.flayout_se.addRow("Progress:", self.pb_anal)
 
-        self.ea = analyser.LandmarkAnalyser()
+        self.ea = analyser.LandmarkAnalyser(features=[features.EARFeature])
         self.ea.register_hooks(self)
 
         self.bt_open.clicked.connect(self.load_video)
@@ -103,6 +104,10 @@ class WidgetEyeBlinking(QtWidgets.QSplitter):
     @analyser.hookimpl
     def processed_percentage(self, percentage: int):
         self.pb_anal.setValue(percentage)
+
+    @analyser.hookimpl
+    def update_feature(self, features: OrderedDict[str, Any]) -> None:
+        logger.info("Got the feature data", keys=features.keys())
 
     def load_video(self):
         logger.info("Open File Dialog", widget=self)
