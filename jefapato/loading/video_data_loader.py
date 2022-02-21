@@ -3,7 +3,11 @@ __all__ = ["VideoDataLoader"]
 import time
 from typing import Callable
 
+import structlog
+
 from .abstract_data_loader import DataLoader
+
+logger = structlog.get_logger()
 
 
 class VideoDataLoader(DataLoader):
@@ -16,13 +20,13 @@ class VideoDataLoader(DataLoader):
         grabbed: bool = True
         while grabbed:
             if self.stopped:
-                return
+                break
 
             if not self.data_queue.full():
                 (grabbed, frame) = self.next_item_func()
                 if not grabbed:
                     self.stopped = True
-                    return
+                    break
 
                 self.data_queue.put(frame)
             else:
@@ -31,3 +35,4 @@ class VideoDataLoader(DataLoader):
                 time.sleep(0.1)
 
         self.stopped = True
+        logger.info("Stopped loader thread.", loader=self)

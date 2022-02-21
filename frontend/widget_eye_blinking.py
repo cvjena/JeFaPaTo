@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import numpy as np
 import structlog
 from qtpy import QtWidgets
 
@@ -52,18 +53,11 @@ class WidgetEyeBlinking(QtWidgets.QSplitter):
         self.flayout_se.addRow("Skip Frames For Display:", self.frame_skipper)
         self.flayout_se.addRow("Progress:", self.pb_anal)
 
-        self.ea = analyser.EyeBlinkingVideoAnalyser(
-            self.widget_frame,
-            self.widget_detail,
-            self.widget_graph,
-        )
-
-        self.ea.connect_on_started([self.gui_analysis_start, self.pb_anal.reset])
-        self.ea.connect_on_finished([self.gui_analysis_finished])
-        self.ea.connect_processed_percentage([self.pb_anal.setValue])
+        self.ea = analyser.LandmarkAnalyser()
+        self.ea.register_hooks(self)
 
         self.bt_open.clicked.connect(self.load_video)
-        self.bt_anal.clicked.connect(self.ea.analysis_start)
+        self.bt_anal.clicked.connect(self.ea.start)
         self.bt_anal_stop.clicked.connect(self.ea.stop)
 
         self.face_skipper.setRange(3, 20)
@@ -82,7 +76,8 @@ class WidgetEyeBlinking(QtWidgets.QSplitter):
         self.setStretchFactor(0, 7)
         self.setStretchFactor(1, 3)
 
-    def gui_analysis_start(self):
+    @analyser.hookimpl
+    def started(self):
         self.bt_open.setDisabled(True)
         self.bt_anal.setDisabled(True)
         self.bt_anal_stop.setDisabled(False)
@@ -90,7 +85,8 @@ class WidgetEyeBlinking(QtWidgets.QSplitter):
         self.face_skipper.setDisabled(True)
         self.frame_skipper.setDisabled(True)
 
-    def gui_analysis_finished(self):
+    @analyser.hookimpl
+    def finished(self):
         self.bt_open.setDisabled(False)
         self.bt_anal.setText("Analyze Video")
         self.bt_anal.setDisabled(False)
@@ -99,6 +95,14 @@ class WidgetEyeBlinking(QtWidgets.QSplitter):
         self.cb_anal.setDisabled(False)
         self.face_skipper.setDisabled(False)
         self.frame_skipper.setDisabled(False)
+
+    @analyser.hookimpl
+    def updated(self, data: np.ndarray, features: np.ndarray):
+        self.widget_frame.frame.set_image(data)
+
+    @analyser.hookimpl
+    def processed_percentage(self, percentage: int):
+        self.pb_anal.setValue(percentage)
 
     def load_video(self):
         logger.info("Open File Dialog", widget=self)

@@ -1,3 +1,3 @@
-__all__ = ["analyser", "plotter"]
+__all__ = ["analyser", "plotter", "extracting", "loading"]
 
-from jefapato import analyser, plotter
+from jefapato import analyser, extracting, loading, plotter

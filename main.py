@@ -49,7 +49,7 @@ class jefapato(QtWidgets.QTabWidget):
         self.addTab(self.tab_landmark_3d, "Landmark Analyses 3D")
         self.addTab(self.tab_emotion_rec, "Emotion Recognition")
 
-        self.setCurrentIndex(1)
+        self.setCurrentIndex(0)
 
 
 class StartUpSplashScreen(QtWidgets.QSplashScreen):
