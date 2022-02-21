@@ -1,19 +1,17 @@
-import logging
-import logging.config
+import pathlib
 import sys
-from pathlib import Path
+import time
 
 import pyqtgraph as pg
-from PyQt5.QtWidgets import QApplication, QTabWidget
+import structlog
+from qtpy import QtCore, QtGui, QtWidgets
 
-from frontend.widget_emotion_recognition import WidgetEmotionRecognition
-from frontend.widget_eye_blinking import WidgetEyeBlinking
-from frontend.widget_eye_blinking_freq import WidgetEyeBlinkingFreq
-from frontend.widget_landmark_distance_2d import WidgetLandmarkDistance2D
-from frontend.widget_landmark_distance_3d import WidgetLandmarkDistance3D
+import frontend
+
+logger = structlog.get_logger()
 
 
-class jefapato(QTabWidget):
+class jefapato(QtWidgets.QTabWidget):
     def __init__(self, parent=None):
         super(jefapato, self).__init__(parent)
         self.setWindowTitle("JeFaPaTo - Jena Facial Palsy Tool")
@@ -25,11 +23,11 @@ class jefapato(QTabWidget):
 
         self.VERSION = "2021.10.22"
 
-        self.tab_eye_blinking = WidgetEyeBlinking()
-        self.tab_eye_blinking_freq = WidgetEyeBlinkingFreq()
-        self.tab_landmark_2d = WidgetLandmarkDistance2D()
-        self.tab_landmark_3d = WidgetLandmarkDistance3D()
-        self.tab_emotion_rec = WidgetEmotionRecognition()
+        self.tab_eye_blinking = frontend.WidgetEyeBlinking()
+        self.tab_eye_blinking_freq = frontend.WidgetEyeBlinkingFreq()
+        self.tab_landmark_2d = frontend.WidgetLandmarkDistance2D()
+        self.tab_landmark_3d = frontend.WidgetLandmarkDistance3D()
+        self.tab_emotion_rec = frontend.WidgetEmotionRecognition()
 
         self.addTab(self.tab_eye_blinking, "Eye Blinking Extraction")
         self.addTab(self.tab_eye_blinking_freq, "Eye Blinking Frequency")
@@ -40,19 +38,37 @@ class jefapato(QTabWidget):
         self.setCurrentIndex(1)
 
 
+class StartUpSplashScreen(QtWidgets.QSplashScreen):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setWindowFlags(
+            QtCore.Qt.WindowStaysOnTopHint | QtCore.Qt.FramelessWindowHint
+        )
+        path = pathlib.Path(__file__).parent / "assets" / "splash.png"
+        self.setPixmap(QtGui.QPixmap(path.as_posix()))
+        self.setEnabled(False)
+
+
 def main(argv):
-    log_path = Path("logs")
-    log_path.mkdir(parents=True, exist_ok=True)
+    app = QtWidgets.QApplication(argv)
 
-    logging.config.fileConfig(Path("config/logging.conf"))
-    logger = logging.getLogger("root")
+    splash = StartUpSplashScreen()
+    splash.show()
 
-    app = QApplication(sys.argv)
+    splash.showMessage("Loading...", alignment=QtCore.Qt.AlignHCenter)
+
+    for i in range(1, 11):
+        # progressBar.setValue(i)
+        t = time.time()
+        while time.time() < t + 0.1:
+            app.processEvents()
+        splash.showMessage(f"Loading... {i*10:02d}%", alignment=QtCore.Qt.AlignHCenter)
     ex = jefapato()
 
-    logger.info(f"Start JeFaPaTo version {ex.VERSION}")
+    logger.info("Start JeFaPaTo", version=ex.VERSION)
 
     ex.show()
+    splash.finish(ex)
     sys.exit(app.exec_())
 
 
