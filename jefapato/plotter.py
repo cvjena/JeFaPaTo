@@ -1,3 +1,5 @@
+__all__ = ["FrameWidget", "FrameViewBox", "EyeDetailWidget", "GraphWidget"]
+
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 

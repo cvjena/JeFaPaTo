@@ -1,3 +1,5 @@
+__all__ = ["Analyser", "VideoAnalyser", "EyeBlinkingVideoAnalyser"]
+
 import datetime
 import logging
 from abc import ABC, abstractmethod

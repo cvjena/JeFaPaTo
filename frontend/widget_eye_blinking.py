@@ -1,39 +1,28 @@
-import logging
 from pathlib import Path
 
-from PyQt5.QtWidgets import (
-    QCheckBox,
-    QFileDialog,
-    QFormLayout,
-    QProgressBar,
-    QPushButton,
-    QSpinBox,
-    QSplitter,
-    QVBoxLayout,
-    QWidget,
-)
+import structlog
+from qtpy import QtWidgets
 
-from jefapato.analyser import EyeBlinkingVideoAnalyser
-from jefapato.plotter import EyeDetailWidget, FrameWidget, GraphWidget
+from jefapato import analyser, plotter
+
+logger = structlog.get_logger()
 
 
-class WidgetEyeBlinking(QSplitter):
+class WidgetEyeBlinking(QtWidgets.QSplitter):
     def __init__(self):
         super().__init__()
         self.video_file_path: Path = None
 
-        self.logger = logging.getLogger("eyeBlinkingDetection")
+        self.widget_frame = plotter.FrameWidget()
+        self.widget_detail = plotter.EyeDetailWidget()
+        self.widget_graph = plotter.GraphWidget(add_yruler=False)
 
-        self.widget_frame = FrameWidget()
-        self.widget_detail = EyeDetailWidget()
-        self.widget_graph = GraphWidget(add_yruler=False)
+        widget_l = QtWidgets.QWidget()
+        widget_r = QtWidgets.QWidget()
 
-        widget_l = QWidget()
-        widget_r = QWidget()
-
-        self.vlayout_ls = QVBoxLayout()
-        self.vlayout_rs = QVBoxLayout()
-        self.flayout_se = QFormLayout()
+        self.vlayout_ls = QtWidgets.QVBoxLayout()
+        self.vlayout_rs = QtWidgets.QVBoxLayout()
+        self.flayout_se = QtWidgets.QFormLayout()
 
         widget_l.setLayout(self.vlayout_ls)
         widget_r.setLayout(self.vlayout_rs)
@@ -41,14 +30,14 @@ class WidgetEyeBlinking(QSplitter):
         self.addWidget(widget_l)
         self.addWidget(widget_r)
 
-        self.cb_anal = QCheckBox()
-        self.bt_open = QPushButton("Open Video File")
-        self.bt_anal = QPushButton("Analyze Video")
-        self.bt_anal_stop: QPushButton = QPushButton("Cancel")
+        self.cb_anal = QtWidgets.QCheckBox()
+        self.bt_open = QtWidgets.QPushButton("Open Video File")
+        self.bt_anal = QtWidgets.QPushButton("Analyze Video")
+        self.bt_anal_stop = QtWidgets.QPushButton("Cancel")
 
-        self.pb_anal = QProgressBar()
-        self.face_skipper = QSpinBox()
-        self.frame_skipper = QSpinBox()
+        self.pb_anal = QtWidgets.QProgressBar()
+        self.face_skipper = QtWidgets.QSpinBox()
+        self.frame_skipper = QtWidgets.QSpinBox()
 
         self.vlayout_ls.addWidget(self.widget_frame)
         self.vlayout_ls.addWidget(self.widget_graph)
@@ -63,7 +52,7 @@ class WidgetEyeBlinking(QSplitter):
         self.flayout_se.addRow("Skip Frames For Display:", self.frame_skipper)
         self.flayout_se.addRow("Progress:", self.pb_anal)
 
-        self.ea = EyeBlinkingVideoAnalyser(
+        self.ea = analyser.EyeBlinkingVideoAnalyser(
             self.widget_frame,
             self.widget_detail,
             self.widget_graph,
@@ -112,8 +101,8 @@ class WidgetEyeBlinking(QSplitter):
         self.frame_skipper.setDisabled(False)
 
     def load_video(self):
-        self.logger.info("Open file explorer")
-        fileName, _ = QFileDialog.getOpenFileName(
+        logger.info("Open File Dialog", widget=self)
+        fileName, _ = QtWidgets.QFileDialog.getOpenFileName(
             self,
             "Select video file",
             ".",
@@ -121,11 +110,11 @@ class WidgetEyeBlinking(QSplitter):
         )
 
         if fileName != "":
-            self.logger.info(f"Load video file: {fileName}")
+            logger.info("Video file selected", file_name=fileName)
             self.video_file_path = Path(fileName)
 
             self.ea.set_resource_path(self.video_file_path)
             self.bt_anal.setDisabled(False)
             self.cb_anal.setDisabled(False)
         else:
-            self.logger.info("No video file was selected")
+            logger.info("Open File Dialog canceled")
