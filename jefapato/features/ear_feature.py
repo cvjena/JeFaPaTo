@@ -134,5 +134,9 @@ class EARFeature(Feature):
             for i in range(self.index_eye_r.start, self.index_eye_r.stop)
         ]
         return (
-            dlib_l_x + dlib_l_y + dlib_r_x + dlib_r_y + ["ear_l", "ear_r", "ear_valid"]
+            dlib_l_x
+            + dlib_l_y
+            + dlib_r_x
+            + dlib_r_y
+            + ["dlib_ear_l", "dlib_ear_r", "dlib_ear_valid"]
         )
