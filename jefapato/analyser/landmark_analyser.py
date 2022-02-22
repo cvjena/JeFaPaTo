@@ -69,7 +69,7 @@ class LandmarkAnalyser(VideoAnalyser):
             self.feature_data[m_name].append(res)
             temp_data[m_name] = res
 
-        self.pm.hook.updated_feature(features=temp_data)
+        self.pm.hook.updated_feature(feature_data=temp_data)
 
     @hookspec
     def updated(self, image: np.ndarray, face: np.ndarray):
@@ -78,7 +78,7 @@ class LandmarkAnalyser(VideoAnalyser):
         """
 
     @hookspec
-    def updated_feature(self, features: OrderedDict[str, Any]) -> None:
+    def updated_feature(self, feature_data: OrderedDict[str, Any]) -> None:
         pass
 
     # def __on_start(self):

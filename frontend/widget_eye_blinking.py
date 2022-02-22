@@ -20,7 +20,8 @@ class WidgetEyeBlinking(QtWidgets.QSplitter):
         self.widget_face = plotting.ImageBox()
         self.widget_graph = plotting.WidgetGraph(add_yruler=False)
 
-        print(isinstance(self.widget_graph, pg.GraphicsWidget))
+        self.plot_item = {}
+        self.plot_data = {}
 
         self.vlayout_display = pg.GraphicsLayoutWidget()
         self.vlayout_display.addItem(self.widget_frame, row=0, col=0)
@@ -57,7 +58,9 @@ class WidgetEyeBlinking(QtWidgets.QSplitter):
         self.flayout_se.addRow("Skip Frames For Display:", self.frame_skipper)
         self.flayout_se.addRow("Progress:", self.pb_anal)
 
-        self.ea = analyser.LandmarkAnalyser(features=[features.EARFeature])
+        self.features = [features.EARFeature]
+
+        self.ea = analyser.LandmarkAnalyser(features=self.features)
         self.ea.register_hooks(self)
 
         self.bt_open.clicked.connect(self.load_video)
@@ -80,8 +83,22 @@ class WidgetEyeBlinking(QtWidgets.QSplitter):
         self.setStretchFactor(0, 7)
         self.setStretchFactor(1, 3)
 
+    def setup_graph(self) -> None:
+        self.widget_graph.clear()
+        for k in self.plot_item:
+            self.widget_graph.removeItem(k)
+
+        self.plot_item.clear()
+        self.plot_data.clear()
+
+        for feature in self.features:
+            for k, v in feature.plot_info.items():
+                self.plot_item[k] = self.widget_graph.add_curve(**v)
+                self.plot_data[k] = []
+
     @analyser.hookimpl
     def started(self):
+        self.setup_graph()
         self.bt_open.setDisabled(True)
         self.bt_anal.setDisabled(True)
         self.bt_anal_stop.setDisabled(False)
@@ -110,9 +127,14 @@ class WidgetEyeBlinking(QtWidgets.QSplitter):
         self.pb_anal.setValue(percentage)
 
     @analyser.hookimpl
-    def update_feature(self, features: OrderedDict[str, Any]) -> None:
-        # logger.info("Got the feature data", keys=features.keys())
-        pass
+    def updated_feature(self, feature_data: OrderedDict[str, Any]) -> None:
+        for feat in self.features:
+            f_name = feat.__name__
+            if f_name in feature_data:
+                for k in feat.plot_info:
+                    val = getattr(feature_data[f_name], k)
+                    self.plot_data[k].append(val)
+                    self.plot_item[k].setData(self.plot_data[k])
 
     def load_video(self):
         logger.info("Open File Dialog", widget=self)

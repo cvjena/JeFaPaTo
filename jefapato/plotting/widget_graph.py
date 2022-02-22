@@ -95,14 +95,18 @@ class WidgetGraph(pg.PlotItem):
 
         return None
 
-    def add_curve(self, settings: Dict[str, Any]) -> pg.PlotDataItem:
-        curve: pg.PlotDataItem = self.plot()
-        curve.setPen(pg.mkPen(settings))
+    def add_curve(self, *args, **kwargs) -> pg.PlotDataItem:
+        curve: pg.PlotDataItem = self.plot(*args, **kwargs)
+        curve.setPen(pg.mkPen(*args, **kwargs))
 
         self.curves.append(curve)
         return curve
 
-    def add_scatter(self, settigns: Dict[str, Any] = None) -> pg.ScatterPlotItem:
+    def remove_curve(self, curve: pg.PlotDataItem) -> None:
+        self.removeItem(curve)
+        self.curves.remove(curve)
+
+    def add_scatter(self, settings: Dict[str, Any] = None) -> pg.ScatterPlotItem:
         scatter: pg.ScatterPlotItem = pg.ScatterPlotItem()
         self.addItem(scatter)
         self.scatters.append(scatter)

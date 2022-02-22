@@ -31,8 +31,8 @@ class EARFeature(Feature):
     # dataclass in self.d_type
     # because we access with with getattr(self, key)
     plot_info: Dict[str, Dict[str, Any]] = {
-        "ear_l": {"label": "EAR Left", "color": "blue"},
-        "ear_r": {"label": "EAR Right", "color": "red"},
+        "ear_l": {"label": "EAR Left", "color": "b", "width": 2},
+        "ear_r": {"label": "EAR Right", "color": "r", "width": 2},
     }
 
     def __init__(self, backend: str = "dlib") -> None:
