@@ -23,6 +23,8 @@ class WidgetEyeBlinking(QtWidgets.QSplitter):
         self.plot_item = {}
         self.plot_data = {}
 
+        self.chunk_size = 1000
+
         self.vlayout_display = pg.GraphicsLayoutWidget()
         self.vlayout_display.addItem(self.widget_frame, row=0, col=0)
         self.vlayout_display.addItem(self.widget_face, row=0, col=1)
@@ -85,6 +87,7 @@ class WidgetEyeBlinking(QtWidgets.QSplitter):
 
     def setup_graph(self) -> None:
         self.widget_graph.clear()
+        self.update_count = 0
         for k in self.plot_item:
             self.widget_graph.removeItem(k)
 
@@ -94,7 +97,7 @@ class WidgetEyeBlinking(QtWidgets.QSplitter):
         for feature in self.features:
             for k, v in feature.plot_info.items():
                 self.plot_item[k] = self.widget_graph.add_curve(**v)
-                self.plot_data[k] = []
+                self.plot_data[k] = np.zeros(self.chunk_size)
 
     @analyser.hookimpl
     def started(self):
@@ -133,7 +136,8 @@ class WidgetEyeBlinking(QtWidgets.QSplitter):
             if f_name in feature_data:
                 for k in feat.plot_info:
                     val = getattr(feature_data[f_name], k)
-                    self.plot_data[k].append(val)
+                    self.plot_data[k][:-1] = self.plot_data[k][1:]
+                    self.plot_data[k][-1] = val
                     self.plot_item[k].setData(self.plot_data[k])
 
     def load_video(self):
