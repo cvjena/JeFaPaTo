@@ -6,13 +6,13 @@ from typing import List, Tuple
 import numpy as np
 import pandas as pd
 import pyqtgraph as pg
+import structlog
 from pyqtconfig import ConfigManager
 from qtpy import QtCore, QtGui, QtWidgets
 from scipy.signal import find_peaks, savgol_filter
-from structlog import get_logger
 
 # temporary workaround
-from jefapato.plotting import WidgetGraph as GraphWidget
+from jefapato import plotting
 
 TABLE_HEADER = [
     "Frame",
@@ -40,7 +40,7 @@ DEFAULTS = {
     "draw_width_height": False,
 }
 
-log = get_logger()
+logger = structlog.get_logger()
 
 
 @dataclass
@@ -89,23 +89,23 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         super().__init__()
         self.setOrientation(QtCore.Qt.Vertical)
 
-        log.info("Initializing EyeBlinkingFreq widget")
+        logger.info("Initializing EyeBlinkingFreq widget")
 
         try:
             with open(CONFIG_PATH, "r") as f:
                 config = json.load(f)
-                log.info("Loaded config file for EyeBlinkingFreq widget")
+                logger.info("Loaded config file for EyeBlinkingFreq widget")
                 # if we add a new comfig item we need to add in case it is not
                 # in the config file
                 if len(config) < len(DEFAULTS):
-                    log.info("Config file is missing some items, adding them")
+                    logger.info("Config file is missing some items, adding them")
                     c = set(config.keys())
                     d = set(DEFAULTS.keys())
                     i = c.intersection(d)
                     for k in i:
                         config[k] = DEFAULTS[k]
         except FileNotFoundError:
-            log.info("Config file not found, using defaults")
+            logger.info("Config file not found, using defaults")
             with open(CONFIG_PATH, "w") as f:
                 json.dump(DEFAULTS, f)
                 config = DEFAULTS
@@ -114,8 +114,11 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         self.config = ConfigManager(config)
 
         self.top_splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal, parent=self)
-        self.graph = GraphWidget(self, add_ruler=False)
+        self.graph_layout = pg.GraphicsLayoutWidget(parent=self)
+        self.graph = plotting.WidgetGraph()
         self.graph.getViewBox().enableAutoRange(enable=False)
+        self.graph.setYRange(0, 1)
+        self.graph_layout.addItem(self.graph)
 
         self.model_l = QtGui.QStandardItemModel(self)
         self.model_r = QtGui.QStandardItemModel(self)
@@ -168,13 +171,6 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         self.config.add_handler("threshold_right", self.le_th_r)
         self.le_th_r.setToolTip("Theshold for right eye")
         self.le_th_r.textChanged.connect(self._save_settings)
-
-        self.graph.signal_y_ruler_changed.connect(
-            lambda value: self.le_th_l.setText(f"{value:05.3f}")
-        )
-        self.graph.signal_y_ruler_changed.connect(
-            lambda value: self.le_th_r.setText(f"{value:05.3f}")
-        )
 
         # settings
         self.le_fps = QtWidgets.QLineEdit()
@@ -269,8 +265,8 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         self.settings.addRow(self.te_results_g)
         self.settings.addRow(self.progress)
 
-        self.ear_l: list[float] = list()
-        self.ear_r: list[float] = list()
+        self.ear_l = np.zeros(1000, dtype=np.float32)
+        self.ear_r = np.zeros(1000, dtype=np.float32)
 
         self.plot_ear_l = self.graph.add_curve({"color": "#00F", "width": 2})
         self.plot_ear_r = self.graph.add_curve({"color": "#F00", "width": 2})
@@ -281,7 +277,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         self.lines = list()
         self.file = None
 
-        log.info("Initialized EyeBlinkingFreq widget")
+        logger.info("Initialized EyeBlinkingFreq widget")
 
     def _save_settings(self):
         with (open(CONFIG_PATH, "w")) as f:
@@ -553,7 +549,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         self.te_results_g.setText(self.result_text)
 
     def _load_csv(self) -> None:
-        log.info("Open file dialo for loading CSV file")
+        logger.info("Open file dialo for loading CSV file")
         fileName, _ = QtWidgets.QFileDialog.getOpenFileName(
             self,
             "Select csv file",
@@ -562,18 +558,18 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         )
 
         if fileName != "":
-            log.info("Try to load CSV file", file=fileName)
+            logger.info("Try to load CSV file", file=fileName)
             self.file = Path(fileName)
             self._load_file(self.file)
-            log.info("Loaded CSV file", file=fileName)
+            logger.info("Loaded CSV file", file=fileName)
         else:
-            log.info("No file selected")
+            logger.info("No file selected")
 
     def _load_column(self, dataframe: pd.DataFrame, column: str) -> np.ndarray:
         try:
             return dataframe[column].values
         except KeyError:
-            log.warning(
+            logger.warning(
                 "Column not found in CSV file",
                 column=column,
                 file=self.file.as_posix(),
@@ -595,7 +591,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
             return
         self.progress.setValue(40)
 
-        self._set_data(self.ear_l.tolist(), self.ear_r.tolist(), vis_update=True)
+        self._set_data(self.ear_l, self.ear_r)
         self.model_l.clear()
         self.model_r.clear()
         for line in self.lines:
@@ -608,25 +604,12 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         self.te_results_g.setText("")
         self.progress.setValue(100)
 
-    def _set_data(
-        self, data_l: List[float], data_r: List[float], vis_update=False, clear=False
-    ) -> None:
-        if clear:
-            self.graph.clear()
-            log.info("Cleared graph", widget=self.__class__.__name__)
-
-        fps = int(self.le_fps.text())
-
+    def _set_data(self, data_l: np.ndarray, data_r: np.ndarray) -> None:
         self.plot_ear_l.setDownsampling(method="mean", auto=True)
         self.plot_ear_r.setDownsampling(method="mean", auto=True)
 
         self.plot_ear_l.setData(data_l)
         self.plot_ear_r.setData(data_r)
 
-        if vis_update:
-            self.graph.setLimits(xMin=0, xMax=len(data_l))
-            self.graph.setXRange(0, len(self.ear_l))
-
-        if len(data_l) > 10000:
-            self.graph.remove_grid()
-            self.graph.axis_b.setTickSpacing(fps * 200, fps)
+        self.graph.setLimits(xMin=0, xMax=len(data_l))
+        self.graph.setXRange(0, len(self.ear_l))
