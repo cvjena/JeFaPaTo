@@ -2,10 +2,11 @@ from pathlib import Path
 from typing import Any, OrderedDict
 
 import numpy as np
+import pyqtgraph as pg
 import structlog
 from qtpy import QtWidgets
 
-from jefapato import analyser, features, plotter
+from jefapato import analyser, features, plotting
 
 logger = structlog.get_logger()
 
@@ -15,21 +16,27 @@ class WidgetEyeBlinking(QtWidgets.QSplitter):
         super().__init__()
         self.video_file_path: Path = None
 
-        self.widget_frame = plotter.FrameWidget()
-        self.widget_detail = plotter.EyeDetailWidget()
-        self.widget_graph = plotter.GraphWidget(add_yruler=False)
+        self.widget_frame = plotting.ImageBox()
+        self.widget_face = plotting.ImageBox()
+        self.widget_graph = plotting.WidgetGraph(add_yruler=False)
 
-        widget_l = QtWidgets.QWidget()
+        print(isinstance(self.widget_graph, pg.GraphicsWidget))
+
+        self.vlayout_display = pg.GraphicsLayoutWidget()
+        self.vlayout_display.addItem(self.widget_frame, row=0, col=0)
+        self.vlayout_display.addItem(self.widget_face, row=0, col=1)
+        self.vlayout_display.addItem(self.widget_graph, row=1, col=0, colspan=2)
+        self.vlayout_display.ci.layout.setRowStretchFactor(0, 2)
+        self.vlayout_display.ci.layout.setRowStretchFactor(1, 3)
+
         widget_r = QtWidgets.QWidget()
 
-        self.vlayout_ls = QtWidgets.QVBoxLayout()
         self.vlayout_rs = QtWidgets.QVBoxLayout()
         self.flayout_se = QtWidgets.QFormLayout()
 
-        widget_l.setLayout(self.vlayout_ls)
         widget_r.setLayout(self.vlayout_rs)
 
-        self.addWidget(widget_l)
+        self.addWidget(self.vlayout_display)
         self.addWidget(widget_r)
 
         self.cb_anal = QtWidgets.QCheckBox()
@@ -41,10 +48,6 @@ class WidgetEyeBlinking(QtWidgets.QSplitter):
         self.face_skipper = QtWidgets.QSpinBox()
         self.frame_skipper = QtWidgets.QSpinBox()
 
-        self.vlayout_ls.addWidget(self.widget_frame)
-        self.vlayout_ls.addWidget(self.widget_graph)
-
-        self.vlayout_rs.addWidget(self.widget_detail)
         self.vlayout_rs.addLayout(self.flayout_se)
 
         self.flayout_se.addRow(self.bt_open)
@@ -98,8 +101,9 @@ class WidgetEyeBlinking(QtWidgets.QSplitter):
         self.frame_skipper.setDisabled(False)
 
     @analyser.hookimpl
-    def updated(self, data: np.ndarray, features: np.ndarray):
-        self.widget_frame.frame.set_image(data)
+    def updated(self, image: np.ndarray, face: np.ndarray):
+        self.widget_frame.set_image(image)
+        self.widget_face.set_image(face)
 
     @analyser.hookimpl
     def processed_percentage(self, percentage: int):
@@ -107,7 +111,8 @@ class WidgetEyeBlinking(QtWidgets.QSplitter):
 
     @analyser.hookimpl
     def update_feature(self, features: OrderedDict[str, Any]) -> None:
-        logger.info("Got the feature data", keys=features.keys())
+        # logger.info("Got the feature data", keys=features.keys())
+        pass
 
     def load_video(self):
         logger.info("Open File Dialog", widget=self)

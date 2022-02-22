@@ -11,7 +11,8 @@ from qtpy import QtCore, QtGui, QtWidgets
 from scipy.signal import find_peaks, savgol_filter
 from structlog import get_logger
 
-from jefapato.plotter import GraphWidget
+# temporary workaround
+from jefapato.plotting import WidgetGraph as GraphWidget
 
 TABLE_HEADER = [
     "Frame",

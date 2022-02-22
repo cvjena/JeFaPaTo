@@ -57,7 +57,10 @@ class LandmarkAnalyser(VideoAnalyser):
         else:
             raise NotImplementedError("Only dlib backend is supported")
 
-        self.pm.hook.updated(data=data, features=features)
+        face = data[
+            face_rect.top() : face_rect.bottom(), face_rect.left() : face_rect.right()
+        ]
+        self.pm.hook.updated(image=data, face=face)
 
         temp_data = collections.OrderedDict()
 
@@ -67,6 +70,12 @@ class LandmarkAnalyser(VideoAnalyser):
             temp_data[m_name] = res
 
         self.pm.hook.updated_feature(features=temp_data)
+
+    @hookspec
+    def updated(self, image: np.ndarray, face: np.ndarray):
+        """
+        Inform however needs it that the anlysis has updated.
+        """
 
     @hookspec
     def updated_feature(self, features: OrderedDict[str, Any]) -> None:

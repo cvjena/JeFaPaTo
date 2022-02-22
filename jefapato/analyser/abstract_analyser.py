@@ -156,12 +156,6 @@ class Analyser(abc.ABC):
         """
 
     @hookspec
-    def updated(self, data: Any, features: Any):
-        """
-        Inform however needs it that the anlysis has updated.
-        """
-
-    @hookspec
     def finished(self):
         """
         Inform however needs it that the anlysis has finished.
