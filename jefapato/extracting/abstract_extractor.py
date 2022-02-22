@@ -8,7 +8,7 @@ from qtpy import QtCore
 
 class Extractor(QtCore.QThread):
     processingStarted = QtCore.Signal()
-    processingUpdated = QtCore.Signal(np.ndarray, np.ndarray)
+    processingUpdated = QtCore.Signal(np.ndarray, object, np.ndarray)
     processingFinished = QtCore.Signal()
     processedPercentage = QtCore.Signal(int)
 

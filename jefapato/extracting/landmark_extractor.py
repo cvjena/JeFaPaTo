@@ -96,22 +96,24 @@ class LandmarkExtractor(Extractor):
             image = self.data_queue.get()
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-            if self.iter % self.skip_count == 0:
+            if processed % self.skip_count == 0:
                 height = image.shape[0]
                 self.scale_factor = 1 / (float(height) / self.height_resize)
 
                 data_sc = cv2.resize(
                     image, (0, 0), fx=self.scale_factor, fy=self.scale_factor
                 )
-                self.rect = self.detector(data_sc, 0)
+                rects = self.detector(data_sc, 0)
 
-            if len(self.rect) == 0:
-                self.rect = None
+                # we didnt find any faces
+                if len(rects) == 0:
+                    self.rect = None
+                else:
+                    self.rect = rects[0]
 
             landmarks = np.zeros((68, 2), dtype=np.int32)
 
             if self.rect is not None:
-                self.rect = self.rect[0]
                 rect = scale_bbox(self.rect, 1 / self.scale_factor)
                 shape = self.predictor(image, rect)
 
@@ -119,7 +121,7 @@ class LandmarkExtractor(Extractor):
                     landmarks[i, 0] = shape.part(i).x
                     landmarks[i, 1] = shape.part(i).y
 
-            self.processingUpdated.emit(image, landmarks)
+            self.processingUpdated.emit(image, rect, landmarks)
             processed += 1
             perc = int((processed / self.data_amount) * 100)
             self.processedPercentage.emit(perc)

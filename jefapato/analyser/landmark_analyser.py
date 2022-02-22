@@ -3,6 +3,7 @@ __all__ = ["LandmarkAnalyser"]
 import collections
 from typing import Any, List, OrderedDict, Type
 
+import dlib
 import numpy as np
 
 from jefapato import extracting, features
@@ -16,6 +17,7 @@ class LandmarkAnalyser(VideoAnalyser):
         super().__init__(extractor_c=extracting.LandmarkExtractor)
 
         kwargs["backend"] = kwargs.get("backend", "dlib")
+        self.kwargs = kwargs
 
         self.results_file_header = "ear_score_left;ear_score_right;ear_valid\n"
         self.score_eye_l: List[float] = list()
@@ -46,8 +48,15 @@ class LandmarkAnalyser(VideoAnalyser):
         self.extractor.processingUpdated.connect(self.handle_update)
         self.analysis_start()
 
-    def handle_update(self, data: np.ndarray, features: np.ndarray) -> None:
+    def handle_update(
+        self, data: np.ndarray, face_rect: Any, features: np.ndarray
+    ) -> None:
         # here would be some drawing? and storing of the features we are interested in
+        if self.kwargs["backend"] == "dlib":
+            face_rect: dlib.rectangle = face_rect
+        else:
+            raise NotImplementedError("Only dlib backend is supported")
+
         self.pm.hook.updated(data=data, features=features)
 
         temp_data = collections.OrderedDict()
@@ -57,10 +66,10 @@ class LandmarkAnalyser(VideoAnalyser):
             self.feature_data[m_name].append(res)
             temp_data[m_name] = res
 
-        self.pm.hook.update_feature(features=temp_data)
+        self.pm.hook.updated_feature(features=temp_data)
 
     @hookspec
-    def update_feature(self, features: OrderedDict[str, Any]) -> None:
+    def updated_feature(self, features: OrderedDict[str, Any]) -> None:
         pass
 
     # def __on_start(self):
