@@ -1,6 +1,7 @@
 __all__ = ["EARFeature", "EARData"]
 
 import dataclasses
+from typing import Any, Dict
 
 import numpy as np
 from scipy.spatial import distance
@@ -26,8 +27,17 @@ class EARFeature(Feature):
     schemata.
     """
 
+    # the dict keys need to be the same name as the class attributes in the
+    # dataclass in self.d_type
+    # because we access with with getattr(self, key)
+    plot_info: Dict[str, Dict[str, Any]] = {
+        "ear_l": {"label": "EAR Left", "color": "blue"},
+        "ear_r": {"label": "EAR Right", "color": "red"},
+    }
+
     def __init__(self, backend: str = "dlib") -> None:
         super().__init__()
+        self.d_type = EARData
 
         if backend == "dlib":
             self.index_eye_l: slice = slice(42, 48)
