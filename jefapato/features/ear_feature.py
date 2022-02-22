@@ -1,7 +1,7 @@
 __all__ = ["EARFeature", "EARData"]
 
 import dataclasses
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import numpy as np
 from scipy.spatial import distance
@@ -11,13 +11,27 @@ from .abstract_feature import Feature
 
 @dataclasses.dataclass
 class EARData:
-    """A simple data class to combine the classifcation results"""
+    """A simple data class to combine the ear score results"""
 
     lm_l: np.ndarray
     lm_r: np.ndarray
     ear_l: float
     ear_r: float
-    valid: bool
+    ear_valid: bool
+
+    def as_row(self) -> List[str]:
+        """Return the data as a row as in the same order as the header"""
+        dlib_l_x = self.lm_l[:, 0]
+        dlib_l_y = self.lm_l[:, 1]
+        dlib_r_x = self.lm_r[:, 0]
+        dlib_r_y = self.lm_r[:, 1]
+        return (
+            list(map(str, dlib_l_x))
+            + list(map(str, dlib_l_y))
+            + list(map(str, dlib_r_x))
+            + list(map(str, dlib_r_y))
+            + [f"{self.ear_l: .8f}", f"{self.ear_r: .8f}", str(self.ear_valid)]
+        )
 
 
 class EARFeature(Feature):
@@ -88,56 +102,37 @@ class EARFeature(Feature):
         # extract the eye landmarks
         lm_l = in_data[self.index_eye_l]
         lm_r = in_data[self.index_eye_r]
-        valid = not (
+        ear_valid = not (
             np.allclose(np.zeros_like(lm_l), lm_l)
             and np.allclose(np.zeros_like(lm_r), lm_r)
         )
-        ear_l = self.ear_score(lm_l) if valid else 1.0
-        ear_r = self.ear_score(lm_r) if valid else 1.0
-        return EARData(lm_l, lm_r, ear_l, ear_r, valid)
+        ear_l = self.ear_score(lm_l) if ear_valid else 1.0
+        ear_r = self.ear_score(lm_r) if ear_valid else 1.0
+        return EARData(lm_l, lm_r, ear_l, ear_r, ear_valid)
 
-    # def check_closing(self, score_left, score_right, threshold) -> Tuple[bool, bool]:
-    #     """Check if eyes are closed
-
-    #     Compute if the eyes are closed based on a given threshhold
-
-    #     Args:
-    #         score_left ([type]): EAR score for the left eye
-    #         score_right ([type]): EAR score for the right eye
-    #         threshold ([type]): threshold for eye closing
-
-    #     Returns:
-    #         Tuple[bool, bool]: closing state for left and right eye
-    #     """
-    #     return (score_left < threshold, score_right < threshold)
-
-    # def classify(
-    #     self, features: List[Tuple[dlib.rectangle, np.ndarray]]
-    # ) -> List[EyeBlinkingResult]:
-    #     """Classify on the given features
-
-    #     Args:
-    #         features (List[Tuple[dlib.rectangle, np.ndarray]]): features of a have
-    # with
-    #             the face bounding box and the 68 facial feature landmarks
-
-    #     Returns:
-    #         List[EyeBlinkingResult]: List of EyeBlinking clasifiction (list entry for
-    #             each face), will be invalid EyeBlinking object if features where not
-    #             valid
-    #     """
-
-    #     # if features is None, it means the feature extracture could not
-    #     # create the featureas we wanted, hence, we return an value which is not
-    #     # possible!
-    #     if not features:
-    #         return [EyeBlinkingResult(1.0, 1.0, False)]
-
-    #     classes: List[EyeBlinkingResult] = list()
-
-    #     for _, shape in features:
-    #         ear_left = self.ear_score(shape[self.eye_left_slice])
-    #         ear_right = self.ear_score(shape[self.eye_right_slice])
-    #         classes.append(EyeBlinkingResult(ear_left, ear_right, True))
-
-    #     return classes
+    def get_header(self) -> List[str]:
+        """
+        Returns
+        -------
+        List[str]
+            The header for the feature including the valid and all the landmarks
+        """
+        dlib_l_x = [
+            f"dlib_l_x_{i:02d}"
+            for i in range(self.index_eye_l.start, self.index_eye_l.stop)
+        ]
+        dlib_l_y = [
+            f"dlib_l_y_{i:02d}"
+            for i in range(self.index_eye_l.start, self.index_eye_l.stop)
+        ]
+        dlib_r_x = [
+            f"dlib_r_x_{i:02d}"
+            for i in range(self.index_eye_r.start, self.index_eye_r.stop)
+        ]
+        dlib_r_y = [
+            f"dlib_r_y_{i:02d}"
+            for i in range(self.index_eye_r.start, self.index_eye_r.stop)
+        ]
+        return (
+            dlib_l_x + dlib_l_y + dlib_r_x + dlib_r_y + ["ear_l", "ear_r", "ear_valid"]
+        )

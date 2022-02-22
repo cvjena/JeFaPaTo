@@ -1,7 +1,7 @@
 __all__ = ["Feature"]
 
 import abc
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 
 class Feature(abc.ABC):
@@ -13,4 +13,8 @@ class Feature(abc.ABC):
 
     @abc.abstractmethod
     def compute(self, in_data: Any) -> Any:
+        pass
+
+    @abc.abstractmethod
+    def get_header(self) -> List[str]:
         pass

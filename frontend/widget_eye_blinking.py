@@ -1,3 +1,5 @@
+import csv
+import datetime
 from pathlib import Path
 from typing import Any, OrderedDict
 
@@ -111,6 +113,8 @@ class WidgetEyeBlinking(QtWidgets.QSplitter):
 
     @analyser.hookimpl
     def finished(self):
+        self.save_results()
+
         self.bt_open.setDisabled(False)
         self.bt_anal.setText("Analyze Video")
         self.bt_anal.setDisabled(False)
@@ -158,3 +162,19 @@ class WidgetEyeBlinking(QtWidgets.QSplitter):
             self.cb_anal.setDisabled(False)
         else:
             logger.info("Open File Dialog canceled")
+
+    def save_results(self) -> None:
+        logger.info("Save Results Dialog", widget=self)
+        ts = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        result_path = self.video_file_path.parent / (
+            self.video_file_path.stem + f"_{ts}.csv"
+        )
+
+        with open(result_path, "w", newline="") as csvfile:
+            writer = csv.writer(csvfile)
+
+            header = self.ea.get_header()
+            writer.writerow(header)
+            writer.writerows(self.ea)
+
+        logger.info("Results saved", file_name=result_path)
