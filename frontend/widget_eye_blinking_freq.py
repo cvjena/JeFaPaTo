@@ -1,5 +1,6 @@
 import json
 import pathlib
+from typing import Tuple
 
 import numpy as np
 import pandas as pd
@@ -96,13 +97,13 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         t_r.addWidget(QtWidgets.QLabel("Right Eye:"))
         t_r.addWidget(self.table_r)
 
-        self.top_splitter.addWidget(self.q)
         self.top_splitter.addWidget(w_t_l)
         self.top_splitter.addWidget(w_t_r)
+        self.top_splitter.addWidget(self.q)
 
-        self.top_splitter.setStretchFactor(0, 30)
+        self.top_splitter.setStretchFactor(0, 35)
         self.top_splitter.setStretchFactor(1, 35)
-        self.top_splitter.setStretchFactor(2, 35)
+        self.top_splitter.setStretchFactor(2, 30)
 
         self.button_load = QtWidgets.QPushButton("Load CSV File")
         self.button_load.clicked.connect(self._load_csv)
@@ -478,30 +479,12 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         else:
             logger.info("No file selected")
 
-    def _load_column(self, dataframe: pd.DataFrame, column: str) -> np.ndarray:
-        try:
-            return dataframe[column].values
-        except KeyError:
-            logger.warning(
-                "Column not found in CSV file",
-                column=column,
-                file=self.file.as_posix(),
-            )
-            self._reset_result_text()
-            self._add(f"No {column} found")
-            self._set_result_text()
-            self.progress.setValue(100)
-            return
-
     def _load_file(self, path: pathlib.Path) -> None:
         self.progress.setValue(0)
-        df = pd.read_csv(path.as_posix(), sep=";")
-
-        # FIX ME: spelling of right is wrong ...
-        self.ear_r = self._load_column(df, "ear_score_rigth")
-        self.ear_l = self._load_column(df, "ear_score_left")
+        self.ear_r, self.ear_l = self.__handle_legacy_files(path)
         if self.ear_r is None or self.ear_l is None:
             return
+
         self.progress.setValue(40)
 
         self._set_data(self.ear_l, self.ear_r)
@@ -516,6 +499,60 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
 
         self.te_results_g.setText("")
         self.progress.setValue(100)
+
+    def __handle_legacy_files(
+        self, file: pathlib.Path
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        logger.info("Check if file is legacy format", file=file.as_posix())
+
+        df = pd.read_csv(file.as_posix(), sep=";")
+        col_length = len(df.columns)
+        if col_length == 1:
+            logger.info("File is new format", file=file.as_posix())
+            # this means has a different separator like ","
+            # this should be the new format
+            df = pd.read_csv(file.as_posix(), sep=",")
+            if "dlib_ear_r" in df.columns:
+                return df["dlib_ear_r"], df["dlib_ear_l"]
+
+        # if this case is reached, we know that the back was dlib so the renaming
+        # with the prefix dlib is no problem at all
+        if col_length > 1:
+            cols = list(df.columns)
+            if "ear_score_right" in cols:
+                logger.info("File is legacy format [old]", file=file.as_posix())
+                df = df.rename(
+                    columns={
+                        "ear_score_right": "dlib_ear_r",
+                        "ear_score_left": "dlib_ear_l",
+                        "valid": "dlib_ear_valid",
+                    }
+                )
+                df.to_csv(file.as_posix(), sep=",", index=False)
+                return df["dlib_ear_r"], df["dlib_ear_l"]
+            if "ear_score_rigth" in cols:
+                logger.info("File is legacy format [spell]", file=file.as_posix())
+                df = df.rename(
+                    columns={
+                        "ear_score_rigth": "dlib_ear_r",
+                        "ear_score_left": "dlib_ear_l",
+                        "valid": "valid_l",
+                    }
+                )
+                df.to_csv(file.as_posix(), sep=",", index=False)
+                return df["dlib_ear_r"], df["dlib_ear_l"]
+
+            else:
+                logger.error(
+                    "File has not supported content",
+                    file=file.as_posix(),
+                    columns=cols,
+                )
+                logger.error("Please contact the developer")
+                return None, None
+
+        self.file = file
+        self._load_file(file)
 
     def _set_data(self, data_l: np.ndarray, data_r: np.ndarray) -> None:
         self.plot_ear_l.setDownsampling(method="mean", auto=True)
