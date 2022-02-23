@@ -1,6 +1,6 @@
 __all__ = ["DEFAULTS"]
 
-DEFAULTS = {
+prefix_ear = {
     "smooth": True,
     "smooth_size": "91",
     "smooth_poly": "5",
@@ -13,4 +13,9 @@ DEFAULTS = {
     "threshold_l": "0.4",
     "threshold_r": "0.4",
     "draw_width_height": False,
+}
+
+
+DEFAULTS = {
+    "ear": prefix_ear,
 }

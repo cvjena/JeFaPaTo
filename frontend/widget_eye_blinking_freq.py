@@ -14,15 +14,18 @@ from jefapato.methods import blinking
 logger = structlog.get_logger()
 
 
-class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
+class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
+    updated = QtCore.Signal(int)
+
     def __init__(self):
-        super().__init__()
+        config.Config.__init__(self, prefix="ear")
+        QtWidgets.QSplitter.__init__(self)
+
         self.setOrientation(QtCore.Qt.Vertical)
 
         logger.info("Initializing EyeBlinkingFreq widget")
 
         self.result_text: str = ""
-        self.conf = config.load()
 
         self.top_splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal, parent=self)
         self.graph_layout = pg.GraphicsLayoutWidget(parent=self)
@@ -74,78 +77,78 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         self.button_anal.clicked.connect(self._analyse)
 
         self.le_th_l = QtWidgets.QLineEdit()
-        self.conf.add_handler("threshold_l", self.le_th_l)
+        self.add_handler("threshold_l", self.le_th_l)
         self.le_th_l.setToolTip("Theshold for left eye")
-        self.le_th_l.textChanged.connect(self._save_settings)
+        self.le_th_l.textChanged.connect(self.save_conf)
 
         self.le_th_r = QtWidgets.QLineEdit()
-        self.conf.add_handler("threshold_r", self.le_th_r)
+        self.add_handler("threshold_r", self.le_th_r)
         self.le_th_r.setToolTip("Theshold for right eye")
-        self.le_th_r.textChanged.connect(self._save_settings)
+        self.le_th_r.textChanged.connect(self.save_conf)
 
         # settings
         self.le_fps = QtWidgets.QLineEdit()
-        self.conf.add_handler("fps", self.le_fps)
+        self.add_handler("fps", self.le_fps)
         self.le_fps.setValidator(QtGui.QIntValidator())
         self.le_fps.setToolTip("This is the number of frames per second.")
-        self.le_fps.textChanged.connect(self._save_settings)
+        self.le_fps.textChanged.connect(self.save_conf)
 
         self.le_distance = QtWidgets.QLineEdit()
-        self.conf.add_handler("min_dist", self.le_distance)
+        self.add_handler("min_dist", self.le_distance)
         self.le_distance.setToolTip(
             "This value controls the minimum distance between two blinks."
         )
-        self.le_distance.textChanged.connect(self._save_settings)
+        self.le_distance.textChanged.connect(self.save_conf)
 
         self.le_prominence = QtWidgets.QLineEdit()
-        self.conf.add_handler("min_prominence", self.le_prominence)
+        self.add_handler("min_prominence", self.le_prominence)
         self.le_prominence.setToolTip(
             "This value controls the minimum prominence of a blink."
         )
-        self.le_prominence.textChanged.connect(self._save_settings)
+        self.le_prominence.textChanged.connect(self.save_conf)
 
         self.le_width_min = QtWidgets.QLineEdit()
-        self.conf.add_handler("min_width", self.le_width_min)
+        self.add_handler("min_width", self.le_width_min)
         self.le_width_min.setToolTip(
             "This value controls the minimum width of a blink."
         )
         self.le_width_min.setValidator(QtGui.QIntValidator())
-        self.le_width_min.textChanged.connect(self._save_settings)
+        self.le_width_min.textChanged.connect(self.save_conf)
 
         self.le_width_max = QtWidgets.QLineEdit("150")
-        self.conf.add_handler("max_width", self.le_width_max)
+        self.add_handler("max_width", self.le_width_max)
         self.le_width_max.setToolTip(
             "This value controls the maximum width of a blink."
         )
         self.le_width_max.setValidator(QtGui.QIntValidator())
-        self.le_width_max.textChanged.connect(self._save_settings)
+        self.le_width_max.textChanged.connect(self.save_conf)
 
         self.smooth = QtWidgets.QCheckBox()
-        self.smooth.toggled.connect(self._save_settings)
-        self.conf.add_handler("smooth", self.smooth)
+        self.smooth.toggled.connect(self.save_conf)
+        self.add_handler("smooth", self.smooth)
         self.smooth.setToolTip("Smooth the data")
 
         self.le_smooth_size = QtWidgets.QLineEdit()
-        self.conf.add_handler("smooth_size", self.le_smooth_size)
+        self.add_handler("smooth_size", self.le_smooth_size)
         self.le_smooth_size.setEnabled(self.smooth.isChecked())
         self.le_smooth_size.setValidator(QtGui.QIntValidator())
         self.le_smooth_size.setToolTip(
             "This value controls the size of the smoothing window."
         )
-        self.le_smooth_size.textChanged.connect(self._save_settings)
+        self.le_smooth_size.textChanged.connect(self.save_conf)
 
         self.le_smooth_poly = QtWidgets.QLineEdit()
-        self.conf.add_handler("smooth_poly", self.le_smooth_poly)
+        self.add_handler("smooth_poly", self.le_smooth_poly)
         self.le_smooth_poly.setEnabled(self.smooth.isChecked())
         self.le_smooth_poly.setValidator(QtGui.QIntValidator())
         self.le_smooth_poly.setToolTip(
             "This value controls the polynomial order of the smoothing."
         )
-        self.le_smooth_poly.textChanged.connect(self._save_settings)
+        self.le_smooth_poly.textChanged.connect(self.save_conf)
 
         self.draw_width_height = QtWidgets.QCheckBox()
-        self.draw_width_height.toggled.connect(self._save_settings)
-        self.conf.add_handler("draw_width_height", self.draw_width_height)
+        self.draw_width_height.toggled.connect(self.save_conf)
+        self.add_handler("draw_width_height", self.draw_width_height)
 
         self.smooth.toggled.connect(lambda value: self.le_smooth_size.setEnabled(value))
         self.smooth.toggled.connect(lambda value: self.le_smooth_poly.setEnabled(value))
@@ -190,9 +193,6 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
 
         logger.info("Initialized EyeBlinkingFreq widget")
 
-    def _save_settings(self):
-        config.save(self.conf)
-
     def _analyse(self) -> None:
         if self.file is None:
             return
@@ -202,22 +202,22 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         ear_r = self.ear_r
 
         kwargs = {}
-        kwargs["threshold_l"] = float(self.conf.get("threshold_l"))
-        kwargs["threshold_r"] = float(self.conf.get("threshold_r"))
-        kwargs["fps"] = int(self.conf.get("fps"))
-        kwargs["distance"] = float(self.conf.get("min_dist"))
-        kwargs["prominence"] = float(self.conf.get("min_prominence"))
-        kwargs["width_min"] = int(self.conf.get("min_width"))
-        kwargs["width_max"] = int(self.conf.get("max_width"))
+        kwargs["threshold_l"] = float(self.get("threshold_l"))
+        kwargs["threshold_r"] = float(self.get("threshold_r"))
+        kwargs["fps"] = int(self.get("fps"))
+        kwargs["distance"] = float(self.get("min_dist"))
+        kwargs["prominence"] = float(self.get("min_prominence"))
+        kwargs["width_min"] = int(self.get("min_width"))
+        kwargs["width_max"] = int(self.get("max_width"))
 
         self.progress.setValue(10)
 
-        kwargs["smooth"] = self.conf.get("smooth")
-        smooth_size = int(self.conf.get("smooth_size"))
+        kwargs["smooth"] = self.get("smooth")
+        smooth_size = int(self.get("smooth_size"))
         kwargs["smooth_size"] = (
             smooth_size if smooth_size % 2 == 1 else (smooth_size + 1)
         )
-        kwargs["smooth_poly"] = int(self.conf.get("smooth_poly"))
+        kwargs["smooth_poly"] = int(self.get("smooth_poly"))
 
         ear_l = ear_l if not kwargs["smooth"] else blinking.smooth(ear_l, **kwargs)
         ear_r = ear_r if not kwargs["smooth"] else blinking.smooth(ear_r, **kwargs)
@@ -399,7 +399,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         pen = pg.mkPen(settings)
         plot.setData(x=peaks, y=score, pen=pen)
 
-        if not self.conf.get("draw_width_height"):
+        if not self.get("draw_width_height"):
             return
 
         for _, row in blink.iterrows():

@@ -1,4 +1,4 @@
-__all__ = ["DEFAULTS", "load", "save"]
+__all__ = ["DEFAULTS", "Config"]
 
 from jefapato.config.defaults import DEFAULTS
-from jefapato.config.functions import load, save
+from jefapato.config.functions import Config
