@@ -12,6 +12,7 @@ logs
 Jefapato_Schuhmann
 jd
 config/*.json
+__static__/*
 
 # Temporary and binary files
 *~
