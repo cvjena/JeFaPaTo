@@ -54,6 +54,6 @@ def peaks(time_series: np.ndarray, **kwargs) -> pd.DataFrame:
 
     df = pd.DataFrame(
         blinkings, columns=blinkings.keys(), index=blinkings["index"]
-    ).reindex()
+    ).reset_index(drop=True)
 
     return df
