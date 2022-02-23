@@ -5,7 +5,7 @@ import pandas as pd
 from scipy import signal
 
 
-def peaks(time_series: np.ndarray, **kwargs) -> pd.DataFrame:
+def peaks(time_series: np.ndarray, threshold: float, **kwargs) -> pd.DataFrame:
     """
     Blinks the peaks of the LED.
     """
@@ -29,9 +29,8 @@ def peaks(time_series: np.ndarray, **kwargs) -> pd.DataFrame:
         "height": [],
     }
     time_series = time_series.round(4)
-    _mean = time_series.mean()
     for idx, peak in enumerate(peaks):
-        if time_series[peak] > _mean:
+        if time_series[peak] > threshold:
             continue
 
         prom = props["prominences"][idx].round(4)

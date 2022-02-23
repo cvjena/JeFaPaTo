@@ -22,8 +22,8 @@ DEFAULTS = {
     "fps": "240",
     "min_width": "10",
     "max_width": "150",
-    "threshold_left": "0.4",
-    "threshold_right": "0.4",
+    "threshold_l": "0.4",
+    "threshold_r": "0.4",
     "draw_width_height": False,
 }
 
@@ -110,12 +110,12 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         self.button_anal.clicked.connect(self._analyse)
 
         self.le_th_l = QtWidgets.QLineEdit()
-        self.config.add_handler("threshold_left", self.le_th_l)
+        self.config.add_handler("threshold_l", self.le_th_l)
         self.le_th_l.setToolTip("Theshold for left eye")
         self.le_th_l.textChanged.connect(self._save_settings)
 
         self.le_th_r = QtWidgets.QLineEdit()
-        self.config.add_handler("threshold_right", self.le_th_r)
+        self.config.add_handler("threshold_r", self.le_th_r)
         self.le_th_r.setToolTip("Theshold for right eye")
         self.le_th_r.textChanged.connect(self._save_settings)
 
@@ -239,6 +239,8 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         ear_r = self.ear_r
 
         kwargs = {}
+        kwargs["threshold_l"] = float(self.config.get("threshold_l"))
+        kwargs["threshold_r"] = float(self.config.get("threshold_r"))
         kwargs["fps"] = int(self.config.get("fps"))
         kwargs["distance"] = float(self.config.get("min_dist"))
         kwargs["prominence"] = float(self.config.get("min_prominence"))
@@ -261,9 +263,9 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         self._set_data(ear_l, ear_r)
         self.progress.setValue(40)
 
-        blinking_l = blinking.peaks(ear_l, **kwargs)
+        blinking_l = blinking.peaks(ear_l, threshold=kwargs["threshold_l"], **kwargs)
         self.progress.setValue(50)
-        blinking_r = blinking.peaks(ear_r, **kwargs)
+        blinking_r = blinking.peaks(ear_r, threshold=kwargs["threshold_r"], **kwargs)
         self.progress.setValue(60)
 
         self.plot_results(blinking_l, blinking_r)
