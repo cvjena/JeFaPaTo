@@ -1,7 +1,5 @@
 import json
-from dataclasses import dataclass
-from pathlib import Path
-from typing import List, Tuple
+import pathlib
 
 import numpy as np
 import pandas as pd
@@ -9,21 +7,10 @@ import pyqtgraph as pg
 import structlog
 from pyqtconfig import ConfigManager
 from qtpy import QtCore, QtGui, QtWidgets
-from scipy.signal import find_peaks, savgol_filter
+from tabulate import tabulate
 
-# temporary workaround
 from jefapato import plotting
-
-TABLE_HEADER = [
-    "Frame",
-    "Time",
-    "EAR_SCORE",
-    "prominence",
-    "left_ips",
-    "right_ips",
-    "width",
-    "height",
-]
+from jefapato.methods import blinking
 
 DEFAULTS = {
     "smooth": True,
@@ -41,47 +28,7 @@ DEFAULTS = {
 }
 
 logger = structlog.get_logger()
-
-
-@dataclass
-class Blinking:
-    index: int
-    frame: int
-    time: str
-    ear_score: float
-    prominence: float
-    ips_l: int
-    ips_r: int
-    width: int
-    height: float
-
-    def to_table_row(self) -> List[QtGui.QStandardItem]:
-        return [
-            QtGui.QStandardItem(str(self.frame)),
-            QtGui.QStandardItem(str(self.time)),
-            QtGui.QStandardItem(str(self.ear_score)),
-            QtGui.QStandardItem(str(self.prominence)),
-            QtGui.QStandardItem(str(self.ips_l)),
-            QtGui.QStandardItem(str(self.ips_r)),
-            QtGui.QStandardItem(str(self.width)),
-            QtGui.QStandardItem(str(self.height)),
-        ]
-
-    def __repr__(self) -> str:
-        return (
-            f"[{self.index: 03d}]; "
-            f"Frame {self.frame: 6d}; "
-            f"Time {self.time}; "
-            f"EAR_Score {self.ear_score: 6.4f}; "
-            f"Prominence {self.prominence: 6.4f}; "
-            f"IPS_Left {self.ips_l: 6d}; "
-            f"IPS_Right {self.ips_r: 6d}; "
-            f"Width {self.width: 4d};"
-            f"Height {self.height: 6.4f}"
-        )
-
-
-CONFIG_PATH = Path("config/config_eye_blinking_freq.json")
+CONFIG_PATH = pathlib.Path("config/config_eye_blinking_freq.json")
 
 
 class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
@@ -288,169 +235,164 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
             return
         self.progress.setValue(0)
 
-        threshold_left = float(self.config.get("threshold_left"))
-        threshold_right = float(self.config.get("threshold_right"))
-        fps = int(self.config.get("fps"))
+        ear_l = self.ear_l
+        ear_r = self.ear_r
 
-        min_dist = float(self.config.get("min_dist"))
-        min_prominence = float(self.config.get("min_prominence"))
-        min_width = int(self.config.get("min_width"))
-        max_width = int(self.config.get("max_width"))
+        kwargs = {}
+        kwargs["fps"] = int(self.config.get("fps"))
+        kwargs["distance"] = float(self.config.get("min_dist"))
+        kwargs["prominence"] = float(self.config.get("min_prominence"))
+        kwargs["width_min"] = int(self.config.get("min_width"))
+        kwargs["width_max"] = int(self.config.get("max_width"))
 
-        ear_l = np.array(self.ear_l)
-        ear_r = np.array(self.ear_r)
         self.progress.setValue(10)
 
-        smooth = self.config.get("smooth")
+        kwargs["smooth"] = self.config.get("smooth")
         smooth_size = int(self.config.get("smooth_size"))
-        smooth_size = smooth_size if smooth_size % 2 == 1 else (smooth_size + 1)
-        smooth_poly = int(self.config.get("smooth_poly"))
+        kwargs["smooth_size"] = (
+            smooth_size if smooth_size % 2 == 1 else (smooth_size + 1)
+        )
+        kwargs["smooth_poly"] = int(self.config.get("smooth_poly"))
 
-        if smooth:
-            ear_l = savgol_filter(ear_l, smooth_size, polyorder=smooth_poly)
-            ear_r = savgol_filter(ear_r, smooth_size, polyorder=smooth_poly)
+        ear_l = ear_l if not kwargs["smooth"] else blinking.smooth(ear_l, **kwargs)
+        ear_r = ear_r if not kwargs["smooth"] else blinking.smooth(ear_r, **kwargs)
 
-        ear_l = ear_l.round(4)
-        ear_r = ear_r.round(4)
         self.progress.setValue(30)
-
-        self._set_data(ear_l.tolist(), ear_r.tolist())
+        self._set_data(ear_l, ear_r)
         self.progress.setValue(40)
 
-        peaks_l, blinking_l = self._find_peaks(
-            ear_l,
-            threshold=threshold_left,
-            distance=min_dist,
-            prominence=min_prominence,
-            width_min=min_width,
-            width_max=max_width,
-            fps=fps,
-        )
+        blinking_l = blinking.peaks(ear_l, **kwargs)
         self.progress.setValue(50)
-        peaks_r, blinking_r = self._find_peaks(
-            ear_r,
-            threshold=threshold_right,
-            distance=min_dist,
-            prominence=min_prominence,
-            width_min=min_width,
-            width_max=max_width,
-            fps=fps,
-        )
+        blinking_r = blinking.peaks(ear_r, **kwargs)
         self.progress.setValue(60)
 
+        self.plot_results(blinking_l, blinking_r)
+        self.progress.setValue(80)
+
+        self.print_results(blinking_l, blinking_r, **kwargs)
+        self.progress.setValue(100)
+
+    def plot_results(
+        self,
+        blinking_l: pd.DataFrame,
+        blinking_r: pd.DataFrame,
+    ):
         for ll in self.lines:
             ll.clear()
         self.lines.clear()
-        self.progress.setValue(70)
 
         self._show_peaks(self.plot_peaks_l, blinking_l, {"color": "#00F", "width": 2})
-        self.progress.setValue(75)
         self._show_peaks(self.plot_peaks_r, blinking_r, {"color": "#F00", "width": 2})
-        self.progress.setValue(80)
 
-        total_seconds = len(ear_l) / fps
-        minutes = int(total_seconds // 60)
-        seconds = total_seconds % 60
+    def sec_to_min(self, seconds: float) -> str:
+        minutes = int(seconds / 60)
+        seconds = int(seconds % 60)
+        return f"{minutes:02d}:{seconds:02d}"
+
+    def print_results(
+        self,
+        blinking_l: pd.DataFrame,
+        blinking_r: pd.DataFrame,
+        **kwargs,
+    ) -> None:
+
+        # compute the video time (depending on the fps) of the peaks in the data frames
+        # for 30 fps and the given fps in kwargs and added to the data frames
+        # the columns are called "time30" and timeFPS and the values are in the form
+        # MM:SS the time is computed from the frame of the data frame
+        blinking_l["time30"] = blinking_l["frame"] / 30
+        blinking_r["time30"] = blinking_r["frame"] / 30
+        blinking_l["timeFPS"] = blinking_l["frame"] / kwargs["fps"]
+        blinking_r["timeFPS"] = blinking_r["frame"] / kwargs["fps"]
+        blinking_l["time30"] = blinking_l["time30"].apply(self.sec_to_min)
+        blinking_r["time30"] = blinking_r["time30"].apply(self.sec_to_min)
+        blinking_l["timeFPS"] = blinking_l["timeFPS"].apply(self.sec_to_min)
+        blinking_r["timeFPS"] = blinking_r["timeFPS"].apply(self.sec_to_min)
+
         self._reset_result_text()
 
         self._add("===Video Info===")
         self._add(f"File: {self.file.as_posix()}")
-        self._add(f"Runtime: {minutes}m {seconds:.2f}s [total: {total_seconds:.2f}s]")
-        self._add(f"Threshold Left: {threshold_left}")
-        self._add(f"Threshold Right: {threshold_right}")
-        self._add(f"FPS: {fps}")
-        self._add(f"Minimum Distance: {min_dist}")
-        self._add(f"Minimum Prominence: {min_prominence}")
-        self._add(f"Minimum Width: {min_width}")
-        self._add(f"Maximum Width: {max_width}")
+        self._add(f"Runtime: {self.sec_to_min(len(self.ear_l) / kwargs['fps'])}")
 
-        parameter = (
-            f"[Window Size: {smooth_size}, Polynomial: {smooth_poly}]" if smooth else ""
+        for k, v in kwargs.items():
+            self._add(f"{k}: {v}")
+
+        bins = np.arange(
+            start=0,
+            stop=len(self.ear_l) + 2 * 60 * kwargs["fps"],
+            step=60 * kwargs["fps"],
         )
-        self._add(f"Smooth: {smooth} {parameter}")
-        self._add()
-        self.progress.setValue(85)
-
-        bins = list()
-        # plus 2 so we have all minutes and the remaining seconds
-        for i in range(minutes + 2):
-            bins.append(i * 60 * fps)
-
-        hist_l, _ = np.histogram(peaks_l, bins=bins)
-        hist_r, _ = np.histogram(peaks_r, bins=bins)
+        hist_l, _ = np.histogram(blinking_l["frame"], bins=bins)
+        hist_r, _ = np.histogram(blinking_r["frame"], bins=bins)
 
         self._add("===Blinking Info===")
-        self._add(f"Blinks Per Mintue Left: {hist_l.tolist()}")
-        self._add(f"Blinks Per Mintue Right: {hist_r.tolist()}")
+        self._add(f"Blinks Per Minute L: {hist_l.tolist()}")
+        self._add(f"Blinks Per Minute R: {hist_r.tolist()}")
 
-        self._add(f"Average Left: {np.mean(hist_l): 6.3f}")
-        self._add(f"Average Right: {np.mean(hist_r): 6.3f}")
+        self._add(f"Avg. Blink Freq. L: {np.mean(hist_l): 6.3f}")
+        self._add(f"Avg. Freq. R: {np.mean(hist_r): 6.3f}")
 
-        self._add(f"Average[wo/ last minute] Left: {np.mean(hist_l[:-1]): 6.3f}")
-        self._add(f"Average[wo/ last minute] Right: {np.mean(hist_r[:-1]): 6.3f}")
+        self._add(f"Avg. Freq. [wo/ last minute] L: {np.mean(hist_l[:-1]): 6.3f}")
+        self._add(f"Avg. Freq. [wo/ last minute] R: {np.mean(hist_r[:-1]): 6.3f}")
+
+        self._add(f"Avg. Len. L: {np.mean(blinking_l['width']): 6.3f} [frames]")
+        self._add(f"Avg. Len. R: {np.mean(blinking_r['width']): 6.3f} [frames]")
+
+        self._add(
+            f"Avg. Len. L: {np.mean(blinking_l['width']) / kwargs['fps']: 6.3f}[s]"
+        )
+        self._add(
+            f"Avg. Len. R: {np.mean(blinking_r['width']) / kwargs['fps']: 6.3f}[s]"
+        )
 
         self._add()
 
-        total = 0
-        blinking_len_avg_l = list()
-        for h in hist_l:
-            temp = 0
-            for _ in range(h):
-                temp += blinking_l[total].width
-                total += 1
-            if temp != 0:
-                blinking_len_avg_l.append(round(temp / h, 4))
-            else:
-                blinking_len_avg_l.append(0)
-        self._add(f"Average Blink Length p.M. Left: {blinking_len_avg_l}")
+        for index, (start, stop) in enumerate(zip(bins[:-2], bins[1:])):
+            df = blinking_l[
+                (blinking_l["frame"] >= start) & (blinking_l["frame"] < stop)
+            ]
+            _mean = np.mean(df["width"])
+            _std = np.std(df["width"])
+            self._add(f"Minute {index:02d} L: {_mean: 6.3f} +/- {_std: 6.3f}[frames]")
 
-        total = 0
-        blinking_len_avg_r = list()
-        for h in hist_r:
-            temp = 0
-            for _ in range(h):
-                temp += blinking_r[total].width
-                total += 1
-            if temp != 0:
-                blinking_len_avg_r.append(round(temp / h, 4))
-            else:
-                blinking_len_avg_r.append(0)
+            _mean /= kwargs["fps"]
+            _std /= kwargs["fps"]
+            self._add(f"Minute {index:02d} R: {_mean: 6.3f} +/- {_std: 6.3f}[s]")
 
-        self._add(f"Average Blink Length p.M. Right: {blinking_len_avg_r}")
+        self._add()
 
-        self._add(f"Average Blink Length Left: {np.nanmean(blinking_len_avg_l): 6.3f}")
-        self._add(f"Average Blink Length Right: {np.nanmean(blinking_len_avg_r): 6.3f}")
+        for index, (start, stop) in enumerate(zip(bins[:-2], bins[1:])):
+            df = blinking_r[
+                (blinking_r["frame"] >= start) & (blinking_r["frame"] < stop)
+            ]
+            _mean = np.mean(df["width"])
+            _std = np.std(df["width"])
+            self._add(f"Minute {index:02d} R: {_mean: 6.3f} +/- {_std: 6.3f}[frames]")
 
-        self._add(
-            (
-                "Average[wo/ last minute] Blink Length Left:"
-                f"{np.nanmean(blinking_len_avg_l[:-1]): 6.3f}"
-            )
-        )
-        self._add(
-            (
-                "Average[wo/ last minute] Blink Length Right:"
-                f"{np.nanmean(blinking_len_avg_r[:-1]): 6.3f}"
-            )
-        )
-
-        self.model_l.clear()
-        self.model_r.clear()
+            _mean /= kwargs["fps"]
+            _std /= kwargs["fps"]
+            self._add(f"Minute {index:02d} R: {_mean: 6.3f} +/- {_std: 6.3f}[s]")
 
         self._add("")
         self.progress.setValue(95)
         self._add("===Detail Left Info===")
-        for b in blinking_l:
-            self.model_l.appendRow(b.to_table_row())
-            self._add(str(b))
-
+        self._add(tabulate(blinking_l, headers="keys", tablefmt="github"))
         self._add("")
         self._add("===Detail Right Info===")
-        for b in blinking_r:
-            self.model_r.appendRow(b.to_table_row())
-            self._add(str(b))
-
+        self._add(tabulate(blinking_r, headers="keys", tablefmt="github"))
         self._set_result_text()
+
+        self.fill_tables(blinking_l, blinking_r)
+
+    def fill_tables(self, blinking_l: pd.DataFrame, blinking_r: pd.DataFrame) -> None:
+        self.model_l.clear()
+        self.model_r.clear()
+        for _, row in blinking_l.iterrows():
+            self.model_l.appendRow(self.to_qt_row(row))
+
+        for _, row in blinking_r.iterrows():
+            self.model_r.appendRow(self.to_qt_row(row))
 
         self.table_l.horizontalHeader().setSectionResizeMode(
             QtWidgets.QHeaderView.ResizeMode.Stretch
@@ -459,70 +401,17 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
             QtWidgets.QHeaderView.ResizeMode.Stretch
         )
 
-        self.model_l.setHorizontalHeaderLabels(TABLE_HEADER)
-        self.model_r.setHorizontalHeaderLabels(TABLE_HEADER)
-        self.progress.setValue(100)
+        self.model_l.setHorizontalHeaderLabels(list(blinking_l.columns))
+        self.model_r.setHorizontalHeaderLabels(list(blinking_r.columns))
 
-    def _find_peaks(
-        self,
-        val: np.ndarray,
-        threshold: float = 0.2,
-        distance: int = 150,
-        prominence: float = 0.05,
-        width_min: int = 10,
-        width_max: int = 150,
-        fps: int = 240,
-    ) -> Tuple[np.ndarray, Blinking]:
-        peaks, props = find_peaks(
-            -val, distance=distance, prominence=prominence, width=width_min
-        )
-
-        blinking: list[Blinking] = list()
-
-        for k in props:
-            props[k] = props[k][val[peaks] < threshold]
-
-        peaks = peaks[val[peaks] < threshold]
-
-        to_remove = list()
-        for idx, peak in enumerate(peaks):
-            p = props["prominences"][idx].round(4)
-            li = props["left_ips"][idx].astype(np.int32)
-            ri = props["right_ips"][idx].astype(np.int32)
-            hei = -props["width_heights"][idx].round(4)
-            width = ri - li
-
-            if width > width_max:
-                to_remove.append(idx)
-                continue
-
-            seconds = peak / fps  # in seconds
-            minute = int(seconds / 60)
-            seconds = seconds % 60
-            time = f"{minute:02d}:{seconds:06.3f}"
-
-            blinking.append(
-                Blinking(
-                    index=idx,
-                    frame=peak,
-                    time=time,
-                    ear_score=val[peak],
-                    prominence=p,
-                    ips_l=li,
-                    ips_r=ri,
-                    width=width,
-                    height=hei,
-                )
-            )
-        mask = np.ones(len(peaks), np.bool)
-        mask[to_remove] = 0
-        return peaks[mask], blinking
+    def to_qt_row(self, row: pd.Series) -> list:
+        return [QtGui.QStandardItem(str(row[c])) for c in row.index]
 
     def _show_peaks(
-        self, plot: pg.ScatterPlotItem, blinking: Blinking, settings: dict
+        self, plot: pg.ScatterPlotItem, blink: pd.DataFrame, settings: dict
     ) -> None:
-        peaks = [b.frame for b in blinking]
-        score = [b.ear_score for b in blinking]
+        peaks = blink["frame"]
+        score = blink["score"]
 
         pen = pg.mkPen(settings)
         plot.setData(x=peaks, y=score, pen=pen)
@@ -530,10 +419,14 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         if not self.config.get("draw_width_height"):
             return
 
-        for b in blinking:
-            lh = self.graph.plot([b.ips_l, b.ips_r], [b.height, b.height], pen=pen)
+        for _, row in blink.iterrows():
+            lh = self.graph.plot(
+                [row["ips_l"], row["ips_r"]], [row["height"], row["height"]], pen=pen
+            )
             lv = self.graph.plot(
-                [b.frame, b.frame], [b.ear_score, b.ear_score + b.prominence], pen=pen
+                [row["frame"], row["frame"]],
+                [row["score"], row["score"] + row["promi"]],
+                pen=pen,
             )
             self.lines.append(lh)
             self.lines.append(lv)
@@ -559,7 +452,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
 
         if fileName != "":
             logger.info("Try to load CSV file", file=fileName)
-            self.file = Path(fileName)
+            self.file = pathlib.Path(fileName)
             self._load_file(self.file)
             logger.info("Loaded CSV file", file=fileName)
         else:
@@ -580,7 +473,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
             self.progress.setValue(100)
             return
 
-    def _load_file(self, path: Path) -> None:
+    def _load_file(self, path: pathlib.Path) -> None:
         self.progress.setValue(0)
         df = pd.read_csv(path.as_posix(), sep=";")
 
