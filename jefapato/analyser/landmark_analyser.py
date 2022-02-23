@@ -25,14 +25,8 @@ class LandmarkAnalyser(VideoAnalyser):
             self.feature_methods[feature.__name__] = feature(**kwargs)
             self.feature_data[feature.__name__] = []
 
-        self.update_counter = -1
-        self.update_skip = 20
-
-    def set_frame_skip(self, value: int) -> None:
-        self.update_skip = value
-
-    def set_face_detect_skip(self, value: int) -> None:
-        self.extractor.set_skip(value)
+    def set_skip_count(self, value: int) -> None:
+        self.extractor.set_skip_count(value)
 
     def start(self) -> None:
         for m_name in self.feature_methods:

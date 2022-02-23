@@ -50,17 +50,17 @@ class WidgetEyeBlinking(QtWidgets.QSplitter):
         self.bt_anal_stop = QtWidgets.QPushButton("Cancel")
 
         self.pb_anal = QtWidgets.QProgressBar()
-        self.face_skipper = QtWidgets.QSpinBox()
-        self.frame_skipper = QtWidgets.QSpinBox()
+        self.skip_faces = QtWidgets.QSpinBox()
+        self.skip_frame = QtWidgets.QSpinBox()
 
         self.vlayout_rs.addLayout(self.flayout_se)
 
         self.flayout_se.addRow(self.bt_open)
         self.flayout_se.addRow(self.bt_anal)
         self.flayout_se.addRow(self.bt_anal_stop)
-        self.flayout_se.addRow("Skip Frame for Face Detection:", self.face_skipper)
-        self.flayout_se.addRow("Skip Frames For Display:", self.frame_skipper)
-        self.flayout_se.addRow("Progress:", self.pb_anal)
+        self.flayout_se.addRow("Skip Face Detection:", self.skip_faces)
+        self.flayout_se.addRow("Skip Frames Display:", self.skip_frame)
+        self.flayout_se.addRow(self.pb_anal)
 
         self.features = [features.EARFeature]
 
@@ -71,13 +71,12 @@ class WidgetEyeBlinking(QtWidgets.QSplitter):
         self.bt_anal.clicked.connect(self.ea.start)
         self.bt_anal_stop.clicked.connect(self.ea.stop)
 
-        self.face_skipper.setRange(3, 20)
-        self.face_skipper.setValue(5)
-        self.face_skipper.valueChanged.connect(self.ea.set_face_detect_skip)
+        self.skip_faces.setRange(3, 20)
+        self.skip_faces.setValue(5)
+        self.skip_faces.valueChanged.connect(self.ea.set_skip_count)
 
-        self.frame_skipper.setRange(1, 20)
-        self.frame_skipper.setValue(5)
-        self.frame_skipper.valueChanged.connect(self.ea.set_frame_skip)
+        self.skip_frame.setRange(1, 20)
+        self.skip_frame.setValue(5)
 
         # disable analyse button and check box
         self.bt_anal.setDisabled(True)
@@ -108,8 +107,6 @@ class WidgetEyeBlinking(QtWidgets.QSplitter):
         self.bt_anal.setDisabled(True)
         self.bt_anal_stop.setDisabled(False)
         self.cb_anal.setDisabled(True)
-        self.face_skipper.setDisabled(True)
-        self.frame_skipper.setDisabled(True)
 
     @analyser.hookimpl
     def finished(self):
@@ -121,8 +118,6 @@ class WidgetEyeBlinking(QtWidgets.QSplitter):
         self.bt_anal_stop.setDisabled(True)
 
         self.cb_anal.setDisabled(False)
-        self.face_skipper.setDisabled(False)
-        self.frame_skipper.setDisabled(False)
 
     @analyser.hookimpl
     def updated(self, image: np.ndarray, face: np.ndarray):
@@ -135,6 +130,7 @@ class WidgetEyeBlinking(QtWidgets.QSplitter):
 
     @analyser.hookimpl
     def updated_feature(self, feature_data: OrderedDict[str, Any]) -> None:
+        self.update_count += 1
         for feat in self.features:
             f_name = feat.__name__
             if f_name in feature_data:
@@ -142,7 +138,9 @@ class WidgetEyeBlinking(QtWidgets.QSplitter):
                     val = getattr(feature_data[f_name], k)
                     self.plot_data[k][:-1] = self.plot_data[k][1:]
                     self.plot_data[k][-1] = val
-                    self.plot_item[k].setData(self.plot_data[k])
+
+                    if self.update_count % self.skip_frame.value() == 0:
+                        self.plot_item[k].setData(self.plot_data[k])
 
     def load_video(self):
         logger.info("Open File Dialog", widget=self)
