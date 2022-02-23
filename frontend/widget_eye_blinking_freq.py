@@ -330,21 +330,25 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         self._add(f"Blinks Per Minute L: {hist_l.tolist()}")
         self._add(f"Blinks Per Minute R: {hist_r.tolist()}")
 
-        self._add(f"Avg. Blink Freq. L: {np.mean(hist_l): 6.3f}")
+        self._add(f"Avg. Freq. L: {np.mean(hist_l): 6.3f}")
         self._add(f"Avg. Freq. R: {np.mean(hist_r): 6.3f}")
 
         self._add(f"Avg. Freq. [wo/ last minute] L: {np.mean(hist_l[:-1]): 6.3f}")
         self._add(f"Avg. Freq. [wo/ last minute] R: {np.mean(hist_r[:-1]): 6.3f}")
 
-        self._add(f"Avg. Len. L: {np.mean(blinking_l['width']): 6.3f} [frames]")
-        self._add(f"Avg. Len. R: {np.mean(blinking_r['width']): 6.3f} [frames]")
+        _mean = np.mean(blinking_l["width"])
+        _std = np.std(blinking_l["width"])
+        self._add(f"Avg. Len. L: {_mean: 6.3f} +/- {_std: 6.3f} [frames]")
+        _mean /= kwargs["fps"]
+        _std /= kwargs["fps"]
+        self._add(f"Avg. Len. L: {_mean: 6.3f} +/- {_std: 6.3f} [s]")
 
-        self._add(
-            f"Avg. Len. L: {np.mean(blinking_l['width']) / kwargs['fps']: 6.3f}[s]"
-        )
-        self._add(
-            f"Avg. Len. R: {np.mean(blinking_r['width']) / kwargs['fps']: 6.3f}[s]"
-        )
+        _mean = np.mean(blinking_r["width"])
+        _std = np.std(blinking_r["width"])
+        self._add(f"Avg. Len. R: {_mean: 6.3f} +/- {_std: 6.3f} [frames]")
+        _mean /= kwargs["fps"]
+        _std /= kwargs["fps"]
+        self._add(f"Avg. Len. R: {_mean: 6.3f} +/- {_std: 6.3f} [s]")
 
         self._add()
 
@@ -384,6 +388,20 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter):
         self._set_result_text()
 
         self.fill_tables(blinking_l, blinking_r)
+
+        self.save_results(blinking_l, blinking_r)
+
+    def save_results(self, blinking_l: pd.DataFrame, blinking_r: pd.DataFrame) -> None:
+        file_info = self.file.parent / (self.file.stem + "_blinking_info.txt")
+
+        with open(file_info, "w") as f:
+            f.write(self.result_text)
+
+        file_blinking_l = self.file.parent / (self.file.stem + "_blinking_l.csv")
+        file_blinking_r = self.file.parent / (self.file.stem + "_blinking_r.csv")
+
+        blinking_l.to_csv(file_blinking_l)
+        blinking_r.to_csv(file_blinking_r)
 
     def fill_tables(self, blinking_l: pd.DataFrame, blinking_r: pd.DataFrame) -> None:
         self.model_l.clear()
