@@ -63,6 +63,45 @@ class StartUpSplashScreen(QtWidgets.QSplashScreen):
         self.setEnabled(False)
 
 
+def task_check_dlib_files(splash: StartUpSplashScreen):
+    # check if dlib files are available
+    # wget http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2
+    # bunzip2 shape_predictor_68_face_landmarks.dat.bz2
+
+    splash.showMessage("Checking dlib files...", alignment=QtCore.Qt.AlignHCenter)
+
+    static_path = pathlib.Path(__file__).parent / "__static__"
+    file_path = static_path / "shape_predictor_68_face_landmarks.dat"
+    if file_path.exists() and file_path.is_file():
+        splash.showMessage("Dlib files found", alignment=QtCore.Qt.AlignHCenter)
+        time.sleep(0.5)
+        return
+
+    splash.showMessage("Download dlib files...", alignment=QtCore.Qt.AlignHCenter)
+    logger.info("Downloading dlib shape predictor")
+    # this is the case where we have to download the parameters!
+    import bz2
+
+    import requests
+
+    static_path.mkdir(parents=True, exist_ok=True)
+
+    url = "http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2"
+    res = requests.get(url)
+    res.raise_for_status()
+    logger.info("Downloaded dlib shape predictor")
+    logger.info("Writing dlib shape predictor")
+
+    splash.showMessage(
+        "Writing dlib shape predictor...", alignment=QtCore.Qt.AlignHCenter
+    )
+
+    with open(file_path, "wb") as f:
+        f.write(bz2.decompress(res.content))
+    logger.info("Wrote dlib shape predictor", path=file_path)
+    splash.showMessage("Dlib files written", alignment=QtCore.Qt.AlignHCenter)
+
+
 def main(argv):
     app = QtWidgets.QApplication(argv)
 
@@ -70,13 +109,12 @@ def main(argv):
     splash.show()
 
     splash.showMessage("Loading...", alignment=QtCore.Qt.AlignHCenter)
+    time.sleep(0.2)
 
-    for i in range(1, 11):
-        # progressBar.setValue(i)
-        t = time.time()
-        while time.time() < t + 0.1:
-            app.processEvents()
-        splash.showMessage(f"Loading... {i*10:02d}%", alignment=QtCore.Qt.AlignHCenter)
+    task_check_dlib_files(splash)
+
+    splash.showMessage("Starting...", alignment=QtCore.Qt.AlignHCenter)
+
     ex = jefapato()
 
     logger.info("Start JeFaPaTo", version=ex.VERSION)

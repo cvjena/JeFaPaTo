@@ -48,7 +48,7 @@ class LandmarkExtractor(Extractor):
     def __init__(self, data_queue: queue.Queue, data_amount: int) -> None:
         super().__init__(data_queue=data_queue, data_amount=data_amount)
 
-        self.shape_predictor_file = self.__get_or_download_shape_predictor()
+        self.shape_predictor_file = self.__get_shape_predictor()
         self.detector = dlib.get_frontal_face_detector()
         self.predictor = dlib.shape_predictor(self.shape_predictor_file)
 
@@ -58,32 +58,13 @@ class LandmarkExtractor(Extractor):
         self.scale_factor = 0.0
         self.rect = None
 
-    def __get_or_download_shape_predictor(self) -> pathlib.Path:
-        # wget http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2
-        # bunzip2 shape_predictor_68_face_landmarks.dat.bz2
-
+    def __get_shape_predictor(self) -> pathlib.Path:
         static_path = pathlib.Path(__file__).parent.parent.parent / "__static__"
         file_path = static_path / "shape_predictor_68_face_landmarks.dat"
         if file_path.exists() and file_path.is_file():
             return file_path.as_posix()
-
-        logger.info("Downloading dlib shape predictor")
-        # this is the case where we have to download the parameters!
-        import bz2
-
-        import requests
-
-        static_path.mkdir(parents=True, exist_ok=True)
-
-        url = "http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2"
-        res = requests.get(url)
-        res.raise_for_status()
-        logger.info("Downloaded dlib shape predictor")
-        logger.info("Writing dlib shape predictor")
-        with open(file_path, "wb") as f:
-            f.write(bz2.decompress(res.content))
-        logger.info("Wrote dlib shape predictor")
-        return file_path.as_posix()
+        else:
+            raise FileNotFoundError("shape_predictor_68_face_landmarks.dat not found")
 
     def set_skip_count(self, skip_count: int) -> None:
         self.skip_count = skip_count
