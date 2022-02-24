@@ -46,7 +46,7 @@ class LandmarkAnalyser(VideoAnalyser):
     def start(self) -> None:
         # this should be done in a nicer way...
         if self.kwargs["backend"] == "dlib":
-            self.extractor_c = extracting.LandmarkExtractor
+            self.extractor_c = extracting.DlibLandmarkExtractor
         else:
             logger.error("Only dlib backend is supported in LandmarkAnalyser")
             return

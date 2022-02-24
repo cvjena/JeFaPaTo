@@ -1,4 +1,4 @@
-__all__ = "LandmarkExtractor"
+__all__ = ["DlibLandmarkExtractor"]
 
 import pathlib
 import queue
@@ -44,7 +44,7 @@ def scale_bbox(bbox: dlib.rectangle, scale: float) -> dlib.rectangle:
     )
 
 
-class LandmarkExtractor(Extractor):
+class DlibLandmarkExtractor(Extractor):
     def __init__(self, data_queue: queue.Queue, data_amount: int) -> None:
         super().__init__(data_queue=data_queue, data_amount=data_amount)
 
