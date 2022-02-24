@@ -36,6 +36,9 @@ class EARData:
             + [f"{self.ear_l: .8f}", f"{self.ear_r: .8f}", str(self.ear_valid)]
         )
 
+    def draw(self, image: np.ndarray) -> np.ndarray:
+        return image
+
 
 class EARFeature(Feature):
     """EyeBlinking Classifier Class for 68 facial landmarks features

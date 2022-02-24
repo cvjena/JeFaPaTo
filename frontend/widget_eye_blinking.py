@@ -158,6 +158,7 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
         self.bt_anal_stop.setDisabled(False)
         self.cb_anal.setDisabled(True)
         self.feature_group.setDisabled(True)
+        self.combo_backend.setDisabled(True)
 
     @analyser.hookimpl
     def finished(self):
@@ -168,7 +169,7 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
         self.bt_anal.setDisabled(False)
         self.bt_anal_stop.setDisabled(True)
         self.feature_group.setDisabled(False)
-
+        self.combo_backend.setDisabled(False)
         self.cb_anal.setDisabled(False)
 
     @analyser.hookimpl

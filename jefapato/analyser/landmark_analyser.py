@@ -21,8 +21,12 @@ class LandmarkAnalyser(VideoAnalyser):
 
         self.kwargs = kwargs
 
-        self.feature_methods = collections.OrderedDict()
-        self.feature_data = collections.OrderedDict()
+        self.feature_methods: OrderedDict[
+            str, features.Feature
+        ] = collections.OrderedDict()
+        self.feature_data: OrderedDict[
+            str, features.EARData
+        ] = collections.OrderedDict()
 
     def set_features(self, features: List[Type[features.Feature]]) -> None:
         self.feature_methods.clear()
@@ -55,7 +59,7 @@ class LandmarkAnalyser(VideoAnalyser):
         self.analysis_start()
 
     def handle_update(
-        self, data: np.ndarray, face_rect: Any, features: np.ndarray
+        self, image: np.ndarray, face_rect: Any, features: np.ndarray
     ) -> None:
         # here would be some drawing? and storing of the features we are interested in
         if self.kwargs["backend"] == "dlib":
@@ -63,19 +67,20 @@ class LandmarkAnalyser(VideoAnalyser):
         else:
             raise NotImplementedError("Only dlib backend is supported")
 
-        face = data[
-            face_rect.top() : face_rect.bottom(), face_rect.left() : face_rect.right()
-        ]
-        self.pm.hook.updated_display(image=data, face=face)
-
         temp_data = collections.OrderedDict()
 
-        for m_name, m_class in self.feature_methods.items():
-            res = m_class.compute(features)
-            self.feature_data[m_name].append(res)
-            temp_data[m_name] = res
+        for f_name, f_class in self.feature_methods.items():
+            res = f_class.compute(features)
+            image = res.draw(image)
+            self.feature_data[f_name].append(res)
+            temp_data[f_name] = res
 
         self.pm.hook.updated_feature(feature_data=temp_data)
+
+        face = image[
+            face_rect.top() : face_rect.bottom(), face_rect.left() : face_rect.right()
+        ]
+        self.pm.hook.updated_display(image=image, face=face)
 
     @hookspec
     def updated_display(self, image: np.ndarray, face: np.ndarray):
