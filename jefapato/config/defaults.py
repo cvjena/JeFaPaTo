@@ -1,6 +1,6 @@
 __all__ = ["DEFAULTS"]
 
-prefix_ear = {
+ear = {
     "smooth": True,
     "smooth_size": "91",
     "smooth_poly": "5",
@@ -15,7 +15,15 @@ prefix_ear = {
     "draw_width_height": False,
 }
 
+landmarks = {
+    "backend": "dlib",
+    "backend_options": {
+        "dlib": "dlib",
+        "mediapipe": "mediapipe",
+    },
+}
 
 DEFAULTS = {
-    "ear": prefix_ear,
+    "ear": ear,
+    "landmarks": landmarks,
 }

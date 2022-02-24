@@ -42,12 +42,17 @@ class Config(pyqtconfig.ConfigManager):
         data = self.__cache[self.prefix]
 
         # check if all keys in the config file are in the defaults
-        for key in data:
-            if key not in DEFAULTS[self.prefix]:
+        _to_update = False
+        for key in DEFAULTS[self.prefix]:
+            if key not in data:
                 logger.warning(
                     "Key not found in [prefix]. Add it.", key=key, prefix=self.prefix
                 )
                 data[key] = DEFAULTS[self.prefix][key]
+                _to_update = True
+
+        if _to_update:
+            self.save_conf()
 
         # we cannot use set_defaults because it would trigger a lot of hooks
         # and we don't want that

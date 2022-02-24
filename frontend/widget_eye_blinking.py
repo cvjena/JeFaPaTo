@@ -6,16 +6,20 @@ from typing import Any, OrderedDict
 import numpy as np
 import pyqtgraph as pg
 import structlog
-from qtpy import QtWidgets
+from qtpy import QtCore, QtWidgets
 
-from jefapato import analyser, features, plotting
+from jefapato import analyser, config, features, plotting
 
 logger = structlog.get_logger()
 
 
-class WidgetEyeBlinking(QtWidgets.QSplitter):
+class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
+    updated = QtCore.Signal(int)
+
     def __init__(self):
-        super().__init__()
+        config.Config.__init__(self, prefix="landmarks")
+        QtWidgets.QSplitter.__init__(self)
+
         self.video_file_path: Path = None
 
         self.widget_frame = plotting.ImageBox()
@@ -49,6 +53,13 @@ class WidgetEyeBlinking(QtWidgets.QSplitter):
         self.bt_anal = QtWidgets.QPushButton("Analyze Video")
         self.bt_anal_stop = QtWidgets.QPushButton("Cancel")
 
+        self.combo_backend = QtWidgets.QComboBox()
+        self.combo_backend.addItems(self.get("backend_options").keys())
+        self.add_handler(
+            "backend", self.combo_backend, mapper=self.get("backend_options")
+        )
+        self.combo_backend.currentTextChanged.connect(self.save_conf)
+
         self.pb_anal = QtWidgets.QProgressBar()
         self.skip_faces = QtWidgets.QSpinBox()
         self.skip_frame = QtWidgets.QSpinBox()
@@ -58,6 +69,7 @@ class WidgetEyeBlinking(QtWidgets.QSplitter):
         self.flayout_se.addRow(self.bt_open)
         self.flayout_se.addRow(self.bt_anal)
         self.flayout_se.addRow(self.bt_anal_stop)
+        self.flayout_se.addRow("Backend", self.combo_backend)
         self.flayout_se.addRow("Skip Face Detection:", self.skip_faces)
         self.flayout_se.addRow("Skip Frames Display:", self.skip_frame)
         self.flayout_se.addRow(self.pb_anal)
@@ -120,7 +132,7 @@ class WidgetEyeBlinking(QtWidgets.QSplitter):
         self.cb_anal.setDisabled(False)
 
     @analyser.hookimpl
-    def updated(self, image: np.ndarray, face: np.ndarray):
+    def updated_display(self, image: np.ndarray, face: np.ndarray):
         self.widget_frame.set_image(image)
         self.widget_face.set_image(face)
 

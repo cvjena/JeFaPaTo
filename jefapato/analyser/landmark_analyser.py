@@ -60,7 +60,7 @@ class LandmarkAnalyser(VideoAnalyser):
         self.pm.hook.updated_feature(feature_data=temp_data)
 
     @hookspec
-    def updated(self, image: np.ndarray, face: np.ndarray):
+    def updated_display(self, image: np.ndarray, face: np.ndarray):
         """
         Inform however needs it that the anlysis has updated.
         """
