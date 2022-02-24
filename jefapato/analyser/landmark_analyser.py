@@ -47,6 +47,8 @@ class LandmarkAnalyser(VideoAnalyser):
         # this should be done in a nicer way...
         if self.kwargs["backend"] == "dlib":
             self.extractor_c = extracting.DlibLandmarkExtractor
+        elif self.kwargs["backend"] == "mediapipe":
+            self.extractor_c = extracting.MediapipeLandmarkExtractor
         else:
             logger.error("Only dlib backend is supported in LandmarkAnalyser")
             return
@@ -62,11 +64,7 @@ class LandmarkAnalyser(VideoAnalyser):
         self, image: np.ndarray, face_rect: Any, features: np.ndarray
     ) -> None:
         # here would be some drawing? and storing of the features we are interested in
-        if self.kwargs["backend"] == "dlib":
-            face_rect: dlib.rectangle = face_rect
-        else:
-            raise NotImplementedError("Only dlib backend is supported")
-
+        face_rect: dlib.rectangle = face_rect
         temp_data = collections.OrderedDict()
 
         for f_name, f_class in self.feature_methods.items():
