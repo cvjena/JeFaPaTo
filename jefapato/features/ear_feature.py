@@ -3,6 +3,7 @@ __all__ = ["EARFeature", "EARData"]
 import dataclasses
 from typing import Any, Dict, List
 
+import cv2
 import numpy as np
 import structlog
 from scipy.spatial import distance
@@ -37,6 +38,39 @@ class EARData:
         )
 
     def draw(self, image: np.ndarray) -> np.ndarray:
+        # the dlib landmark points are in the format (x, y)
+        for (x, y) in self.lm_l:
+            cv2.circle(image, (x, y), 1, (0, 0, 255), -1)
+        for (x, y) in self.lm_r:
+            cv2.circle(image, (x, y), 1, (255, 0, 0), -1)
+
+        # draw the eye ratio
+        # horizontal lines
+        cv2.line(
+            image,
+            pt1=(self.lm_l[0, 0], self.lm_l[0, 1]),
+            pt2=(self.lm_l[3, 0], self.lm_l[3, 1]),
+            color=(0, 0, 255),
+            thickness=1,
+            # lineType=cv2.LINE_AA,
+        )
+        cv2.line(
+            image,
+            pt1=(self.lm_r[0, 0], self.lm_r[0, 1]),
+            pt2=(self.lm_r[3, 0], self.lm_r[3, 1]),
+            color=(255, 0, 0),
+            thickness=1,
+            # lineType=cv2.LINE_AA,
+        )
+        # vertical line
+        t = (self.lm_l[1] + self.lm_l[2]) // 2
+        b = (self.lm_l[4] + self.lm_l[5]) // 2
+        cv2.line(image, (t[0], t[1]), (b[0], b[1]), (0, 0, 255), 1)
+
+        t = (self.lm_r[1] + self.lm_r[2]) // 2
+        b = (self.lm_r[4] + self.lm_r[5]) // 2
+        cv2.line(image, (t[0], t[1]), (b[0], b[1]), (255, 0, 0), 1)
+
         return image
 
 
