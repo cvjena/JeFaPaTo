@@ -14,6 +14,7 @@ logger = structlog.get_logger()
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
 mp_face_mesh = mp.solutions.face_mesh
+# mp_norm = mp.solutions.drawing_utils._normalized_to_pixel_coordinates
 
 
 class MediapipeLandmarkExtractor(Extractor):
@@ -21,9 +22,6 @@ class MediapipeLandmarkExtractor(Extractor):
         super().__init__(data_queue=data_queue, data_amount=data_amount)
 
         self.height_resize = 480
-        self.skip_count = 10
-        self.iter = 0
-        self.scale_factor = 0.0
         self.rect = None
 
     def set_skip_count(self, _) -> None:
@@ -31,7 +29,6 @@ class MediapipeLandmarkExtractor(Extractor):
 
     def run(self) -> None:
         # init values
-        # drawing_spec = mp_drawing.DrawingSpec(thickness=1, circle_radius=1)
         processed = 0
 
         with mp_face_mesh.FaceMesh(
@@ -48,6 +45,18 @@ class MediapipeLandmarkExtractor(Extractor):
                 landmarks = np.zeros((478, 2), dtype=np.int32)
 
                 # downscale image?
+                # results = face_mesh.process(image)
+                # bbox = self.detector.process(image)
+                # self.rect = dlib.rectangle(0, 0, 10, 10)
+                # if bbox.detections:
+                #     temp = bbox.detections[0].location_data.relative_bounding_box
+                #     rect_s = mp_norm(temp.xmin, temp.ymin, w, h)
+                #     rect_e = mp_norm(
+                #         temp.xmin + temp.width, temp.ymin + temp.height, w, h
+                #     )
+                #     self.rect = dlib.rectangle(
+                #         rect_s[0], rect_s[1], rect_e[0], rect_e[1]
+                #     )
 
                 results = face_mesh.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
                 self.rect = dlib.rectangle(0, 0, 10, 10)
