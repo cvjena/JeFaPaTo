@@ -476,6 +476,13 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
             df = pd.read_csv(file.as_posix(), sep=",")
             if "dlib_ear_r" in df.columns:
                 return df["dlib_ear_r"], df["dlib_ear_l"]
+            if "mediapipe_ear_r" in df.columns:
+                return df["mediapipe_ear_r"], df["mediapipe_ear_l"]
+
+            logger.error(
+                "File does not contain any supported columns", file=file.as_posix()
+            )
+            return None, None
 
         # if this case is reached, we know that the back was dlib so the renaming
         # with the prefix dlib is no problem at all
