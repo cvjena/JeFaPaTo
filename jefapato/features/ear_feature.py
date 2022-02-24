@@ -4,9 +4,12 @@ import dataclasses
 from typing import Any, Dict, List
 
 import numpy as np
+import structlog
 from scipy.spatial import distance
 
 from .abstract_feature import Feature
+
+logger = structlog.get_logger()
 
 
 @dataclasses.dataclass
@@ -52,12 +55,13 @@ class EARFeature(Feature):
     def __init__(self, backend: str = "dlib") -> None:
         super().__init__()
         self.d_type = EARData
+        self.backend = backend
 
-        if backend == "dlib":
+        if self.backend == "dlib":
             self.index_eye_l: slice = slice(42, 48)
             self.index_eye_r: slice = slice(36, 42)
         else:
-            raise NotImplementedError("Currently only dlib is supported")
+            logger.error("Only dlib backend is supported in EARFeature")
 
     def ear_score(self, eye: np.ndarray) -> float:
         """Compute the EAR Score for eye landmarks
@@ -98,6 +102,8 @@ class EARFeature(Feature):
         EARData
             The computed features with the raw data
         """
+        if self.backend != "dlib":
+            return EARData(np.zeros((5, 2)), np.zeros((5, 2)), 1.0, 1.0, False)
 
         # extract the eye landmarks
         lm_l = in_data[self.index_eye_l]
@@ -117,6 +123,9 @@ class EARFeature(Feature):
         List[str]
             The header for the feature including the valid and all the landmarks
         """
+        if self.backend != "dlib":
+            return [""] * 20 + ["EAR Left", "EAR Right", "EAR Valid"]
+
         dlib_l_x = [
             f"dlib_l_x_{i:02d}"
             for i in range(self.index_eye_l.start, self.index_eye_l.stop)

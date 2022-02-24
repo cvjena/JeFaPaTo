@@ -5,30 +5,48 @@ from typing import Any, List, OrderedDict, Type
 
 import dlib
 import numpy as np
+import structlog
 
 from jefapato import extracting, features
 
 from .abstract_analyser import hookspec
 from .video_analyser import VideoAnalyser
 
+logger = structlog.get_logger()
+
 
 class LandmarkAnalyser(VideoAnalyser):
-    def __init__(self, features: List[Type[features.Feature]], **kwargs) -> None:
-        super().__init__(extractor_c=extracting.LandmarkExtractor)
+    def __init__(self, **kwargs) -> None:
+        super().__init__()
 
-        kwargs["backend"] = kwargs.get("backend", "dlib")
         self.kwargs = kwargs
 
         self.feature_methods = collections.OrderedDict()
         self.feature_data = collections.OrderedDict()
+
+    def set_features(self, features: List[Type[features.Feature]]) -> None:
+        self.feature_methods.clear()
+        self.feature_data.clear()
+
         for feature in features:
-            self.feature_methods[feature.__name__] = feature(**kwargs)
+            self.feature_methods[feature.__name__] = feature(**self.kwargs)
             self.feature_data[feature.__name__] = []
+
+    def set_settings(self, **kwargs) -> None:
+        kwargs["backend"] = kwargs.get("backend", "dlib")
+        self.kwargs = kwargs
 
     def set_skip_count(self, value: int) -> None:
         self.extractor.set_skip_count(value)
 
     def start(self) -> None:
+        # this should be done in a nicer way...
+        if self.kwargs["backend"] == "dlib":
+            self.extractor_c = extracting.LandmarkExtractor
+        else:
+            logger.error("Only dlib backend is supported in LandmarkAnalyser")
+            return
+
         for m_name in self.feature_methods:
             self.feature_data[m_name].clear()
 
@@ -48,7 +66,7 @@ class LandmarkAnalyser(VideoAnalyser):
         face = data[
             face_rect.top() : face_rect.bottom(), face_rect.left() : face_rect.right()
         ]
-        self.pm.hook.updated(image=data, face=face)
+        self.pm.hook.updated_display(image=data, face=face)
 
         temp_data = collections.OrderedDict()
 

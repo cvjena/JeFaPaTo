@@ -1,7 +1,7 @@
 import csv
 import datetime
 from pathlib import Path
-from typing import Any, OrderedDict
+from typing import Any, List, OrderedDict, Type
 
 import numpy as np
 import pyqtgraph as pg
@@ -11,6 +11,13 @@ from qtpy import QtCore, QtWidgets
 from jefapato import analyser, config, features, plotting
 
 logger = structlog.get_logger()
+
+
+class FeatureCheckBox(QtWidgets.QCheckBox):
+    def __init__(self, feature: Type[features.Feature], **kwargs):
+        super().__init__(**kwargs)
+        self.feature = feature
+        self.setText(feature.__name__)
 
 
 class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
@@ -64,24 +71,37 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
         self.skip_faces = QtWidgets.QSpinBox()
         self.skip_frame = QtWidgets.QSpinBox()
 
+        self.feature_group = QtWidgets.QGroupBox("Features")
+        self.feature_layout = QtWidgets.QVBoxLayout()
+        self.feature_group.setLayout(self.feature_layout)
+        self.feature_ear = FeatureCheckBox(features.EARFeature)
+        self.add_handler("feature_ear", self.feature_ear)
+        self.feature_ear.clicked.connect(self.save_conf)
+        self.feature_ear.clicked.connect(self.set_features)
+
+        self.feature_checkboxes = [self.feature_ear]
+
+        self.feature_layout.addWidget(self.feature_ear)
+
         self.vlayout_rs.addLayout(self.flayout_se)
 
         self.flayout_se.addRow(self.bt_open)
         self.flayout_se.addRow(self.bt_anal)
         self.flayout_se.addRow(self.bt_anal_stop)
+        self.flayout_se.addRow(self.feature_group)
         self.flayout_se.addRow("Backend", self.combo_backend)
         self.flayout_se.addRow("Skip Face Detection:", self.skip_faces)
         self.flayout_se.addRow("Skip Frames Display:", self.skip_frame)
         self.flayout_se.addRow(self.pb_anal)
 
-        self.features = [features.EARFeature]
+        self.features: List[Type[features.Feature]] = []
 
-        self.ea = analyser.LandmarkAnalyser(features=self.features)
+        self.ea = analyser.LandmarkAnalyser()
         self.ea.register_hooks(self)
 
         self.bt_open.clicked.connect(self.load_video)
-        self.bt_anal.clicked.connect(self.ea.start)
-        self.bt_anal_stop.clicked.connect(self.ea.stop)
+        self.bt_anal.clicked.connect(self.start)
+        self.bt_anal_stop.clicked.connect(self.stop)
 
         self.skip_faces.setRange(3, 20)
         self.skip_faces.setValue(5)
@@ -98,7 +118,10 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
         self.setStretchFactor(0, 7)
         self.setStretchFactor(1, 3)
 
+        self.set_features()
+
     def setup_graph(self) -> None:
+        logger.info("Setup graph for all features to plot", features=self.features)
         self.widget_graph.clear()
         self.update_count = 0
         for k in self.plot_item:
@@ -112,13 +135,29 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
                 self.plot_item[k] = self.widget_graph.add_curve(**v)
                 self.plot_data[k] = np.zeros(self.chunk_size)
 
+    def set_features(self) -> None:
+        self.features.clear()
+        for c in self.feature_checkboxes:
+            if c.isChecked():
+                self.features.append(c.feature)
+        logger.info("Set features", features=self.features)
+
+    def start(self) -> None:
+        self.setup_graph()
+        self.ea.set_settings(backend=self.get("backend"))
+        self.ea.set_features(self.features)
+        self.ea.start()
+
+    def stop(self) -> None:
+        self.ea.stop()
+
     @analyser.hookimpl
     def started(self):
-        self.setup_graph()
         self.bt_open.setDisabled(True)
         self.bt_anal.setDisabled(True)
         self.bt_anal_stop.setDisabled(False)
         self.cb_anal.setDisabled(True)
+        self.feature_group.setDisabled(True)
 
     @analyser.hookimpl
     def finished(self):
@@ -128,6 +167,7 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
         self.bt_anal.setText("Analyze Video")
         self.bt_anal.setDisabled(False)
         self.bt_anal_stop.setDisabled(True)
+        self.feature_group.setDisabled(False)
 
         self.cb_anal.setDisabled(False)
 

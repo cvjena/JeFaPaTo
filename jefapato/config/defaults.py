@@ -21,6 +21,8 @@ landmarks = {
         "dlib": "dlib",
         "mediapipe": "mediapipe",
     },
+    "features": ["EARFeature"],
+    "feature_ear": True,
 }
 
 DEFAULTS = {

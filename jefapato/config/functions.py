@@ -45,9 +45,7 @@ class Config(pyqtconfig.ConfigManager):
         _to_update = False
         for key in DEFAULTS[self.prefix]:
             if key not in data:
-                logger.warning(
-                    "Key not found in [prefix]. Add it.", key=key, prefix=self.prefix
-                )
+                logger.warning("Key not found. Add it.", key=key, prefix=self.prefix)
                 data[key] = DEFAULTS[self.prefix][key]
                 _to_update = True
 

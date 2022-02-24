@@ -1,6 +1,6 @@
 __all__ = ["VideoAnalyser"]
 
-from typing import Tuple, Type
+from typing import Optional, Tuple, Type
 
 import cv2
 import numpy as np
@@ -11,7 +11,9 @@ from .abstract_analyser import Analyser
 
 
 class VideoAnalyser(Analyser):
-    def __init__(self, extractor_c: Type[extracting.Extractor]) -> None:
+    def __init__(
+        self, extractor_c: Optional[Type[extracting.Extractor]] = None
+    ) -> None:
         super().__init__(
             loader_c=loading.VideoDataLoader,
             extractor_c=extractor_c,
