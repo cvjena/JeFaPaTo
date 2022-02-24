@@ -25,7 +25,7 @@ class LandmarkAnalyser(VideoAnalyser):
             str, features.Feature
         ] = collections.OrderedDict()
         self.feature_data: OrderedDict[
-            str, features.EARData
+            str, features.FeatureData
         ] = collections.OrderedDict()
 
     def set_features(self, features: List[Type[features.Feature]]) -> None:

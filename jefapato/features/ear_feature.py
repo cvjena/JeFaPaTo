@@ -8,13 +8,13 @@ import numpy as np
 import structlog
 from scipy.spatial import distance
 
-from .abstract_feature import Feature
+from .abstract_feature import Feature, FeatureData
 
 logger = structlog.get_logger()
 
 
 @dataclasses.dataclass
-class EARData:
+class EARData(FeatureData):
     """A simple data class to combine the ear score results"""
 
     lm_l: np.ndarray
