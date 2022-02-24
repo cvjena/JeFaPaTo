@@ -3,6 +3,7 @@ __all__ = ["LandmarkAnalyser"]
 import collections
 from typing import Any, List, OrderedDict, Type
 
+import cv2
 import dlib
 import numpy as np
 import structlog
@@ -78,6 +79,13 @@ class LandmarkAnalyser(VideoAnalyser):
         face = image[
             face_rect.top() : face_rect.bottom(), face_rect.left() : face_rect.right()
         ]
+        cv2.rectangle(
+            image,
+            (face_rect.left(), face_rect.top()),
+            (face_rect.right(), face_rect.bottom()),
+            (0, 255, 0),
+            2,
+        )
         self.pm.hook.updated_display(image=image, face=face)
 
     @hookspec
