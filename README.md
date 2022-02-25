@@ -40,7 +40,7 @@ There are two steps: *joined definitions* and *internal definitions*.
   - especially they should define how the data should look, and we build it like that
   - often the naming and which data around the actual data should be specified
   - for the naming of the files, we normally do:
-    - <input_name>\_<data_time:YYYY-MM-DD_HH-SS>\_<extra_modifiers>
+    - input_name\_YYYY-MM-DD_HH-SS\_extra_modifiers
 
 ### Internal definitions:
 
