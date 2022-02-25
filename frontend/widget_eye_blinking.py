@@ -56,9 +56,9 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
         self.addWidget(widget_r)
 
         self.cb_anal = QtWidgets.QCheckBox()
-        self.bt_open = QtWidgets.QPushButton("Open Video File")
-        self.bt_anal = QtWidgets.QPushButton("Analyze Video")
-        self.bt_anal_stop = QtWidgets.QPushButton("Cancel")
+        self.bt_open = QtWidgets.QPushButton("Open Video")
+        self.bt_anal = QtWidgets.QPushButton("Analyze")
+        self.bt_anal_stop = QtWidgets.QPushButton("Stop")
 
         self.bt_reset_graph = QtWidgets.QPushButton("Reset Graph Y-Range")
         self.bt_reset_graph.clicked.connect(lambda: self.widget_graph.setYRange(0, 1))
@@ -96,9 +96,9 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
         self.flayout_se.addRow(self.bt_pause_resume)
         self.flayout_se.addRow(self.bt_anal_stop)
         self.flayout_se.addRow(self.feature_group)
+        self.flayout_se.addRow("Graph Update Delay:", self.skip_frame)
         self.flayout_se.addRow("Backend", self.combo_backend)
-        self.flayout_se.addRow("Skip Face Detection:", self.skip_faces)
-        self.flayout_se.addRow("Skip Frames Display:", self.skip_frame)
+        self.flayout_se.addRow("Face Detection Skip:", self.skip_faces)
         self.flayout_se.addRow(self.pb_anal)
         self.flayout_se.addRow(self.bt_reset_graph)
 
@@ -238,9 +238,9 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
 
             self.ea.set_resource_path(self.video_file_path)
             self.bt_anal.setDisabled(False)
-            self.cb_anal.setDisabled(False)
         else:
             logger.info("Open File Dialog canceled")
+            self.bt_anal.setDisabled(True)
 
     def save_results(self) -> None:
         logger.info("Save Results Dialog", widget=self)
