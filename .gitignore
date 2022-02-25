@@ -13,6 +13,7 @@ Jefapato_Schuhmann
 jd
 config/*.json
 __static__/*
+__exports__/*
 
 # Temporary and binary files
 *~
