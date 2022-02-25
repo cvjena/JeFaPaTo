@@ -76,6 +76,11 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.button_anal = QtWidgets.QPushButton("Analyse")
         self.button_anal.clicked.connect(self._analyse)
 
+        self.button_reset_graph_range = QtWidgets.QPushButton("Reset Graph Y Range")
+        self.button_reset_graph_range.clicked.connect(
+            lambda: self.graph.setYRange(0, 1)
+        )
+
         self.le_th_l = QtWidgets.QLineEdit()
         self.add_handler("threshold_l", self.le_th_l)
         self.le_th_l.setToolTip("Theshold for left eye")
@@ -178,6 +183,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.settings.addRow(self.button_anal)
         self.settings.addRow(self.te_results_g)
         self.settings.addRow(self.progress)
+        self.settings.addRow(self.button_reset_graph_range)
 
         self.ear_l = np.zeros(1000, dtype=np.float32)
         self.ear_r = np.zeros(1000, dtype=np.float32)
