@@ -60,6 +60,9 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
         self.bt_anal = QtWidgets.QPushButton("Analyze Video")
         self.bt_anal_stop = QtWidgets.QPushButton("Cancel")
 
+        self.bt_reset_graph = QtWidgets.QPushButton("Reset Graph Y-Range")
+        self.bt_reset_graph.clicked.connect(lambda: self.widget_graph.setYRange(0, 1))
+
         self.combo_backend = QtWidgets.QComboBox()
         self.combo_backend.addItems(self.get("backend_options").keys())
         self.add_handler(
@@ -93,6 +96,7 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
         self.flayout_se.addRow("Skip Face Detection:", self.skip_faces)
         self.flayout_se.addRow("Skip Frames Display:", self.skip_frame)
         self.flayout_se.addRow(self.pb_anal)
+        self.flayout_se.addRow(self.bt_reset_graph)
 
         self.features: List[Type[features.Feature]] = []
 
