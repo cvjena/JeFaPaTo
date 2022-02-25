@@ -26,13 +26,30 @@ def write_dir_to_zip(zfile: zipfile.ZipFile, dir_path: pathlib.Path) -> None:
             write_dir_to_zip(zfile, child)
 
 
+def write_os_files(zfile: zipfile.ZipFile, root_dir: pathlib.Path, os: str) -> None:
+    """
+    Write the OS files to a zip file.
+
+    :param zfile: Zip file to write to.
+    :param os: OS to write.
+    """
+    logger.info("Writing OS files to zip file", os=os)
+
+    if os == "__windows__":
+        dd = root_dir / "__windows__"
+        for child in dd.iterdir():
+            if child.is_file():
+                logger.info("Writing file to zip file", file_path=child)
+                zfile.write(child.as_posix(), child.name)
+
+
 version = "2022.02.25"
 file_name = f"JeFaPaTo-{version}-Alpha"
 export_dir = pathlib.Path("__exports__")
 export_dir.mkdir(exist_ok=True, parents=True)
 file_dir = export_dir / f"{file_name}.zip"
 jefapato_z = zipfile.ZipFile(file_dir, "w")
-system = "Windows"
+system = "__windows__"
 
 logger.info(
     "Start export of JeFaPaTo",
@@ -61,10 +78,7 @@ jefapato_z.write("main.py")
 logger.info("Write main file to zip file", file_name=file_name)
 
 # add bash scripts
-jefapato_z.write("jefapato_create.bat")
-jefapato_z.write("jefapato_start.bat")
-jefapato_z.write("jefapato_update.bat")
-logger.info("Write bash scripts to zip file", file_name=file_name)
+write_os_files(jefapato_z, export_dir, system)
 
 # add README and LICENSE
 jefapato_z.write("LICENSE.txt")
