@@ -152,7 +152,19 @@ class Analyser(abc.ABC):
     @hookspec
     def started(self):
         """
-        Inform however needs it that the anlysis has started.
+        Inform however needs it that the anlysis was started.
+        """
+
+    @hookspec
+    def paused(self):
+        """
+        Inform however needs it that the anlysis was paused.
+        """
+
+    @hookspec
+    def resumed(self):
+        """
+        Inform however needs it that the anlysis was resumed.
         """
 
     @hookspec

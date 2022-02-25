@@ -39,6 +39,10 @@ class MediapipeLandmarkExtractor(Extractor):
             min_tracking_confidence=0.2,
         ) as face_mesh:
             while processed != self.data_amount and not self.stopped:
+                if self.paused:
+                    self.sleep()
+                    continue
+
                 image = self.data_queue.get()
                 h, w = image.shape[:2]
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)

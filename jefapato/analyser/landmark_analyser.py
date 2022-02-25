@@ -44,6 +44,9 @@ class LandmarkAnalyser(VideoAnalyser):
     def set_skip_count(self, value: int) -> None:
         self.extractor.set_skip_count(value)
 
+    def toggle_pause(self) -> None:
+        self.extractor.toggle_pause()
+
     def start(self) -> None:
         # this should be done in a nicer way...
         if self.kwargs["backend"] == "dlib":
@@ -59,6 +62,8 @@ class LandmarkAnalyser(VideoAnalyser):
 
         self.analysis_setup()
         self.extractor.processingUpdated.connect(self.handle_update)
+        self.extractor.processingPaused.connect(self.pm.hook.paused)
+        self.extractor.processingResumed.connect(self.pm.hook.resumed)
         self.analysis_start()
 
     def handle_update(

@@ -63,6 +63,9 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
         self.bt_reset_graph = QtWidgets.QPushButton("Reset Graph Y-Range")
         self.bt_reset_graph.clicked.connect(lambda: self.widget_graph.setYRange(0, 1))
 
+        self.bt_pause_resume = QtWidgets.QPushButton("Pause")
+        self.bt_pause_resume.setDisabled(True)
+
         self.combo_backend = QtWidgets.QComboBox()
         self.combo_backend.addItems(self.get("backend_options").keys())
         self.add_handler(
@@ -90,6 +93,7 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
 
         self.flayout_se.addRow(self.bt_open)
         self.flayout_se.addRow(self.bt_anal)
+        self.flayout_se.addRow(self.bt_pause_resume)
         self.flayout_se.addRow(self.bt_anal_stop)
         self.flayout_se.addRow(self.feature_group)
         self.flayout_se.addRow("Backend", self.combo_backend)
@@ -106,6 +110,7 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
         self.bt_open.clicked.connect(self.load_video)
         self.bt_anal.clicked.connect(self.start)
         self.bt_anal_stop.clicked.connect(self.stop)
+        self.bt_pause_resume.clicked.connect(self.ea.toggle_pause)
 
         self.skip_faces.setRange(3, 20)
         self.skip_faces.setValue(5)
@@ -163,9 +168,18 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
         self.cb_anal.setDisabled(True)
         self.feature_group.setDisabled(True)
         self.combo_backend.setDisabled(True)
+        self.bt_pause_resume.setDisabled(False)
 
         if self.combo_backend.currentText() == "mediapipe":
             self.skip_faces.setDisabled(True)
+
+    @analyser.hookimpl
+    def paused(self):
+        self.bt_pause_resume.setText("Resume")
+
+    @analyser.hookimpl
+    def resumed(self):
+        self.bt_pause_resume.setText("Pause")
 
     @analyser.hookimpl
     def finished(self):
@@ -178,6 +192,10 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
         self.feature_group.setDisabled(False)
         self.combo_backend.setDisabled(False)
         self.cb_anal.setDisabled(False)
+
+        # reset the pause/resume button
+        self.bt_pause_resume.setDisabled(True)
+        self.bt_pause_resume.setText("Pause")
 
         if self.combo_backend.currentText() == "mediapipe":
             self.skip_faces.setDisabled(False)
