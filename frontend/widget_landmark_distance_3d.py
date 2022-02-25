@@ -18,7 +18,7 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
-from landmark_distances import LandmarkDistance3D
+from jefapato.methods.landmark_distances import LandmarkDistance3D
 
 
 class WidgetLandmarkDistance3D(QWidget):
