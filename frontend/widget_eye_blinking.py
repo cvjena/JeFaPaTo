@@ -160,6 +160,9 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
         self.feature_group.setDisabled(True)
         self.combo_backend.setDisabled(True)
 
+        if self.combo_backend.currentText() == "mediapipe":
+            self.skip_faces.setDisabled(True)
+
     @analyser.hookimpl
     def finished(self):
         self.save_results()
@@ -171,6 +174,9 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
         self.feature_group.setDisabled(False)
         self.combo_backend.setDisabled(False)
         self.cb_anal.setDisabled(False)
+
+        if self.combo_backend.currentText() == "mediapipe":
+            self.skip_faces.setDisabled(False)
 
     @analyser.hookimpl
     def updated_display(self, image: np.ndarray, face: np.ndarray):
