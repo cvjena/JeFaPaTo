@@ -68,8 +68,8 @@ logger.info("Write bash scripts to zip file", file_name=file_name)
 
 # add README and LICENSE
 jefapato_z.write("LICENSE.txt")
-jefapato_z.write("README.md")
-logger.info("Write README and LICENSE to zip file", file_name=file_name)
+# jefapato_z.write("README.md")
+logger.info("Write LICENSE to zip file", file_name=file_name)
 
 jefapato_z.close()
 logger.info("Closed zip file", file_name=file_name)
