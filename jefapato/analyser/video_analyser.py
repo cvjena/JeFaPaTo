@@ -34,23 +34,17 @@ class VideoAnalyser(Analyser):
     def set_data_amount(self):
         self.data_amount = self.resource.get(cv2.CAP_PROP_FRAME_COUNT)
 
-    def reset_data_resource(self):
-        self.set_next_item_by_id(0)
-
     def get_fps(self) -> float:
         return self.resource.get(cv2.CAP_PROP_FPS)
 
-    def set_next_item_by_id(self, value: int):
-        self.resource.set(cv2.CAP_PROP_POS_FRAMES, value)
-
-    def get_item_size_in_bytes(self):
+    def get_item_size_in_bytes(self) -> int:
         width = self.resource.get(cv2.CAP_PROP_FRAME_WIDTH)
         height = self.resource.get(cv2.CAP_PROP_FRAME_HEIGHT)
         channels = 3
         data_size_in_bytes = 1
         return width * height * channels * data_size_in_bytes
 
-    def get_item_size(self):
+    def get_item_size(self) -> Tuple[int, int, int]:
         width = self.resource.get(cv2.CAP_PROP_FRAME_WIDTH)
         height = self.resource.get(cv2.CAP_PROP_FRAME_HEIGHT)
         channels = 3
