@@ -11,7 +11,7 @@ import structlog
 from jefapato import extracting, loading
 
 MAX_RAM_SIZE = 4 << 28  # ~4GB
-logger = structlog.get_logger(__name__)
+logger = structlog.get_logger()
 hookspec = pluggy.HookspecMarker("analyser")
 hookimpl = pluggy.HookimplMarker("analyser")
 
@@ -35,11 +35,10 @@ class Analyser(abc.ABC):
 
     def analysis_setup(self) -> bool:
         if self.resource is None:
+            if self.resource_path is None:
+                logger.error("Resource could not be created!")
+                return False
             self.load_resource()
-
-        if self.resource is None:
-            logger.error("Resource could not be created!")
-            return False
 
         # compute how much RAM space we have
         available_memory = min(psutil.virtual_memory().available, MAX_RAM_SIZE)
@@ -74,6 +73,7 @@ class Analyser(abc.ABC):
 
     def set_resource_path(self, value: Union[int, pathlib.Path]) -> None:
         self.resource_path = value
+        self.load_resource()
 
     def get_resource_path(self) -> Union[pathlib.Path, None]:
         return self.resource_path

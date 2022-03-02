@@ -157,6 +157,15 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
         self.plot_item.clear()
         self.plot_data.clear()
 
+        # compute the x ticks for the graph based on the fps and the chunk size
+        fps = self.ea.get_fps()
+        x_ticks = np.arange(0, self.chunk_size, fps)
+        x_ticks_lab = [str(-(x / fps)) for x in np.flip(x_ticks)]
+
+        x_axis = self.widget_graph.getAxis("bottom")
+        x_axis.setLabel("Time [s]")
+        x_axis.setTicks([[(x, xl) for x, xl in zip(x_ticks, x_ticks_lab)]])
+
         for feature in self.features:
             for k, v in feature.plot_info.items():
                 self.plot_item[k] = self.widget_graph.add_curve(**v)
@@ -170,10 +179,10 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
         logger.info("Set features", features=self.features)
 
     def start(self) -> None:
-        self.setup_graph()
         self.ea.set_settings(backend=self.get("backend"))
         self.ea.set_features(self.features)
         self.ea.start()
+        self.setup_graph()
 
     def stop(self) -> None:
         self.ea.stop()
