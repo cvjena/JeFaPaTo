@@ -8,6 +8,7 @@ import structlog
 from qtpy import QtCore, QtGui, QtWidgets
 
 import frontend
+from frontend import start_up
 
 logger = structlog.get_logger()
 
@@ -32,23 +33,23 @@ class jefapato(QtWidgets.QTabWidget):
         self.tab_eye_blinking_freq = frontend.WidgetEyeBlinkingFreq()
         logger.info("Start Time WidgetEyeBlinkingFreq", time=time.time() - start)
 
-        start = time.time()
-        self.tab_landmark_2d = frontend.WidgetLandmarkDistance2D()
-        logger.info("Start Time WidgetLandmarkDistance2D", time=time.time() - start)
+        # start = time.time()
+        # self.tab_landmark_2d = frontend.WidgetLandmarkDistance2D()
+        # logger.info("Start Time WidgetLandmarkDistance2D", time=time.time() - start)
 
-        start = time.time()
-        self.tab_landmark_3d = frontend.WidgetLandmarkDistance3D()
-        logger.info("Start Time WidgetLandmarkDistance3D", time=time.time() - start)
+        # start = time.time()
+        # self.tab_landmark_3d = frontend.WidgetLandmarkDistance3D()
+        # logger.info("Start Time WidgetLandmarkDistance3D", time=time.time() - start)
 
-        start = time.time()
-        self.tab_emotion_rec = frontend.WidgetEmotionRecognition()
-        logger.info("Start Time WidgetEmotionRecognition", time=time.time() - start)
+        # start = time.time()
+        # self.tab_emotion_rec = frontend.WidgetEmotionRecognition()
+        # logger.info("Start Time WidgetEmotionRecognition", time=time.time() - start)
 
         self.addTab(self.tab_eye_blinking, "Eye Blinking Extraction")
         self.addTab(self.tab_eye_blinking_freq, "Eye Blinking Frequency")
-        self.addTab(self.tab_landmark_2d, "Landmark Analyses 2D")
-        self.addTab(self.tab_landmark_3d, "Landmark Analyses 3D")
-        self.addTab(self.tab_emotion_rec, "Emotion Recognition")
+        # self.addTab(self.tab_landmark_2d, "Landmark Analyses 2D")
+        # self.addTab(self.tab_landmark_3d, "Landmark Analyses 3D")
+        # self.addTab(self.tab_emotion_rec, "Emotion Recognition")
 
         self.setCurrentIndex(0)
 
@@ -63,44 +64,30 @@ class StartUpSplashScreen(QtWidgets.QSplashScreen):
         self.setPixmap(QtGui.QPixmap(path.as_posix()))
         self.setEnabled(False)
 
+    def showMessage(self, message, alignment=QtCore.Qt.AlignHCenter):
+        super().showMessage(message, alignment)
+        self.repaint()
 
-def task_check_dlib_files(splash: StartUpSplashScreen):
-    # check if dlib files are available
-    # wget http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2
-    # bunzip2 shape_predictor_68_face_landmarks.dat.bz2
+    def startup(self):
+        self.show()
+        self.showMessage("Loading...")
+        time.sleep(0.2)
 
-    splash.showMessage("Checking dlib files...", alignment=QtCore.Qt.AlignHCenter)
+        tasks = start_up.start_up_tasks
+        logger.info("Start Up Registered Tasks", tasks=len(tasks))
 
-    static_path = pathlib.Path(__file__).parent / "__static__"
-    file_path = static_path / "shape_predictor_68_face_landmarks.dat"
-    if file_path.exists() and file_path.is_file():
-        splash.showMessage("Dlib files found", alignment=QtCore.Qt.AlignHCenter)
-        time.sleep(0.5)
-        return
+        for task in tasks:
+            logger.info("Start Up Registered Task", task=task.__name__)
+            ret = task(self)
+            if ret is start_up.StartUpState.SUCCESS:
+                logger.info("Start Up Task Success", task=task.__name__)
+                continue
 
-    splash.showMessage("Download dlib files...", alignment=QtCore.Qt.AlignHCenter)
-    logger.info("Downloading dlib shape predictor")
-    # this is the case where we have to download the parameters!
-    import bz2
+            if ret is start_up.StartUpState.FAILURE:
+                logger.error("Start Up Task Failed", task=task.__name__)
+                exit(0)
 
-    import requests
-
-    static_path.mkdir(parents=True, exist_ok=True)
-
-    url = "http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2"
-    res = requests.get(url)
-    res.raise_for_status()
-    logger.info("Downloaded dlib shape predictor")
-    logger.info("Writing dlib shape predictor")
-
-    splash.showMessage(
-        "Writing dlib shape predictor...", alignment=QtCore.Qt.AlignHCenter
-    )
-
-    with open(file_path, "wb") as f:
-        f.write(bz2.decompress(res.content))
-    logger.info("Wrote dlib shape predictor", path=file_path)
-    splash.showMessage("Dlib files written", alignment=QtCore.Qt.AlignHCenter)
+        self.showMessage("Start Up complete...")
 
 
 def main(argv):
@@ -119,14 +106,7 @@ def main(argv):
     )
 
     splash = StartUpSplashScreen()
-    splash.show()
-
-    splash.showMessage("Loading...", alignment=QtCore.Qt.AlignHCenter)
-    time.sleep(0.2)
-
-    task_check_dlib_files(splash)
-
-    splash.showMessage("Starting...", alignment=QtCore.Qt.AlignHCenter)
+    splash.startup()
 
     ex = jefapato()
 
