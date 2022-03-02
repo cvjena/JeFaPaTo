@@ -105,6 +105,9 @@ def task_check_dlib_files(splash: StartUpSplashScreen):
 def main(argv):
     app = QtWidgets.QApplication(argv)
 
+    if hasattr(QtCore.Qt, "AA_UseHighDpiPixmaps"):
+        app.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps)
+
     app.setWindowIcon(
         QtGui.QIcon(
             (pathlib.Path(__file__).parent / "assets" / "icon_256x256.png").as_posix()

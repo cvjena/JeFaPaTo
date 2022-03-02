@@ -5,6 +5,7 @@ from typing import Any, List, OrderedDict, Type
 
 import numpy as np
 import pyqtgraph as pg
+import qtawesome as qta
 import structlog
 from qtpy import QtCore, QtWidgets
 
@@ -56,14 +57,20 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
         self.addWidget(widget_r)
 
         self.cb_anal = QtWidgets.QCheckBox()
-        self.bt_open = QtWidgets.QPushButton("Open Video")
-        self.bt_anal = QtWidgets.QPushButton("Analyze")
-        self.bt_anal_stop = QtWidgets.QPushButton("Stop")
+        self.bt_open = QtWidgets.QPushButton(
+            qta.icon("ph.video-camera-light"), "Open Video"
+        )
+        self.bt_anal = QtWidgets.QPushButton(qta.icon("ph.chart-line-fill"), "Analyze")
+        self.bt_anal_stop = QtWidgets.QPushButton(qta.icon("ph.stop-light"), "Stop")
 
-        self.bt_reset_graph = QtWidgets.QPushButton("Reset Graph Y-Range")
+        self.bt_reset_graph = QtWidgets.QPushButton(
+            qta.icon("msc.refresh"), "Reset Graph Y-Range"
+        )
         self.bt_reset_graph.clicked.connect(lambda: self.widget_graph.setYRange(0, 1))
 
-        self.bt_pause_resume = QtWidgets.QPushButton("Pause")
+        self.bt_pause_resume = QtWidgets.QPushButton(
+            qta.icon("ph.pause-light"), "Pause"
+        )
         self.bt_pause_resume.setDisabled(True)
 
         self.combo_backend = QtWidgets.QComboBox()
@@ -176,10 +183,12 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
     @analyser.hookimpl
     def paused(self):
         self.bt_pause_resume.setText("Resume")
+        self.bt_pause_resume.setIcon(qta.icon("ph.play-light"))
 
     @analyser.hookimpl
     def resumed(self):
         self.bt_pause_resume.setText("Pause")
+        self.bt_pause_resume.setIcon(qta.icon("ph.pause-light"))
 
     @analyser.hookimpl
     def finished(self):
