@@ -1,5 +1,6 @@
 __all__ = ["VideoAnalyser"]
 
+import pathlib
 from typing import Optional, Tuple, Type
 
 import cv2
@@ -11,6 +12,14 @@ from .abstract_analyser import Analyser
 
 
 class VideoAnalyser(Analyser):
+    """
+    An analyser class for video video data in the form of video files
+    and webcam streams.
+
+    Depending on the set resource path, the analyser will load the video
+    data from the file or from the webcam.
+    """
+
     def __init__(
         self, extractor_c: Optional[Type[extracting.Extractor]] = None
     ) -> None:
@@ -20,19 +29,23 @@ class VideoAnalyser(Analyser):
         )
 
     def load_resource(self):
-        self.resource: cv2.VideoCapture = cv2.VideoCapture(
-            self.resource_path.as_posix()
-        )
-        self.set_data_amount()
+        resource_type = self.resource_path
+        if isinstance(resource_type, pathlib.Path):
+            self.resource = cv2.VideoCapture(resource_type.as_posix())
+            self.data_amount = self.resource.get(cv2.CAP_PROP_FRAME_COUNT)
+        # this is the case for a webcam
+        elif isinstance(resource_type, int):
+            self.resource = cv2.VideoCapture(resource_type)
+            self.data_amount = np.inf
+        else:
+            raise ValueError("The resource path must be a pathlib.Path or an int")
 
     def release_resource(self):
         self.resource.release()
+        self.resource = None
 
     def get_next_item(self) -> Tuple[bool, np.ndarray]:
         return self.resource.read()
-
-    def set_data_amount(self):
-        self.data_amount = self.resource.get(cv2.CAP_PROP_FRAME_COUNT)
 
     def get_fps(self) -> float:
         return self.resource.get(cv2.CAP_PROP_FPS)

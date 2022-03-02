@@ -78,9 +78,6 @@ class Analyser(abc.ABC):
     def get_resource_path(self) -> Union[pathlib.Path, None]:
         return self.resource_path
 
-    def get_data_amount(self) -> int:
-        return self.data_amount
-
     def stop(self):
         self.loader.stopped = True
         self.extractor.stopped = True
@@ -101,10 +98,6 @@ class Analyser(abc.ABC):
 
     @abc.abstractmethod
     def get_next_item(self) -> Tuple[bool, Any]:
-        pass
-
-    @abc.abstractmethod
-    def set_data_amount(self):
         pass
 
     @abc.abstractmethod

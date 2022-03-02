@@ -96,12 +96,14 @@ class LandmarkAnalyser(VideoAnalyser):
     @hookspec
     def updated_display(self, image: np.ndarray, face: np.ndarray):
         """
-        Inform however needs it that the anlysis has updated.
+        Trigger a hook that the displaying information was updated.
         """
 
     @hookspec
     def updated_feature(self, feature_data: OrderedDict[str, Any]) -> None:
-        pass
+        """
+        Trigger a hook that the features were updated.
+        """
 
     def get_header(self) -> List[str]:
         header = ["frame"]

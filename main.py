@@ -3,6 +3,7 @@ import sys
 import time
 
 import pyqtgraph as pg
+import qtawesome as qta
 import structlog
 from qtpy import QtCore, QtGui, QtWidgets
 
@@ -104,6 +105,9 @@ def task_check_dlib_files(splash: StartUpSplashScreen):
 
 def main(argv):
     app = QtWidgets.QApplication(argv)
+
+    # qta.dark(app)
+    qta.light(app)
 
     if hasattr(QtCore.Qt, "AA_UseHighDpiPixmaps"):
         app.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps)

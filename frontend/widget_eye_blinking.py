@@ -1,6 +1,6 @@
 import csv
 import datetime
-from pathlib import Path
+import pathlib
 from typing import Any, List, OrderedDict, Type
 
 import numpy as np
@@ -28,7 +28,7 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
         config.Config.__init__(self, prefix="landmarks")
         QtWidgets.QSplitter.__init__(self)
 
-        self.video_file_path: Path = None
+        self.video_file_path: pathlib.Path = None
 
         self.widget_frame = plotting.ImageBox()
         self.widget_face = plotting.ImageBox()
@@ -46,22 +46,28 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
         self.vlayout_display.ci.layout.setRowStretchFactor(0, 2)
         self.vlayout_display.ci.layout.setRowStretchFactor(1, 3)
 
-        widget_r = QtWidgets.QWidget()
+        self.widget_r = QtWidgets.QWidget()
 
         self.vlayout_rs = QtWidgets.QVBoxLayout()
         self.flayout_se = QtWidgets.QFormLayout()
 
-        widget_r.setLayout(self.vlayout_rs)
+        self.widget_r.setLayout(self.vlayout_rs)
 
         self.addWidget(self.vlayout_display)
-        self.addWidget(widget_r)
+        self.addWidget(self.widget_r)
 
         self.cb_anal = QtWidgets.QCheckBox()
-        self.bt_open = QtWidgets.QPushButton(
+        self.button_video_open = QtWidgets.QPushButton(
             qta.icon("ph.video-camera-light"), "Open Video"
         )
-        self.bt_anal = QtWidgets.QPushButton(qta.icon("ph.chart-line-fill"), "Analyze")
-        self.bt_anal_stop = QtWidgets.QPushButton(qta.icon("ph.stop-light"), "Stop")
+        self.button_webcam_open = QtWidgets.QPushButton(
+            qta.icon("mdi.webcam"), "Open Webcam"
+        )
+
+        self.button_start = QtWidgets.QPushButton(
+            qta.icon("ph.chart-line-fill"), "Analyze"
+        )
+        self.button_stop = QtWidgets.QPushButton(qta.icon("ph.stop-light"), "Stop")
 
         self.bt_reset_graph = QtWidgets.QPushButton(
             qta.icon("msc.refresh"), "Reset Graph Y-Range"
@@ -98,10 +104,13 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
 
         self.vlayout_rs.addLayout(self.flayout_se)
 
-        self.flayout_se.addRow(self.bt_open)
-        self.flayout_se.addRow(self.bt_anal)
+        open_l = QtWidgets.QHBoxLayout()
+        open_l.addWidget(self.button_video_open)
+        open_l.addWidget(self.button_webcam_open)
+        self.flayout_se.addRow(open_l)
+        self.flayout_se.addRow(self.button_start)
         self.flayout_se.addRow(self.bt_pause_resume)
-        self.flayout_se.addRow(self.bt_anal_stop)
+        self.flayout_se.addRow(self.button_stop)
         self.flayout_se.addRow(self.feature_group)
         self.flayout_se.addRow("Graph Update Delay:", self.skip_frame)
         self.flayout_se.addRow("Backend", self.combo_backend)
@@ -114,9 +123,11 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
         self.ea = analyser.LandmarkAnalyser()
         self.ea.register_hooks(self)
 
-        self.bt_open.clicked.connect(self.load_video)
-        self.bt_anal.clicked.connect(self.start)
-        self.bt_anal_stop.clicked.connect(self.stop)
+        self.button_video_open.clicked.connect(self.load_video)
+        self.button_webcam_open.clicked.connect(self.load_webcam)
+
+        self.button_start.clicked.connect(self.start)
+        self.button_stop.clicked.connect(self.stop)
         self.bt_pause_resume.clicked.connect(self.ea.toggle_pause)
 
         self.skip_faces.setRange(3, 20)
@@ -127,12 +138,12 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
         self.skip_frame.setValue(5)
 
         # disable analyse button and check box
-        self.bt_anal.setDisabled(True)
+        self.button_start.setDisabled(True)
         self.cb_anal.setDisabled(True)
-        self.bt_anal_stop.setDisabled(True)
+        self.button_stop.setDisabled(True)
 
-        self.setStretchFactor(0, 7)
-        self.setStretchFactor(1, 3)
+        self.setStretchFactor(0, 6)
+        self.setStretchFactor(1, 4)
 
         self.set_features()
 
@@ -169,9 +180,11 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
 
     @analyser.hookimpl
     def started(self):
-        self.bt_open.setDisabled(True)
-        self.bt_anal.setDisabled(True)
-        self.bt_anal_stop.setDisabled(False)
+        self.button_video_open.setDisabled(True)
+        self.button_webcam_open.setDisabled(True)
+
+        self.button_start.setDisabled(True)
+        self.button_stop.setDisabled(False)
         self.cb_anal.setDisabled(True)
         self.feature_group.setDisabled(True)
         self.combo_backend.setDisabled(True)
@@ -194,10 +207,12 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
     def finished(self):
         self.save_results()
 
-        self.bt_open.setDisabled(False)
-        self.bt_anal.setText("Analyze Video")
-        self.bt_anal.setDisabled(False)
-        self.bt_anal_stop.setDisabled(True)
+        self.button_video_open.setDisabled(False)
+        self.button_webcam_open.setDisabled(False)
+
+        self.button_start.setText("Analyze Video")
+        self.button_start.setDisabled(False)
+        self.button_stop.setDisabled(True)
         self.feature_group.setDisabled(False)
         self.combo_backend.setDisabled(False)
         self.cb_anal.setDisabled(False)
@@ -243,20 +258,41 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
 
         if fileName != "":
             logger.info("Video file selected", file_name=fileName)
-            self.video_file_path = Path(fileName)
+            self.video_file_path = pathlib.Path(fileName)
 
             self.ea.set_resource_path(self.video_file_path)
-            self.bt_anal.setDisabled(False)
+            self.button_start.setDisabled(False)
+
+            self.load_cleanup()
         else:
             logger.info("Open File Dialog canceled")
-            self.bt_anal.setDisabled(True)
+            self.button_start.setDisabled(True)
+
+    def load_webcam(self):
+        logger.info("Open Webcam", widget=self)
+        self.video_file_path = None
+        self.ea.set_resource_path(0)
+        self.button_start.setDisabled(False)
+        self.skip_frame.setValue(1)
+        self.load_cleanup()
+        self.start()
+
+    def load_cleanup(self) -> None:
+        self.widget_frame.set_image(np.ones((100, 100, 3), dtype=np.uint8) * 255)
+        self.widget_face.set_image(np.ones((100, 100, 3), dtype=np.uint8) * 255)
 
     def save_results(self) -> None:
         logger.info("Save Results Dialog", widget=self)
         ts = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        result_path = self.video_file_path.parent / (
-            self.video_file_path.stem + f"_{ts}.csv"
-        )
+
+        if self.video_file_path is not None:
+            parent = self.video_file_path.parent
+            file_name = self.video_file_path.stem
+        else:
+            parent = pathlib.Path.home()
+            file_name = "jefapato_webcam"
+
+        result_path = parent / (file_name + f"_{ts}.csv")
 
         with open(result_path, "w", newline="") as csvfile:
             writer = csv.writer(csvfile)
