@@ -70,7 +70,6 @@ class StartUpSplashScreen(QtWidgets.QSplashScreen):
     def startup(self, app: QtWidgets.QApplication):
         self.show()
         self.showMessage("Loading...")
-        time.sleep(0.2)
 
         tasks = start_up.start_up_tasks
         logger.info("Start Up Registered Tasks", tasks=len(tasks))
