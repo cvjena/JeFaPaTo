@@ -38,8 +38,8 @@ class VideoAnalyser(Analyser):
             self.resource = cv2.VideoCapture(resource_type)
             # self.resource.set(cv2.CAP_PROP_FPS, 30)
             # TODO make this configurable
-            # self.resource.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)  # 1280
-            # self.resource.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)  # 720
+            self.resource.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)  # 1280
+            self.resource.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)  # 720
             self.data_amount = np.inf
         else:
             raise ValueError("The resource path must be a pathlib.Path or an int")

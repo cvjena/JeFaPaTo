@@ -159,12 +159,18 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
 
         # compute the x ticks for the graph based on the fps and the chunk size
         fps = self.ea.get_fps()
+        logger.info("Video fps:", fps=fps)
         x_ticks = np.arange(0, self.chunk_size, fps)
         x_ticks_lab = [str(-(x / fps)) for x in np.flip(x_ticks)]
 
         x_axis = self.widget_graph.getAxis("bottom")
-        x_axis.setLabel("Time [s]")
-        x_axis.setTicks([[(x, xl) for x, xl in zip(x_ticks, x_ticks_lab)]])
+        x_axis.setLabel("Internal Video Time [s]")
+        x_axis.setTicks(
+            [
+                [(x, xl) for x, xl in zip(x_ticks[::10], x_ticks_lab[::10])],
+                [(x, xl) for x, xl in zip(x_ticks, x_ticks_lab)],
+            ]
+        )
 
         for feature in self.features:
             for k, v in feature.plot_info.items():
@@ -179,10 +185,11 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
         logger.info("Set features", features=self.features)
 
     def start(self) -> None:
+        self.ea.set_resource_path(self.video_file_path or 0)
+        self.setup_graph()
         self.ea.set_settings(backend=self.get("backend"))
         self.ea.set_features(self.features)
         self.ea.start()
-        self.setup_graph()
 
     def stop(self) -> None:
         self.ea.stop()
@@ -269,7 +276,6 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
             logger.info("Video file selected", file_name=fileName)
             self.video_file_path = pathlib.Path(fileName)
 
-            self.ea.set_resource_path(self.video_file_path)
             self.button_start.setDisabled(False)
 
             self.load_cleanup()
@@ -280,7 +286,6 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
     def load_webcam(self):
         logger.info("Open Webcam", widget=self)
         self.video_file_path = None
-        self.ea.set_resource_path(0)
         self.button_start.setDisabled(False)
         self.skip_frame.setValue(1)
         self.load_cleanup()
@@ -289,6 +294,7 @@ class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
     def load_cleanup(self) -> None:
         self.widget_frame.set_image(np.ones((100, 100, 3), dtype=np.uint8) * 255)
         self.widget_face.set_image(np.ones((100, 100, 3), dtype=np.uint8) * 255)
+        self.widget_graph.clear()
 
     def save_results(self) -> None:
         logger.info("Save Results Dialog", widget=self)
