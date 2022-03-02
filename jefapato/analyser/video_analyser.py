@@ -38,8 +38,10 @@ class VideoAnalyser(Analyser):
             self.resource = cv2.VideoCapture(resource_type)
             # self.resource.set(cv2.CAP_PROP_FPS, 30)
             # TODO make this configurable
-            self.resource.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)  # 1280
-            self.resource.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)  # 720
+            # with v4l2-ctl --list-formats-ext one chan check if the format is supported
+            self.resource.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
+            self.resource.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)  # 1280
+            self.resource.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)  # 720
             self.data_amount = np.inf
         else:
             raise ValueError("The resource path must be a pathlib.Path or an int")
