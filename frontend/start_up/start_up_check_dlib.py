@@ -5,7 +5,7 @@ from qtpy import QtWidgets
 from .enum_state import StartUpState
 
 
-def start_up_check_dlib(splash_screen: QtWidgets.QSplashScreen) -> StartUpState:
+def start_up_check_dlib(splash_screen: QtWidgets.QSplashScreen, **_) -> StartUpState:
     # check if dlib files are available
     # wget http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2
     # bunzip2 shape_predictor_68_face_landmarks.dat.bz2

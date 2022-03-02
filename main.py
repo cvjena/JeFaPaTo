@@ -3,7 +3,6 @@ import sys
 import time
 
 import pyqtgraph as pg
-import qtawesome as qta
 import structlog
 from qtpy import QtCore, QtGui, QtWidgets
 
@@ -68,7 +67,7 @@ class StartUpSplashScreen(QtWidgets.QSplashScreen):
         super().showMessage(message, alignment)
         self.repaint()
 
-    def startup(self):
+    def startup(self, app: QtWidgets.QApplication):
         self.show()
         self.showMessage("Loading...")
         time.sleep(0.2)
@@ -78,7 +77,7 @@ class StartUpSplashScreen(QtWidgets.QSplashScreen):
 
         for task in tasks:
             logger.info("Start Up Registered Task", task=task.__name__)
-            ret = task(self)
+            ret = task(self, app=app)
             if ret is start_up.StartUpState.SUCCESS:
                 logger.info("Start Up Task Success", task=task.__name__)
                 continue
@@ -93,20 +92,8 @@ class StartUpSplashScreen(QtWidgets.QSplashScreen):
 def main(argv):
     app = QtWidgets.QApplication(argv)
 
-    # qta.dark(app)
-    qta.light(app)
-
-    if hasattr(QtCore.Qt, "AA_UseHighDpiPixmaps"):
-        app.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps)
-
-    app.setWindowIcon(
-        QtGui.QIcon(
-            (pathlib.Path(__file__).parent / "assets" / "icon_256x256.png").as_posix()
-        )
-    )
-
     splash = StartUpSplashScreen()
-    splash.startup()
+    splash.startup(app)
 
     ex = jefapato()
 
