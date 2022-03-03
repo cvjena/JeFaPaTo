@@ -1,5 +1,6 @@
 import pathlib
 
+import pyqtgraph as pg
 import qtawesome as qta
 from qtpy import QtGui, QtWidgets
 
@@ -22,6 +23,9 @@ def start_up_appliciation_theme(
             ).as_posix()
         )
     )
+
+    # even though it is pyqtgraph we it is part of the theme :^)
+    pg.setConfigOption(opt="background", value=pg.mkColor(255, 255, 255))
 
     splash_screen.showMessage("Application theme set...")
     return StartUpState.SUCCESS

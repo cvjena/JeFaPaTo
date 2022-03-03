@@ -2,7 +2,6 @@ import pathlib
 import sys
 import time
 
-import pyqtgraph as pg
 import structlog
 from qtpy import QtCore, QtGui, QtWidgets
 
@@ -17,10 +16,6 @@ class jefapato(QtWidgets.QTabWidget):
         super(jefapato, self).__init__(parent)
         self.setWindowTitle("JeFaPaTo - Jena Facial Palsy Tool")
         self.showMaximized()
-
-        # the images to be in a different orientation
-        pg.setConfigOption(opt="imageAxisOrder", value="row-major")
-        pg.setConfigOption(opt="background", value=pg.mkColor(255, 255, 255))
 
         self.VERSION = "2021.10.22"
 
