@@ -16,6 +16,7 @@ class jefapato(QtWidgets.QTabWidget):
         super(jefapato, self).__init__(parent)
         self.setWindowTitle("JeFaPaTo - Jena Facial Palsy Tool")
         self.showMaximized()
+        self.setMinimumSize(800, 600)
 
         self.VERSION = "2021.10.22"
 
