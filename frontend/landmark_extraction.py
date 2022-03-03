@@ -1,3 +1,5 @@
+__all__ = ["LandmarkExtraction"]
+
 import csv
 import datetime
 import pathlib
@@ -21,7 +23,7 @@ class FeatureCheckBox(QtWidgets.QCheckBox):
         self.setText(feature.__name__)
 
 
-class WidgetEyeBlinking(QtWidgets.QSplitter, config.Config):
+class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
     updated = QtCore.Signal(int)
 
     def __init__(self):

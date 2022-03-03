@@ -25,8 +25,8 @@ class jefapato(QtWidgets.QTabWidget):
         self.VERSION = "2021.10.22"
 
         start = time.time()
-        self.tab_eye_blinking = frontend.WidgetEyeBlinking()
-        logger.info("Start Time WidgetEyeBlinking", time=time.time() - start)
+        self.tab_eye_blinking = frontend.LandmarkExtraction()
+        logger.info("Start Time LandmarkExtraction", time=time.time() - start)
 
         start = time.time()
         self.tab_eye_blinking_freq = frontend.WidgetEyeBlinkingFreq()
