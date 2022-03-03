@@ -11,13 +11,17 @@ from frontend import start_up
 logger = structlog.get_logger()
 
 
-class jefapato(QtWidgets.QTabWidget):
-    def __init__(self, parent=None):
-        super(jefapato, self).__init__(parent)
+class JeFaPaTo(QtWidgets.QMainWindow):
+    def __init__(self):
+        super().__init__()
         self.setWindowTitle("JeFaPaTo - Jena Facial Palsy Tool")
         self.showMaximized()
         self.setMinimumSize(800, 600)
 
+        self.central_widget = QtWidgets.QTabWidget()
+        self.setCentralWidget(self.central_widget)
+
+        # TODO: move to start_up and somehow make it easiert to be loaded
         self.VERSION = "2021.10.22"
 
         start = time.time()
@@ -40,13 +44,13 @@ class jefapato(QtWidgets.QTabWidget):
         # self.tab_emotion_rec = frontend.WidgetEmotionRecognition()
         # logger.info("Start Time WidgetEmotionRecognition", time=time.time() - start)
 
-        self.addTab(self.tab_eye_blinking, "Eye Blinking Extraction")
-        self.addTab(self.tab_eye_blinking_freq, "Eye Blinking Frequency")
+        self.central_widget.addTab(self.tab_eye_blinking, "Landmark Extraction")
+        self.central_widget.addTab(self.tab_eye_blinking_freq, "Eye Blinking Frequency")
         # self.addTab(self.tab_landmark_2d, "Landmark Analyses 2D")
         # self.addTab(self.tab_landmark_3d, "Landmark Analyses 3D")
         # self.addTab(self.tab_emotion_rec, "Emotion Recognition")
 
-        self.setCurrentIndex(0)
+        self.central_widget.setCurrentIndex(0)
 
 
 class StartUpSplashScreen(QtWidgets.QSplashScreen):
@@ -69,7 +73,7 @@ class StartUpSplashScreen(QtWidgets.QSplashScreen):
 
         tasks = start_up.start_up_tasks
         logger.info("Start Up Registered Tasks", tasks=len(tasks))
-
+        start = time.time()
         for task in tasks:
             logger.info("Start Up Registered Task", task=task.__name__)
             ret = task(self, app=app)
@@ -82,6 +86,7 @@ class StartUpSplashScreen(QtWidgets.QSplashScreen):
                 exit(0)
 
         self.showMessage("Start Up complete...")
+        logger.info("Start Up Complete", time=time.time() - start)
 
 
 def main(argv):
@@ -90,7 +95,7 @@ def main(argv):
     splash = StartUpSplashScreen()
     splash.startup(app)
 
-    ex = jefapato()
+    ex = JeFaPaTo()
 
     logger.info("Start JeFaPaTo", version=ex.VERSION)
 
