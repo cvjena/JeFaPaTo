@@ -320,3 +320,8 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
             writer.writerows(self.ea)
 
         logger.info("Results saved", file_name=result_path)
+
+    def shut_down(self) -> None:
+        logger.info("Shutdown", state="starting", widget=self)
+        self.stop()
+        logger.info("Shutdown", state="finished", widget=self)

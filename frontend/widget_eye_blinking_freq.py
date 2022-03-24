@@ -539,3 +539,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         self.graph.setLimits(xMin=0, xMax=len(data_l))
         self.graph.setXRange(0, len(self.ear_l))
+
+    def shut_down(self) -> None:
+        # this widget doesn't have any shut down requirements
+        return

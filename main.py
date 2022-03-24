@@ -52,6 +52,19 @@ class JeFaPaTo(QtWidgets.QMainWindow):
 
         self.central_widget.setCurrentIndex(0)
 
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        logger.info("Close Event Detected", widget=self)
+        logger.info("Shut Down Processes in each Tab")
+
+        self.tab_eye_blinking.shut_down()
+        self.tab_eye_blinking_freq.shut_down()
+        # self.tab_landmark_2d.shut_down()
+        # self.tab_landmark_3d.shut_down()
+        # self.tab_emotion_rec.shut_down()
+
+        logger.info("Internal Shut Down complete", widget=self)
+        super().closeEvent(event)
+
 
 class StartUpSplashScreen(QtWidgets.QSplashScreen):
     def __init__(self, *args, **kwargs):
