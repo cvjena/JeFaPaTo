@@ -43,7 +43,7 @@ def write_os_files(zfile: zipfile.ZipFile, root_dir: pathlib.Path, os: str) -> N
                 zfile.write(child.as_posix(), child.name)
 
 
-version = "2022.02.25"
+version = "2022.03.24"
 file_name = f"JeFaPaTo-{version}-Alpha"
 export_dir = pathlib.Path("__exports__")
 export_dir.mkdir(exist_ok=True, parents=True)
@@ -70,8 +70,8 @@ write_dir_to_zip(jefapato_z, pathlib.Path("jefapato"))
 write_dir_to_zip(jefapato_z, pathlib.Path("ui"))
 
 # add environment
-jefapato_z.write("env.yml")
-logger.info("Writing environment to zip file", file_name=file_name)
+jefapato_z.write("requirements.txt")
+logger.info("Writing requirements zip file", file_name=file_name)
 
 # add main file
 jefapato_z.write("main.py")
