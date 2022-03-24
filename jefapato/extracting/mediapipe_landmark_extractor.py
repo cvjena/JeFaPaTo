@@ -30,6 +30,7 @@ class MediapipeLandmarkExtractor(Extractor):
     def run(self) -> None:
         # init values
         processed = 0
+        logger.info("Extractor Thread", state="starting", type="mediapipe", object=self)
 
         with mp_face_mesh.FaceMesh(
             static_image_mode=False,
@@ -38,7 +39,13 @@ class MediapipeLandmarkExtractor(Extractor):
             min_detection_confidence=0.2,
             min_tracking_confidence=0.2,
         ) as face_mesh:
-            while processed != self.data_amount and not self.stopped:
+            while True:
+                if processed == self.data_amount:
+                    break
+
+                if self.stopped:
+                    break
+
                 if self.paused:
                     self.sleep()
                     continue
@@ -82,4 +89,4 @@ class MediapipeLandmarkExtractor(Extractor):
                 self.processedPercentage.emit(perc)
 
         self.processingFinished.emit()
-        logger.info("LandmarkExtractor finished", extractor=self)
+        logger.info("Extractor Thread", state="finished", type="mediapipe", object=self)

@@ -26,6 +26,9 @@ class Analyser(abc.ABC):
         self.loader_c = loader_c
         self.extractor_c = extractor_c
 
+        self.loader = None
+        self.extractor = None
+
         self.resource: Any = None
         self.resource_path: Union[pathlib.Path, int] = None
         self.data_amount: int = 0
@@ -79,8 +82,15 @@ class Analyser(abc.ABC):
         return self.resource_path
 
     def stop(self):
-        self.loader.stopped = True
-        self.extractor.stopped = True
+        # TODO create a stop function for the loader and extractor
+        #      and don't use the variables directly...
+        if self.loader is not None:
+            self.loader.stopped = True
+            self.loader.join()
+        if self.extractor is not None:
+            self.extractor.stopped = True
+            # self.extractor.terminate()
+            self.extractor.wait()
 
     def reset(self):
         self.features = list()

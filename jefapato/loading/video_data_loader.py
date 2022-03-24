@@ -17,6 +17,7 @@ class VideoDataLoader(DataLoader):
         super().__init__(next_item_func, queue_maxsize=queue_maxsize)
 
     def run(self):
+        logger.info("Loader Thread", state="starting", object=self)
         grabbed: bool = True
         while grabbed:
             if self.stopped:
@@ -34,5 +35,4 @@ class VideoDataLoader(DataLoader):
                 # the main thread somehow
                 time.sleep(0.1)
 
-        self.stopped = True
-        logger.info("Stopped loader thread.", loader=self)
+        logger.info("Loader Thread", state="finished", object=self)
