@@ -272,6 +272,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
             "Select video file",
             ".",
             "Video Files (*.mp4 *.flv *.ts *.mts *.avi *.mov)",
+            options=QtWidgets.QFileDialog.DontUseNativeDialog,
         )
 
         if fileName != "":
