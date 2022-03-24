@@ -1,0 +1,24 @@
+# image processing libs
+numpy~=1.20
+dlib~=19.23
+opencv-python~=4.5
+mediapipe~=0.8
+
+# general scientific libs
+scipy~=1.8
+pandas~=1.4
+
+# gui libs
+qtpy~=2.0
+qtawesome~=1.1
+PyQt5==5.12.3
+pyqtgraph~=0.12
+pyqtconfig~=0.9
+
+# logging and utils
+pluggy~=1.0
+tabulate~=0.8
+requests~=2.27
+structlog~=21.5
+rich~=12.0
+psutil~=5.8
