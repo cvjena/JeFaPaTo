@@ -167,6 +167,10 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.progress = QtWidgets.QProgressBar()
         self.progress.setRange(0, 100)
 
+        self.checkbox_as_time = QtWidgets.QCheckBox()
+        self.checkbox_as_time.setChecked(True)
+        self.checkbox_as_time.toggled.connect(self.compute_graph_axis)
+
         self.settings.addRow(self.button_load)
         self.settings.addRow("Threshold Left:", self.le_th_l)
         self.settings.addRow("Threshold Right", self.le_th_r)
@@ -186,6 +190,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.settings.addRow(self.te_results_g)
         self.settings.addRow(self.progress)
         self.settings.addRow(self.button_reset_graph_range)
+        self.settings.addRow("X-Axis As Time:", self.checkbox_as_time)
 
         self.ear_l = np.zeros(1000, dtype=np.float32)
         self.ear_r = np.zeros(1000, dtype=np.float32)
@@ -210,23 +215,37 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
     def compute_graph_axis(self) -> None:
         logger.info("Compute graph x-axis")
         self.graph.getAxis("left").setLabel("EAR Score")
+
         x_axis = self.graph.getAxis("bottom")
+        if self.checkbox_as_time.isChecked():
+            x_axis.setLabel("Time (MM:SS)")
+            try:
+                # this exception occurs when the user enters nothing or a non-number
+                fps = int(self.config.get("fps"))
+            except ValueError:
+                fps = 30
+            x_ticks = np.arange(0, self.x_lim_max, fps)
+            x_ticks_lab = [str(self.to_MM_SS(x // fps)) for x in x_ticks]
 
-        try:
-            # this exception occurs when the user enters nothing or a non-number
-            fps = int(self.config.get("fps"))
-        except ValueError:
-            fps = 30
-        x_ticks = np.arange(0, self.x_lim_max, fps)
-        x_ticks_lab = [str(self.to_MM_SS(x // fps)) for x in x_ticks]
+            # TODO add some miliseconds to the ticks
+            x_axis.setTicks(
+                [
+                    [(x, xl) for x, xl in zip(x_ticks[::10], x_ticks_lab[::10])],
+                    [(x, xl) for x, xl in zip(x_ticks, x_ticks_lab)],
+                ]
+            )
 
-        x_axis.setLabel("Time (MM:SS)")
-        x_axis.setTicks(
-            [
-                [(x, xl) for x, xl in zip(x_ticks[::10], x_ticks_lab[::10])],
-                [(x, xl) for x, xl in zip(x_ticks, x_ticks_lab)],
-            ]
-        )
+        else:
+            x_ticks = np.arange(0, self.x_lim_max, 1)
+            x_ticks_lab = [str(x) for x in x_ticks]
+
+            x_axis.setTicks(
+                [
+                    [(x, xl) for x, xl in zip(x_ticks[::1000], x_ticks_lab[::1000])],
+                    [(x, xl) for x, xl in zip(x_ticks[::100], x_ticks_lab[::100])],
+                    [(x, xl) for x, xl in zip(x_ticks[::10], x_ticks_lab[:10])],
+                ]
+            )
 
     def _analyse(self) -> None:
         if self.file is None:
