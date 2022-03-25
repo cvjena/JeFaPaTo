@@ -1,5 +1,4 @@
 import pathlib
-from typing import Tuple
 
 import numpy as np
 import pandas as pd
@@ -27,9 +26,12 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         self.result_text: str = ""
 
+        self.x_lim_max = 1000
+
         self.top_splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal, parent=self)
         self.graph_layout = pg.GraphicsLayoutWidget(parent=self)
-        self.graph = plotting.WidgetGraph()
+        self.graph = plotting.WidgetGraph(x_lim_max=self.x_lim_max)
+
         self.graph.getViewBox().enableAutoRange(enable=False)
         self.graph.setYRange(0, 1)
         self.graph_layout.addItem(self.graph)
@@ -198,6 +200,33 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.file = None
 
         logger.info("Initialized EyeBlinkingFreq widget")
+
+        self.le_fps.textChanged.connect(self.compute_graph_axis)
+        self.compute_graph_axis()
+
+    def to_MM_SS(self, value):
+        return f"{int(value / 60):02d}:{int(value % 60):02d}"
+
+    def compute_graph_axis(self) -> None:
+        logger.info("Compute graph x-axis")
+        self.graph.getAxis("left").setLabel("EAR Score")
+        x_axis = self.graph.getAxis("bottom")
+
+        try:
+            # this exception occurs when the user enters nothing or a non-number
+            fps = int(self.config.get("fps"))
+        except ValueError:
+            fps = 30
+        x_ticks = np.arange(0, self.x_lim_max, fps)
+        x_ticks_lab = [str(self.to_MM_SS(x // fps)) for x in x_ticks]
+
+        x_axis.setLabel("Time (MM:SS)")
+        x_axis.setTicks(
+            [
+                [(x, xl) for x, xl in zip(x_ticks[::10], x_ticks_lab[::10])],
+                [(x, xl) for x, xl in zip(x_ticks, x_ticks_lab)],
+            ]
+        )
 
     def _analyse(self) -> None:
         if self.file is None:
@@ -467,11 +496,14 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.plot_peaks_r.clear()
 
         self.te_results_g.setText("")
+
+        self.x_lim_max = len(self.ear_l)
+        self.compute_graph_axis()
         self.progress.setValue(100)
 
     def __handle_legacy_files(
         self, file: pathlib.Path
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         logger.info("Check if file is legacy format", file=file.as_posix())
 
         df = pd.read_csv(file.as_posix(), sep=";")
