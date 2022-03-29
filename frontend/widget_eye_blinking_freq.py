@@ -16,11 +16,11 @@ logger = structlog.get_logger()
 
 class CollapsibleBox(QtWidgets.QWidget):
     # https://stackoverflow.com/questions/52615115/how-to-create-collapsible-box-in-pyqt/52617714#52617714
-    def __init__(self, title="", parent=None, expanded=True):
+    def __init__(self, title="", parent=None):
         super(CollapsibleBox, self).__init__(parent)
 
         self.toggle_button = QtWidgets.QToolButton(
-            text=title, checkable=True, checked=expanded
+            text=title, checkable=True, checked=False
         )
         self.toggle_button.setStyleSheet("QToolButton { border: none; }")
         self.toggle_button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
@@ -50,8 +50,6 @@ class CollapsibleBox(QtWidgets.QWidget):
         self.toggle_animation.addAnimation(
             QtCore.QPropertyAnimation(self.content_area, b"maximumHeight")
         )
-        if expanded:
-            self.toggle_animation.start()
 
     @QtCore.Slot()
     def on_pressed(self):
@@ -244,8 +242,6 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         set_algo.addRow(box_smooth)
 
-        self.box_settings.setContentLayout(set_algo)
-
         self.box_visuals = CollapsibleBox("Visual Settings")
         set_visuals = QtWidgets.QFormLayout()
 
@@ -268,7 +264,10 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         set_visuals.addRow("Draw Width/Height", draw_width_height)
         set_visuals.addRow(button_reset_graph_range)
 
+        self.box_settings.setContentLayout(set_algo)
         self.box_visuals.setContentLayout(set_visuals)
+        self.box_settings.toggle_button.click()
+        self.box_visuals.toggle_button.click()
 
         # add all things to the settings layout
         self.layout_settings.addWidget(self.btn_load, 0, 0, 1, 2)
