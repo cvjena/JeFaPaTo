@@ -3,6 +3,7 @@ import pathlib
 import numpy as np
 import pandas as pd
 import pyqtgraph as pg
+import qtawesome as qta
 import structlog
 from qtpy import QtCore, QtGui, QtWidgets
 from tabulate import tabulate
@@ -170,15 +171,17 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         # Create the specific widgets for the settings layout
         # algorithm specific settings
-        self.button_load = QtWidgets.QPushButton("Open CSV File")
-        self.button_anal = QtWidgets.QPushButton("Analyse Eye Blink")
-        self.button_export = QtWidgets.QPushButton("Export Results")
+        self.btn_load = QtWidgets.QPushButton(
+            qta.icon("ph.folder-open-light"), "Open CSV File"
+        )
+        self.btn_anal = QtWidgets.QPushButton(qta.icon("ph.chart-line-fill"), "Analyse")
+        self.btn_eprt = QtWidgets.QPushButton(qta.icon("ph.export-light"), "Export")
 
         self.progress = QtWidgets.QProgressBar()
         self.progress.setRange(0, 100)
 
-        self.button_load.clicked.connect(self._load_csv)
-        self.button_anal.clicked.connect(self._analyse)
+        self.btn_load.clicked.connect(self._load_csv)
+        self.btn_anal.clicked.connect(self._analyse)
         # self.button_export.clicked.connect(self._export_results)
 
         # algorithm settings box
@@ -249,7 +252,9 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         checkbox_as_time = QtWidgets.QCheckBox()
         draw_width_height = QtWidgets.QCheckBox()
-        button_reset_graph_range = QtWidgets.QPushButton("Reset Graph Y Range")
+        button_reset_graph_range = QtWidgets.QPushButton(
+            qta.icon("msc.refresh"), "Reset Graph Y Range"
+        )
 
         self.add_handler("as_time", checkbox_as_time)
         self.add_handler("draw_width_height", draw_width_height)
@@ -267,9 +272,9 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.box_visuals.setContentLayout(set_visuals)
 
         # add all things to the settings layout
-        self.layout_settings.addWidget(self.button_load, 0, 0, 1, 2)
-        self.layout_settings.addWidget(self.button_anal, 1, 0, 1, 1)
-        self.layout_settings.addWidget(self.button_export, 1, 1, 1, 1)
+        self.layout_settings.addWidget(self.btn_load, 0, 0, 1, 2)
+        self.layout_settings.addWidget(self.btn_anal, 1, 0, 1, 1)
+        self.layout_settings.addWidget(self.btn_eprt, 1, 1, 1, 1)
         self.layout_settings.addWidget(self.progress, 2, 0, 1, 2)
         self.layout_settings.addWidget(self.box_settings, 3, 0, 1, 2)
         self.layout_settings.addWidget(self.box_visuals, 4, 0, 1, 2)
