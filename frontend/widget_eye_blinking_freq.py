@@ -179,7 +179,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         self.btn_load.clicked.connect(self._load_csv)
         self.btn_anal.clicked.connect(self._analyse)
-        # self.button_export.clicked.connect(self._export_results)
+        self.btn_eprt.clicked.connect(self.save_results)
 
         # algorithm settings box
         self.box_settings = CollapsibleBox("Algorithm Settings")
@@ -289,6 +289,9 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         self.plot_peaks_l = self.graph.add_scatter()
         self.plot_peaks_r = self.graph.add_scatter()
+
+        self.blinking_l = pd.DataFrame()
+        self.blinking_r = pd.DataFrame()
 
         self.lines = list()
         self.file = None
@@ -499,10 +502,15 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         self.fill_tables(blinking_l, blinking_r)
 
-        self.save_results(blinking_l, blinking_r)
+        self.blinking_l = blinking_l
+        self.blinking_r = blinking_r
 
-    def save_results(self, blinking_l: pd.DataFrame, blinking_r: pd.DataFrame) -> None:
+    def save_results(self) -> None:
+        if self.file is None:
+            return
+
         file_info = self.file.parent / (self.file.stem + "_blinking_info.txt")
+        logger.info("Saving blinking results", file=file_info)
 
         with open(file_info, "w") as f:
             f.write(self.result_text)
@@ -510,8 +518,10 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         file_blinking_l = self.file.parent / (self.file.stem + "_blinking_l.csv")
         file_blinking_r = self.file.parent / (self.file.stem + "_blinking_r.csv")
 
-        blinking_l.to_csv(file_blinking_l)
-        blinking_r.to_csv(file_blinking_r)
+        self.blinking_l.to_csv(file_blinking_l)
+        self.blinking_r.to_csv(file_blinking_r)
+
+        logger.info("Saving bliking finished")
 
     def fill_tables(self, blinking_l: pd.DataFrame, blinking_r: pd.DataFrame) -> None:
         self.model_l.clear()
