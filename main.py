@@ -21,15 +21,17 @@ class JeFaPaTo(QtWidgets.QMainWindow):
         self.central_widget = QtWidgets.QTabWidget()
         self.setCentralWidget(self.central_widget)
 
+        self.progress_bar = QtWidgets.QProgressBar()
+
         # TODO: move to start_up and somehow make it easiert to be loaded
         self.VERSION = "2021.10.22"
 
         start = time.time()
-        self.tab_eye_blinking = frontend.LandmarkExtraction()
+        self.tab_eye_blinking = frontend.LandmarkExtraction(self)
         logger.info("Start Time LandmarkExtraction", time=time.time() - start)
 
         start = time.time()
-        self.tab_eye_blinking_freq = frontend.WidgetEyeBlinkingFreq()
+        self.tab_eye_blinking_freq = frontend.WidgetEyeBlinkingFreq(self)
         logger.info("Start Time WidgetEyeBlinkingFreq", time=time.time() - start)
 
         # start = time.time()
@@ -50,7 +52,9 @@ class JeFaPaTo(QtWidgets.QMainWindow):
         # self.addTab(self.tab_landmark_3d, "Landmark Analyses 3D")
         # self.addTab(self.tab_emotion_rec, "Emotion Recognition")
 
-        self.central_widget.setCurrentIndex(0)
+        self.central_widget.setCurrentIndex(1)
+
+        self.statusBar().addPermanentWidget(self.progress_bar)
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         logger.info("Close Event Detected", widget=self)
@@ -104,7 +108,6 @@ class StartUpSplashScreen(QtWidgets.QSplashScreen):
 
 def main(argv):
     app = QtWidgets.QApplication(argv)
-
     splash = StartUpSplashScreen()
     splash.startup(app)
 

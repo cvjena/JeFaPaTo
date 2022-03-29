@@ -26,9 +26,9 @@ class FeatureCheckBox(QtWidgets.QCheckBox):
 class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
     updated = QtCore.Signal(int)
 
-    def __init__(self):
+    def __init__(self, parent=None):
         config.Config.__init__(self, prefix="landmarks")
-        QtWidgets.QSplitter.__init__(self)
+        QtWidgets.QSplitter.__init__(self, parent=parent)
 
         self.video_file_path: pathlib.Path = None
 
@@ -88,7 +88,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         )
         self.combo_backend.currentTextChanged.connect(self.save_conf)
 
-        self.pb_anal = QtWidgets.QProgressBar()
+        self.pb_anal = self.parent().progress_bar
         self.skip_faces = QtWidgets.QSpinBox()
         self.skip_frame = QtWidgets.QSpinBox()
 
@@ -117,7 +117,6 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.flayout_se.addRow("Graph Update Delay:", self.skip_frame)
         self.flayout_se.addRow("Backend", self.combo_backend)
         self.flayout_se.addRow("Face Detection Skip:", self.skip_faces)
-        self.flayout_se.addRow(self.pb_anal)
         self.flayout_se.addRow(self.bt_reset_graph)
 
         self.features: List[Type[features.Feature]] = []

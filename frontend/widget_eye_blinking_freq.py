@@ -101,9 +101,9 @@ def _event_QGroupBox(self):
 class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
     updated = QtCore.Signal(int)
 
-    def __init__(self):
+    def __init__(self, parent=None):
         config.Config.__init__(self, prefix="ear")
-        QtWidgets.QSplitter.__init__(self)
+        QtWidgets.QSplitter.__init__(self, parent=parent)
 
         self.add_hooks(
             QtWidgets.QGroupBox, (_get_QGroupBox, _set_QGroupBox, _event_QGroupBox)
@@ -177,8 +177,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.btn_anal = QtWidgets.QPushButton(qta.icon("ph.chart-line-fill"), "Analyse")
         self.btn_eprt = QtWidgets.QPushButton(qta.icon("ph.export-light"), "Export")
 
-        self.progress = QtWidgets.QProgressBar()
-        self.progress.setRange(0, 100)
+        self.progress = self.parent().progress_bar
 
         self.btn_load.clicked.connect(self._load_csv)
         self.btn_anal.clicked.connect(self._analyse)
@@ -275,9 +274,8 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.layout_settings.addWidget(self.btn_load, 0, 0, 1, 2)
         self.layout_settings.addWidget(self.btn_anal, 1, 0, 1, 1)
         self.layout_settings.addWidget(self.btn_eprt, 1, 1, 1, 1)
-        self.layout_settings.addWidget(self.progress, 2, 0, 1, 2)
-        self.layout_settings.addWidget(self.box_settings, 3, 0, 1, 2)
-        self.layout_settings.addWidget(self.box_visuals, 4, 0, 1, 2)
+        self.layout_settings.addWidget(self.box_settings, 2, 0, 1, 2)
+        self.layout_settings.addWidget(self.box_visuals, 3, 0, 1, 2)
         spacer = QtWidgets.QWidget()
         spacer.setSizePolicy(
             QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding
@@ -340,6 +338,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
             )
 
     def _analyse(self) -> None:
+        self.progress.setRange(0, 100)
         if self.file is None:
             return
         self.progress.setValue(0)
