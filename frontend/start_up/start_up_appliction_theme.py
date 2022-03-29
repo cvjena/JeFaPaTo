@@ -11,7 +11,7 @@ def start_up_appliciation_theme(
     splash_screen: QtWidgets.QSplashScreen, **kwargs
 ) -> StartUpState:
     splash_screen.showMessage("Setting application theme...")
-    app = kwargs.get("app")
+    app: QtWidgets.QApplication = kwargs.get("app")
     # qta.dark(app)
     qta.light(app)
     app.setWindowIcon(
@@ -23,6 +23,12 @@ def start_up_appliciation_theme(
             ).as_posix()
         )
     )
+    splash_screen.showMessage("Load default font...")
+    font = QtGui.QFont()
+    font.setFamily(font.defaultFamily())
+    font.setWeight(QtGui.QFont.Weight.ExtraLight)
+    font.setPointSize(9)
+    app.setFont(font)
 
     # even though it is pyqtgraph we it is part of the theme :^)
     pg.setConfigOption(opt="background", value=pg.mkColor(255, 255, 255))
