@@ -20,7 +20,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         config.Config.__init__(self, prefix="ear")
         QtWidgets.QSplitter.__init__(self)
 
-        self.setOrientation(QtCore.Qt.Vertical)
+        self.setOrientation(QtCore.Qt.Horizontal)
 
         logger.info("Initializing EyeBlinkingFreq widget")
 
@@ -28,7 +28,47 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         self.x_lim_max = 1000
 
-        self.top_splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal, parent=self)
+        # Create the main layouts of the interface
+        widget_content = QtWidgets.QWidget()
+        self.layout_content = QtWidgets.QVBoxLayout()
+        widget_content.setLayout(self.layout_content)
+
+        widget_settings = QtWidgets.QWidget()
+        self.layout_settings = QtWidgets.QFormLayout()
+        widget_settings.setLayout(self.layout_settings)
+
+        self.addWidget(widget_content)
+        self.addWidget(widget_settings)
+
+        self.setStretchFactor(0, 7)
+        self.setStretchFactor(1, 3)
+
+        # Create the specific widgets for the content layout
+        self.tab_widget_results = QtWidgets.QTabWidget()
+
+        # upper main content is a tab widget with the tables and text information
+        # first tabe is the tables with the results
+        self.splitter_table = QtWidgets.QSplitter(QtCore.Qt.Horizontal, parent=self)
+        self.model_l = QtGui.QStandardItemModel(self)
+        self.model_r = QtGui.QStandardItemModel(self)
+
+        self.table_l = QtWidgets.QTableView()
+        self.table_l.setModel(self.model_l)
+        self.table_r = QtWidgets.QTableView()
+        self.table_r.setModel(self.model_r)
+
+        self.splitter_table.addWidget(self.table_l)
+        self.splitter_table.addWidget(self.table_r)
+
+        # second tab is the text information
+        self.te_results_g = QtWidgets.QTextEdit()
+        self.te_results_g.setFontFamily("mono")
+        self.te_results_g.setLineWrapMode(QtWidgets.QTextEdit.LineWrapMode.NoWrap)
+
+        self.tab_widget_results.addTab(self.splitter_table, "Table Results")
+        self.tab_widget_results.addTab(self.te_results_g, "Analysis Results")
+
+        # lower main content is a graph
         self.graph_layout = pg.GraphicsLayoutWidget(parent=self)
         self.graph = plotting.WidgetGraph(x_lim_max=self.x_lim_max)
 
@@ -36,52 +76,18 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.graph.setYRange(0, 1)
         self.graph_layout.addItem(self.graph)
 
-        self.model_l = QtGui.QStandardItemModel(self)
-        self.model_r = QtGui.QStandardItemModel(self)
+        # Create the specific widgets for the settings layout
+        self.layout_content.addWidget(self.tab_widget_results)
+        self.layout_content.addWidget(self.graph_layout)
 
-        self.table_l = QtWidgets.QTableView()
-        self.table_l.setModel(self.model_l)
+        # Create the specific widgets for the settings layout
 
-        self.table_r = QtWidgets.QTableView()
-        self.table_r.setModel(self.model_r)
-
-        self.settings = QtWidgets.QFormLayout()
-
-        self.q = QtWidgets.QWidget()
-        self.q.setLayout(self.settings)
-        self.q.setMaximumHeight(600)
-
-        t_l = QtWidgets.QVBoxLayout()
-        w_t_l = QtWidgets.QWidget()
-        w_t_l.setLayout(t_l)
-
-        t_l.addWidget(QtWidgets.QLabel("Left Eye:"))
-        t_l.addWidget(self.table_l)
-
-        t_r = QtWidgets.QVBoxLayout()
-        w_t_r = QtWidgets.QWidget()
-        w_t_r.setLayout(t_r)
-
-        t_r.addWidget(QtWidgets.QLabel("Right Eye:"))
-        t_r.addWidget(self.table_r)
-
-        self.top_splitter.addWidget(w_t_l)
-        self.top_splitter.addWidget(w_t_r)
-        self.top_splitter.addWidget(self.q)
-
-        self.top_splitter.setStretchFactor(0, 35)
-        self.top_splitter.setStretchFactor(1, 35)
-        self.top_splitter.setStretchFactor(2, 30)
-
+        # algorithm specific settings
         self.button_load = QtWidgets.QPushButton("Load CSV File")
         self.button_load.clicked.connect(self._load_csv)
+
         self.button_anal = QtWidgets.QPushButton("Analyse")
         self.button_anal.clicked.connect(self._analyse)
-
-        self.button_reset_graph_range = QtWidgets.QPushButton("Reset Graph Y Range")
-        self.button_reset_graph_range.clicked.connect(
-            lambda: self.graph.setYRange(0, 1)
-        )
 
         self.le_th_l = QtWidgets.QLineEdit()
         self.add_handler("threshold_l", self.le_th_l)
@@ -93,7 +99,6 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.le_th_r.setToolTip("Theshold for right eye")
         self.le_th_r.textChanged.connect(self.save_conf)
 
-        # settings
         self.le_fps = QtWidgets.QLineEdit()
         self.add_handler("fps", self.le_fps)
         self.le_fps.setValidator(QtGui.QIntValidator())
@@ -153,16 +158,18 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         )
         self.le_smooth_poly.textChanged.connect(self.save_conf)
 
-        self.draw_width_height = QtWidgets.QCheckBox()
-        self.draw_width_height.toggled.connect(self.save_conf)
-        self.add_handler("draw_width_height", self.draw_width_height)
-
         self.smooth.toggled.connect(lambda value: self.le_smooth_size.setEnabled(value))
         self.smooth.toggled.connect(lambda value: self.le_smooth_poly.setEnabled(value))
 
-        self.te_results_g = QtWidgets.QTextEdit()
-        self.te_results_g.setFontFamily("mono")
-        self.te_results_g.setLineWrapMode(QtWidgets.QTextEdit.LineWrapMode.NoWrap)
+        # visual settings
+        self.button_reset_graph_range = QtWidgets.QPushButton("Reset Graph Y Range")
+        self.button_reset_graph_range.clicked.connect(
+            lambda: self.graph.setYRange(0, 1)
+        )
+
+        self.draw_width_height = QtWidgets.QCheckBox()
+        self.draw_width_height.toggled.connect(self.save_conf)
+        self.add_handler("draw_width_height", self.draw_width_height)
 
         self.progress = QtWidgets.QProgressBar()
         self.progress.setRange(0, 100)
@@ -171,26 +178,22 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.checkbox_as_time.setChecked(True)
         self.checkbox_as_time.toggled.connect(self.compute_graph_axis)
 
-        self.settings.addRow(self.button_load)
-        self.settings.addRow("Threshold Left:", self.le_th_l)
-        self.settings.addRow("Threshold Right", self.le_th_r)
-        self.settings.addRow("FPS:", self.le_fps)
-        self.settings.addRow("Min. Distance:", self.le_distance)
-        self.settings.addRow("Min. Prominence:", self.le_prominence)
-        self.settings.addRow("Min. Peak Width:", self.le_width_min)
-        self.settings.addRow("Max. Peak Width:", self.le_width_max)
-
-        self.settings.addRow("Smooth:", self.smooth)
-        self.settings.addRow("Smooth Window:", self.le_smooth_size)
-        self.settings.addRow("Smooth Polynom:", self.le_smooth_poly)
-
-        self.settings.addRow("Draw Width/Height:", self.draw_width_height)
-
-        self.settings.addRow(self.button_anal)
-        self.settings.addRow(self.te_results_g)
-        self.settings.addRow(self.progress)
-        self.settings.addRow(self.button_reset_graph_range)
-        self.settings.addRow("X-Axis As Time:", self.checkbox_as_time)
+        self.layout_settings.addRow(self.button_load)
+        self.layout_settings.addRow("Threshold Left:", self.le_th_l)
+        self.layout_settings.addRow("Threshold Right", self.le_th_r)
+        self.layout_settings.addRow("FPS:", self.le_fps)
+        self.layout_settings.addRow("Min. Distance:", self.le_distance)
+        self.layout_settings.addRow("Min. Prominence:", self.le_prominence)
+        self.layout_settings.addRow("Min. Peak Width:", self.le_width_min)
+        self.layout_settings.addRow("Max. Peak Width:", self.le_width_max)
+        self.layout_settings.addRow("Smooth:", self.smooth)
+        self.layout_settings.addRow("Smooth Window:", self.le_smooth_size)
+        self.layout_settings.addRow("Smooth Polynom:", self.le_smooth_poly)
+        self.layout_settings.addRow("Draw Width/Height:", self.draw_width_height)
+        self.layout_settings.addRow(self.button_anal)
+        self.layout_settings.addRow(self.progress)
+        self.layout_settings.addRow(self.button_reset_graph_range)
+        self.layout_settings.addRow("X-Axis As Time:", self.checkbox_as_time)
 
         self.ear_l = np.zeros(1000, dtype=np.float32)
         self.ear_r = np.zeros(1000, dtype=np.float32)
