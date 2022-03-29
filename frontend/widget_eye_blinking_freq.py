@@ -13,12 +13,100 @@ from jefapato.methods import blinking
 logger = structlog.get_logger()
 
 
+class CollapsibleBox(QtWidgets.QWidget):
+    # https://stackoverflow.com/questions/52615115/how-to-create-collapsible-box-in-pyqt/52617714#52617714
+    def __init__(self, title="", parent=None, expanded=True):
+        super(CollapsibleBox, self).__init__(parent)
+
+        self.toggle_button = QtWidgets.QToolButton(
+            text=title, checkable=True, checked=expanded
+        )
+        self.toggle_button.setStyleSheet("QToolButton { border: none; }")
+        self.toggle_button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
+        self.toggle_button.setArrowType(QtCore.Qt.RightArrow)
+        self.toggle_button.pressed.connect(self.on_pressed)
+
+        self.toggle_animation = QtCore.QParallelAnimationGroup(self)
+
+        self.content_area = QtWidgets.QScrollArea(maximumHeight=0, minimumHeight=0)
+        self.content_area.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed
+        )
+        self.content_area.setFrameShape(QtWidgets.QFrame.NoFrame)
+
+        lay = QtWidgets.QVBoxLayout(self)
+        lay.setSpacing(0)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.addWidget(self.toggle_button)
+        lay.addWidget(self.content_area)
+
+        self.toggle_animation.addAnimation(
+            QtCore.QPropertyAnimation(self, b"minimumHeight")
+        )
+        self.toggle_animation.addAnimation(
+            QtCore.QPropertyAnimation(self, b"maximumHeight")
+        )
+        self.toggle_animation.addAnimation(
+            QtCore.QPropertyAnimation(self.content_area, b"maximumHeight")
+        )
+        if expanded:
+            self.toggle_animation.start()
+
+    @QtCore.Slot()
+    def on_pressed(self):
+        checked = self.toggle_button.isChecked()
+        self.toggle_button.setArrowType(
+            QtCore.Qt.DownArrow if not checked else QtCore.Qt.RightArrow
+        )
+        self.toggle_animation.setDirection(
+            QtCore.QAbstractAnimation.Forward
+            if not checked
+            else QtCore.QAbstractAnimation.Backward
+        )
+        self.toggle_animation.start()
+
+    def setContentLayout(self, layout):
+        lay = self.content_area.layout()
+        del lay
+        self.content_area.setLayout(layout)
+        collapsed_height = self.sizeHint().height() - self.content_area.maximumHeight()
+        content_height = layout.sizeHint().height()
+        for i in range(self.toggle_animation.animationCount()):
+            animation = self.toggle_animation.animationAt(i)
+            animation.setDuration(500)
+            animation.setStartValue(collapsed_height)
+            animation.setEndValue(collapsed_height + content_height)
+
+        content_animation = self.toggle_animation.animationAt(
+            self.toggle_animation.animationCount() - 1
+        )
+        content_animation.setDuration(500)
+        content_animation.setStartValue(0)
+        content_animation.setEndValue(content_height)
+
+
+def _get_QGroupBox(self):
+    return self.isChecked()
+
+
+def _set_QGroupBox(self, val):
+    self.setChecked(val)
+
+
+def _event_QGroupBox(self):
+    return self.clicked
+
+
 class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
     updated = QtCore.Signal(int)
 
     def __init__(self):
         config.Config.__init__(self, prefix="ear")
         QtWidgets.QSplitter.__init__(self)
+
+        self.add_hooks(
+            QtWidgets.QGroupBox, (_get_QGroupBox, _set_QGroupBox, _event_QGroupBox)
+        )
 
         self.setOrientation(QtCore.Qt.Horizontal)
 
@@ -34,14 +122,14 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         widget_content.setLayout(self.layout_content)
 
         widget_settings = QtWidgets.QWidget()
-        self.layout_settings = QtWidgets.QFormLayout()
+        self.layout_settings = QtWidgets.QGridLayout()
         widget_settings.setLayout(self.layout_settings)
 
         self.addWidget(widget_content)
         self.addWidget(widget_settings)
 
-        self.setStretchFactor(0, 7)
-        self.setStretchFactor(1, 3)
+        self.setStretchFactor(0, 6)
+        self.setStretchFactor(1, 4)
 
         # Create the specific widgets for the content layout
         self.tab_widget_results = QtWidgets.QTabWidget()
@@ -69,7 +157,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.tab_widget_results.addTab(self.te_results_g, "Analysis Results")
 
         # lower main content is a graph
-        self.graph_layout = pg.GraphicsLayoutWidget(parent=self)
+        self.graph_layout = pg.GraphicsLayoutWidget()
         self.graph = plotting.WidgetGraph(x_lim_max=self.x_lim_max)
 
         self.graph.getViewBox().enableAutoRange(enable=False)
@@ -81,119 +169,115 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.layout_content.addWidget(self.graph_layout)
 
         # Create the specific widgets for the settings layout
-
         # algorithm specific settings
-        self.button_load = QtWidgets.QPushButton("Load CSV File")
-        self.button_load.clicked.connect(self._load_csv)
-
-        self.button_anal = QtWidgets.QPushButton("Analyse")
-        self.button_anal.clicked.connect(self._analyse)
-
-        self.le_th_l = QtWidgets.QLineEdit()
-        self.add_handler("threshold_l", self.le_th_l)
-        self.le_th_l.setToolTip("Theshold for left eye")
-        self.le_th_l.textChanged.connect(self.save_conf)
-
-        self.le_th_r = QtWidgets.QLineEdit()
-        self.add_handler("threshold_r", self.le_th_r)
-        self.le_th_r.setToolTip("Theshold for right eye")
-        self.le_th_r.textChanged.connect(self.save_conf)
-
-        self.le_fps = QtWidgets.QLineEdit()
-        self.add_handler("fps", self.le_fps)
-        self.le_fps.setValidator(QtGui.QIntValidator())
-        self.le_fps.setToolTip("This is the number of frames per second.")
-        self.le_fps.textChanged.connect(self.save_conf)
-
-        self.le_distance = QtWidgets.QLineEdit()
-        self.add_handler("min_dist", self.le_distance)
-        self.le_distance.setToolTip(
-            "This value controls the minimum distance between two blinks."
-        )
-        self.le_distance.textChanged.connect(self.save_conf)
-
-        self.le_prominence = QtWidgets.QLineEdit()
-        self.add_handler("min_prominence", self.le_prominence)
-        self.le_prominence.setToolTip(
-            "This value controls the minimum prominence of a blink."
-        )
-        self.le_prominence.textChanged.connect(self.save_conf)
-
-        self.le_width_min = QtWidgets.QLineEdit()
-        self.add_handler("min_width", self.le_width_min)
-        self.le_width_min.setToolTip(
-            "This value controls the minimum width of a blink."
-        )
-        self.le_width_min.setValidator(QtGui.QIntValidator())
-        self.le_width_min.textChanged.connect(self.save_conf)
-
-        self.le_width_max = QtWidgets.QLineEdit("150")
-        self.add_handler("max_width", self.le_width_max)
-        self.le_width_max.setToolTip(
-            "This value controls the maximum width of a blink."
-        )
-        self.le_width_max.setValidator(QtGui.QIntValidator())
-        self.le_width_max.textChanged.connect(self.save_conf)
-
-        self.smooth = QtWidgets.QCheckBox()
-        self.smooth.toggled.connect(self.save_conf)
-        self.add_handler("smooth", self.smooth)
-        self.smooth.setToolTip("Smooth the data")
-
-        self.le_smooth_size = QtWidgets.QLineEdit()
-        self.add_handler("smooth_size", self.le_smooth_size)
-        self.le_smooth_size.setEnabled(self.smooth.isChecked())
-        self.le_smooth_size.setValidator(QtGui.QIntValidator())
-        self.le_smooth_size.setToolTip(
-            "This value controls the size of the smoothing window."
-        )
-        self.le_smooth_size.textChanged.connect(self.save_conf)
-
-        self.le_smooth_poly = QtWidgets.QLineEdit()
-        self.add_handler("smooth_poly", self.le_smooth_poly)
-        self.le_smooth_poly.setEnabled(self.smooth.isChecked())
-        self.le_smooth_poly.setValidator(QtGui.QIntValidator())
-        self.le_smooth_poly.setToolTip(
-            "This value controls the polynomial order of the smoothing."
-        )
-        self.le_smooth_poly.textChanged.connect(self.save_conf)
-
-        self.smooth.toggled.connect(lambda value: self.le_smooth_size.setEnabled(value))
-        self.smooth.toggled.connect(lambda value: self.le_smooth_poly.setEnabled(value))
-
-        # visual settings
-        self.button_reset_graph_range = QtWidgets.QPushButton("Reset Graph Y Range")
-        self.button_reset_graph_range.clicked.connect(
-            lambda: self.graph.setYRange(0, 1)
-        )
-
-        self.draw_width_height = QtWidgets.QCheckBox()
-        self.draw_width_height.toggled.connect(self.save_conf)
-        self.add_handler("draw_width_height", self.draw_width_height)
+        self.button_load = QtWidgets.QPushButton("Open CSV File")
+        self.button_anal = QtWidgets.QPushButton("Analyse Eye Blink")
+        self.button_export = QtWidgets.QPushButton("Export Results")
 
         self.progress = QtWidgets.QProgressBar()
         self.progress.setRange(0, 100)
 
-        self.checkbox_as_time = QtWidgets.QCheckBox()
-        self.checkbox_as_time.setChecked(True)
-        self.checkbox_as_time.toggled.connect(self.compute_graph_axis)
+        self.button_load.clicked.connect(self._load_csv)
+        self.button_anal.clicked.connect(self._analyse)
+        # self.button_export.clicked.connect(self._export_results)
 
-        self.layout_settings.addRow(self.button_load)
-        self.layout_settings.addRow("Threshold Left:", self.le_th_l)
-        self.layout_settings.addRow("Threshold Right", self.le_th_r)
-        self.layout_settings.addRow("FPS:", self.le_fps)
-        self.layout_settings.addRow("Min. Distance:", self.le_distance)
-        self.layout_settings.addRow("Min. Prominence:", self.le_prominence)
-        self.layout_settings.addRow("Min. Peak Width:", self.le_width_min)
-        self.layout_settings.addRow("Max. Peak Width:", self.le_width_max)
-        self.layout_settings.addRow("Smooth:", self.smooth)
-        self.layout_settings.addRow("Smooth Window:", self.le_smooth_size)
-        self.layout_settings.addRow("Smooth Polynom:", self.le_smooth_poly)
-        self.layout_settings.addRow("Draw Width/Height:", self.draw_width_height)
-        self.layout_settings.addRow(self.button_anal)
-        self.layout_settings.addRow(self.progress)
-        self.layout_settings.addRow(self.button_reset_graph_range)
-        self.layout_settings.addRow("X-Axis As Time:", self.checkbox_as_time)
+        # algorithm settings box
+        self.box_settings = CollapsibleBox("Algorithm Settings")
+        set_algo = QtWidgets.QFormLayout()
+
+        le_th_l = QtWidgets.QLineEdit()
+        le_th_r = QtWidgets.QLineEdit()
+        le_fps = QtWidgets.QLineEdit()
+        le_distance = QtWidgets.QLineEdit()
+        le_prominence = QtWidgets.QLineEdit()
+        le_width_min = QtWidgets.QLineEdit()
+        le_width_max = QtWidgets.QLineEdit()
+
+        self.add_handler("threshold_l", le_th_l)
+        self.add_handler("threshold_r", le_th_r)
+        self.add_handler("fps", le_fps)
+        self.add_handler("min_dist", le_distance)
+        self.add_handler("min_prominence", le_prominence)
+        self.add_handler("min_width", le_width_min)
+        self.add_handler("max_width", le_width_max)
+
+        le_th_l.textChanged.connect(self.save_conf)
+        le_th_r.textChanged.connect(self.save_conf)
+        le_fps.textChanged.connect(self.save_conf)
+        le_fps.textChanged.connect(self.compute_graph_axis)
+        le_distance.textChanged.connect(self.save_conf)
+        le_prominence.textChanged.connect(self.save_conf)
+        le_width_min.textChanged.connect(self.save_conf)
+        le_width_max.textChanged.connect(self.save_conf)
+
+        le_fps.setValidator(QtGui.QIntValidator())
+        le_width_min.setValidator(QtGui.QIntValidator())
+        le_width_max.setValidator(QtGui.QIntValidator())
+
+        set_algo.addRow("Threshold Left", le_th_l)
+        set_algo.addRow("Threshold Right", le_th_r)
+        set_algo.addRow("FPS", le_fps)
+        set_algo.addRow("Min Distance", le_distance)
+        set_algo.addRow("Min Prominence", le_prominence)
+        set_algo.addRow("Min Width", le_width_min)
+        set_algo.addRow("Max Width", le_width_max)
+
+        box_smooth = QtWidgets.QGroupBox("Smoothing")
+        box_smooth.setCheckable(True)
+        self.add_handler("smooth", box_smooth)
+        box_smooth_layout = QtWidgets.QFormLayout()
+        box_smooth.setLayout(box_smooth_layout)
+
+        le_smooth_size = QtWidgets.QLineEdit()
+        le_smooth_poly = QtWidgets.QLineEdit()
+        self.add_handler("smooth_size", le_smooth_size)
+        self.add_handler("smooth_poly", le_smooth_poly)
+        le_smooth_size.setValidator(QtGui.QIntValidator())
+        le_smooth_poly.setValidator(QtGui.QIntValidator())
+        le_smooth_poly.textChanged.connect(self.save_conf)
+        le_smooth_size.textChanged.connect(self.save_conf)
+
+        box_smooth_layout.addRow("Polynomial Degree", le_smooth_poly)
+        box_smooth_layout.addRow("Window Size", le_smooth_size)
+
+        set_algo.addRow(box_smooth)
+
+        self.box_settings.setContentLayout(set_algo)
+
+        self.box_visuals = CollapsibleBox("Visual Settings")
+        set_visuals = QtWidgets.QFormLayout()
+
+        checkbox_as_time = QtWidgets.QCheckBox()
+        draw_width_height = QtWidgets.QCheckBox()
+        button_reset_graph_range = QtWidgets.QPushButton("Reset Graph Y Range")
+
+        self.add_handler("as_time", checkbox_as_time)
+        self.add_handler("draw_width_height", draw_width_height)
+
+        draw_width_height.clicked.connect(self.save_conf)
+        checkbox_as_time.clicked.connect(self.save_conf)
+
+        checkbox_as_time.clicked.connect(self.compute_graph_axis)
+        button_reset_graph_range.clicked.connect(lambda: self.graph.setYRange(0, 1))
+
+        set_visuals.addRow("X-Axis As Time", checkbox_as_time)
+        set_visuals.addRow("Draw Width/Height", draw_width_height)
+        set_visuals.addRow(button_reset_graph_range)
+
+        self.box_visuals.setContentLayout(set_visuals)
+
+        # add all things to the settings layout
+        self.layout_settings.addWidget(self.button_load, 0, 0, 1, 2)
+        self.layout_settings.addWidget(self.button_anal, 1, 0, 1, 1)
+        self.layout_settings.addWidget(self.button_export, 1, 1, 1, 1)
+        self.layout_settings.addWidget(self.progress, 2, 0, 1, 2)
+        self.layout_settings.addWidget(self.box_settings, 3, 0, 1, 2)
+        self.layout_settings.addWidget(self.box_visuals, 4, 0, 1, 2)
+        spacer = QtWidgets.QWidget()
+        spacer.setSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding
+        )
+        self.layout_settings.addWidget(spacer, self.layout_settings.rowCount(), 0)
 
         self.ear_l = np.zeros(1000, dtype=np.float32)
         self.ear_r = np.zeros(1000, dtype=np.float32)
@@ -209,7 +293,6 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         logger.info("Initialized EyeBlinkingFreq widget")
 
-        self.le_fps.textChanged.connect(self.compute_graph_axis)
         self.compute_graph_axis()
 
     def to_MM_SS(self, value):
@@ -220,7 +303,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.graph.getAxis("left").setLabel("EAR Score")
 
         x_axis = self.graph.getAxis("bottom")
-        if self.checkbox_as_time.isChecked():
+        if self.get("as_time"):
             x_axis.setLabel("Time (MM:SS)")
             try:
                 # this exception occurs when the user enters nothing or a non-number
@@ -239,6 +322,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
             )
 
         else:
+            x_axis.setLabel("Frames (#)")
             x_ticks = np.arange(0, self.x_lim_max, 1)
             x_ticks_lab = [str(x) for x in x_ticks]
 
