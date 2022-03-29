@@ -318,6 +318,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
             # TODO add some miliseconds to the ticks
             x_axis.setTicks(
                 [
+                    [(x, xl) for x, xl in zip(x_ticks[::60], x_ticks_lab[::60])],
                     [(x, xl) for x, xl in zip(x_ticks[::10], x_ticks_lab[::10])],
                     [(x, xl) for x, xl in zip(x_ticks, x_ticks_lab)],
                 ]
