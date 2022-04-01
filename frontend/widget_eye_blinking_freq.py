@@ -324,7 +324,6 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         ds_factor = 1 if not self.get("vis_downsample") else DOWNSAMPLE_FACTOR
 
         if self.x_lim_max_old != self.x_lim_max:
-            print("Recompute ranges")
             x_range = self.graph.getViewBox().viewRange()[0]
             x_min = (x_range[0] / self.x_lim_max_old) * self.x_lim_max
             x_max = (x_range[1] / self.x_lim_max_old) * self.x_lim_max
@@ -584,7 +583,10 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         if not self.get("draw_width_height"):
             return
 
-        for _, row in blink.iterrows():
+        val = self.progress.value()
+
+        self.progress.setValue(0)
+        for i, row in blink.iterrows():
             lh = self.graph.plot(
                 [row["ips_l"] / f, row["ips_r"] / f],
                 [row["height"], row["height"]],
@@ -597,6 +599,9 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
             )
             self.lines.append(lh)
             self.lines.append(lv)
+            self.progress.setValue(i / len(blink))
+
+        self.progress.setValue(val)
 
     def _reset_result_text(self) -> None:
         self.result_text = ""
