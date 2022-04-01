@@ -6,12 +6,15 @@ import pyqtgraph as pg
 import qtawesome as qta
 import structlog
 from qtpy import QtCore, QtGui, QtWidgets
+from scipy import signal
 from tabulate import tabulate
 
 from jefapato import config, plotting
 from jefapato.methods import blinking
 
 logger = structlog.get_logger()
+
+DOWNSAMPLE_FACTOR = 8
 
 
 class CollapsibleBox(QtWidgets.QWidget):
@@ -114,6 +117,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.result_text: str = ""
 
         self.x_lim_max = 1000
+        self.x_lim_max_old = 1000
 
         # Create the main layouts of the interface
         widget_content = QtWidgets.QWidget()
@@ -242,28 +246,37 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         set_algo.addRow(box_smooth)
 
+        # Visual Settings #
+
         self.box_visuals = CollapsibleBox("Visual Settings")
         set_visuals = QtWidgets.QFormLayout()
 
-        checkbox_as_time = QtWidgets.QCheckBox()
-        draw_width_height = QtWidgets.QCheckBox()
-        button_reset_graph_range = QtWidgets.QPushButton(
+        cb_as_time = QtWidgets.QCheckBox()
+        cb_width_height = QtWidgets.QCheckBox()
+        cb_simple_draw = QtWidgets.QCheckBox()
+        btn_reset_graph = QtWidgets.QPushButton(
             qta.icon("msc.refresh"), "Reset Graph Y Range"
         )
 
-        self.add_handler("as_time", checkbox_as_time)
-        self.add_handler("draw_width_height", draw_width_height)
+        self.add_handler("as_time", cb_as_time)
+        self.add_handler("draw_width_height", cb_width_height)
+        self.add_handler("vis_downsample", cb_simple_draw)
 
-        draw_width_height.clicked.connect(self.save_conf)
-        checkbox_as_time.clicked.connect(self.save_conf)
+        cb_width_height.clicked.connect(self.save_conf)
+        cb_as_time.clicked.connect(self.save_conf)
+        cb_simple_draw.clicked.connect(self.save_conf)
 
-        checkbox_as_time.clicked.connect(self.compute_graph_axis)
-        button_reset_graph_range.clicked.connect(lambda: self.graph.setYRange(0, 1))
+        cb_as_time.clicked.connect(self.compute_graph_axis)
+        cb_simple_draw.clicked.connect(lambda _: self.plot_data())
+        cb_width_height.clicked.connect(lambda _: self.plot_data())
+        btn_reset_graph.clicked.connect(lambda: self.graph.setYRange(0, 1))
 
-        set_visuals.addRow("X-Axis As Time", checkbox_as_time)
-        set_visuals.addRow("Draw Width/Height", draw_width_height)
-        set_visuals.addRow(button_reset_graph_range)
+        set_visuals.addRow("X-Axis As Time", cb_as_time)
+        set_visuals.addRow("Draw Width/Height", cb_width_height)
+        set_visuals.addRow("Simple Draw", cb_simple_draw)
+        set_visuals.addRow(btn_reset_graph)
 
+        # Layouting #
         self.box_settings.setContentLayout(set_algo)
         self.box_visuals.setContentLayout(set_visuals)
         self.box_settings.toggle_button.click()
@@ -281,8 +294,11 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         )
         self.layout_settings.addWidget(spacer, self.layout_settings.rowCount(), 0)
 
-        self.ear_l = np.zeros(1000, dtype=np.float32)
-        self.ear_r = np.zeros(1000, dtype=np.float32)
+        self.ear_l = None
+        self.ear_r = None
+
+        self.raw_ear_l = None
+        self.raw_ear_r = None
 
         self.plot_ear_l = self.graph.add_curve({"color": "#00F", "width": 2})
         self.plot_ear_r = self.graph.add_curve({"color": "#F00", "width": 2})
@@ -305,16 +321,31 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
     def compute_graph_axis(self) -> None:
         logger.info("Compute graph x-axis")
-        self.graph.getAxis("left").setLabel("EAR Score")
+        ds_factor = 1 if not self.get("vis_downsample") else DOWNSAMPLE_FACTOR
 
+        if self.x_lim_max_old != self.x_lim_max:
+            print("Recompute ranges")
+            x_range = self.graph.getViewBox().viewRange()[0]
+            x_min = (x_range[0] / self.x_lim_max_old) * self.x_lim_max
+            x_max = (x_range[1] / self.x_lim_max_old) * self.x_lim_max
+            self.graph.setLimits(xMin=0, xMax=self.x_lim_max)
+            self.graph.setLimits(yMin=0, yMax=1)
+            self.graph.setXRange(x_min, x_max)
+        else:
+            self.graph.setLimits(xMin=0, xMax=self.x_lim_max)
+            self.graph.setLimits(yMin=0, yMax=1)
+
+        self.graph.getAxis("left").setLabel("EAR Score")
         x_axis = self.graph.getAxis("bottom")
+
         if self.get("as_time"):
             x_axis.setLabel("Time (MM:SS)")
             try:
                 # this exception occurs when the user enters nothing or a non-number
-                fps = int(self.config.get("fps"))
+                fps = int(int(self.config.get("fps")) / ds_factor)
             except ValueError:
-                fps = 30
+                fps = int(30 / ds_factor)
+
             x_ticks = np.arange(0, self.x_lim_max, fps)
             x_ticks_lab = [str(self.to_MM_SS(x // fps)) for x in x_ticks]
 
@@ -330,7 +361,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         else:
             x_axis.setLabel("Frames (#)")
             x_ticks = np.arange(0, self.x_lim_max, 1)
-            x_ticks_lab = [str(x) for x in x_ticks]
+            x_ticks_lab = [str(x * ds_factor) for x in x_ticks]
 
             x_axis.setTicks(
                 [
@@ -346,8 +377,8 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
             return
         self.progress.setValue(0)
 
-        ear_l = self.ear_l
-        ear_r = self.ear_r
+        ear_l = self.raw_ear_l
+        ear_r = self.raw_ear_r
 
         kwargs = {}
         kwargs["threshold_l"] = float(self.get("threshold_l"))
@@ -367,35 +398,26 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         )
         kwargs["smooth_poly"] = int(self.get("smooth_poly"))
 
-        ear_l = ear_l if not kwargs["smooth"] else blinking.smooth(ear_l, **kwargs)
-        ear_r = ear_r if not kwargs["smooth"] else blinking.smooth(ear_r, **kwargs)
+        self.ear_l = ear_l if not kwargs["smooth"] else blinking.smooth(ear_l, **kwargs)
+        self.ear_r = ear_r if not kwargs["smooth"] else blinking.smooth(ear_r, **kwargs)
 
-        self.progress.setValue(30)
-        self._set_data(ear_l, ear_r)
         self.progress.setValue(40)
 
-        blinking_l = blinking.peaks(ear_l, threshold=kwargs["threshold_l"], **kwargs)
+        self.blinking_l = blinking.peaks(
+            self.ear_l, threshold=kwargs["threshold_l"], **kwargs
+        )
         self.progress.setValue(50)
-        blinking_r = blinking.peaks(ear_r, threshold=kwargs["threshold_r"], **kwargs)
+        self.blinking_r = blinking.peaks(
+            self.ear_r, threshold=kwargs["threshold_r"], **kwargs
+        )
         self.progress.setValue(60)
 
-        self.plot_results(blinking_l, blinking_r)
+        self.plot_data(self.ear_l, self.ear_r)
+
         self.progress.setValue(80)
 
-        self.print_results(blinking_l, blinking_r, **kwargs)
+        self.print_results(self.blinking_l, self.blinking_r, **kwargs)
         self.progress.setValue(100)
-
-    def plot_results(
-        self,
-        blinking_l: pd.DataFrame,
-        blinking_r: pd.DataFrame,
-    ):
-        for ll in self.lines:
-            ll.clear()
-        self.lines.clear()
-
-        self._show_peaks(self.plot_peaks_l, blinking_l, {"color": "#00F", "width": 2})
-        self._show_peaks(self.plot_peaks_r, blinking_r, {"color": "#F00", "width": 2})
 
     def sec_to_min(self, seconds: float) -> str:
         minutes = int(seconds / 60)
@@ -548,8 +570,13 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
     def _show_peaks(
         self, plot: pg.ScatterPlotItem, blink: pd.DataFrame, settings: dict
     ) -> None:
-        peaks = blink["frame"]
-        score = blink["score"]
+        if blink is None:
+            return
+
+        f = 1 if not self.get("vis_downsample") else DOWNSAMPLE_FACTOR
+
+        peaks = blink["frame"].values / f
+        score = blink["score"].values
 
         pen = pg.mkPen(settings)
         plot.setData(x=peaks, y=score, pen=pen)
@@ -559,10 +586,12 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         for _, row in blink.iterrows():
             lh = self.graph.plot(
-                [row["ips_l"], row["ips_r"]], [row["height"], row["height"]], pen=pen
+                [row["ips_l"] / f, row["ips_r"] / f],
+                [row["height"], row["height"]],
+                pen=pen,
             )
             lv = self.graph.plot(
-                [row["frame"], row["frame"]],
+                [row["frame"] / f, row["frame"] / f],
                 [row["score"], row["score"] + row["promi"]],
                 pen=pen,
             )
@@ -599,26 +628,22 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
     def _load_file(self, path: pathlib.Path) -> None:
         self.progress.setValue(0)
-        self.ear_r, self.ear_l = self.__handle_legacy_files(path)
-        if self.ear_r is None or self.ear_l is None:
+        self.model_l.clear()
+        self.model_r.clear()
+        self.te_results_g.setText("")
+
+        self.blinking_l = None
+        self.blinking_r = None
+
+        self.ear_l = None
+        self.ear_r = None
+
+        self.raw_ear_r, self.raw_ear_l = self.__handle_legacy_files(path)
+        if self.raw_ear_r is None or self.raw_ear_l is None:
             return
 
         self.progress.setValue(40)
-
-        self._set_data(self.ear_l, self.ear_r)
-        self.model_l.clear()
-        self.model_r.clear()
-        for line in self.lines:
-            line.clear()
-        self.progress.setValue(70)
-
-        self.plot_peaks_l.clear()
-        self.plot_peaks_r.clear()
-
-        self.te_results_g.setText("")
-
-        self.x_lim_max = len(self.ear_l)
-        self.compute_graph_axis()
+        self.plot_data()
         self.progress.setValue(100)
 
     def __handle_legacy_files(
@@ -634,9 +659,9 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
             # this should be the new format
             df = pd.read_csv(file.as_posix(), sep=",")
             if "dlib_ear_r" in df.columns:
-                return df["dlib_ear_r"], df["dlib_ear_l"]
+                return df["dlib_ear_r"].values, df["dlib_ear_l"].values
             if "mediapipe_ear_r" in df.columns:
-                return df["mediapipe_ear_r"], df["mediapipe_ear_l"]
+                return df["mediapipe_ear_r"].values, df["mediapipe_ear_l"].values
 
             logger.error(
                 "File does not contain any supported columns", file=file.as_posix()
@@ -657,7 +682,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
                     }
                 )
                 df.to_csv(file.as_posix(), sep=",", index=False)
-                return df["dlib_ear_r"], df["dlib_ear_l"]
+                return df["dlib_ear_r"].values, df["dlib_ear_l"].values
             if "ear_score_rigth" in cols:
                 logger.info("File is legacy format [spell]", file=file.as_posix())
                 df = df.rename(
@@ -668,7 +693,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
                     }
                 )
                 df.to_csv(file.as_posix(), sep=",", index=False)
-                return df["dlib_ear_r"], df["dlib_ear_l"]
+                return df["dlib_ear_r"].values, df["dlib_ear_l"].values
 
             else:
                 logger.error(
@@ -682,15 +707,43 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.file = file
         self._load_file(file)
 
-    def _set_data(self, data_l: np.ndarray, data_r: np.ndarray) -> None:
+    def clear(self) -> None:
+        self.plot_peaks_l.clear()
+        self.plot_peaks_r.clear()
+        for line in self.lines:
+            line.clear()
+
+    def plot_data(self, data_l: np.ndarray = None, data_r: np.ndarray = None) -> None:
+        self.clear()
+
+        data_l = data_l if data_l is not None else self.ear_l
+        data_r = data_r if data_r is not None else self.ear_r
+        data_l = data_l if data_l is not None else self.raw_ear_l
+        data_r = data_r if data_r is not None else self.raw_ear_r
+
+        if data_l is None or data_r is None:
+            return
+
+        if self.get("vis_downsample"):
+            data_l = signal.resample(data_l, int(len(data_l) / 8))
+            data_r = signal.resample(data_r, int(len(data_r) / 8))
+        self.x_lim_max_old = self.x_lim_max
+        self.x_lim_max = len(data_l)
+
         self.plot_ear_l.setDownsampling(method="mean", auto=True)
         self.plot_ear_r.setDownsampling(method="mean", auto=True)
 
         self.plot_ear_l.setData(data_l)
         self.plot_ear_r.setData(data_r)
 
-        self.graph.setLimits(xMin=0, xMax=len(data_l))
-        self.graph.setXRange(0, len(self.ear_l))
+        self.compute_graph_axis()
+
+        self._show_peaks(
+            self.plot_peaks_l, self.blinking_l, {"color": "#00F", "width": 2}
+        )
+        self._show_peaks(
+            self.plot_peaks_r, self.blinking_r, {"color": "#F00", "width": 2}
+        )
 
     def shut_down(self) -> None:
         # this widget doesn't have any shut down requirements

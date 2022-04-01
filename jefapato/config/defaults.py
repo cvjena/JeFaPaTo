@@ -14,6 +14,7 @@ ear = {
     "threshold_r": "0.4",
     "draw_width_height": False,
     "as_time": False,
+    "vis_downsample": True,
 }
 
 landmarks = {
