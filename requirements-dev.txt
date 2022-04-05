@@ -2,3 +2,4 @@ snakeviz~=2.1
 flake8
 black
 isort
+pylint
