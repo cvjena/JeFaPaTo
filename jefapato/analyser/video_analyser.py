@@ -1,6 +1,7 @@
 __all__ = ["VideoAnalyser"]
 
 import pathlib
+import sys
 from typing import Optional, Tuple, Type
 
 import cv2
@@ -36,7 +37,8 @@ class VideoAnalyser(Analyser):
         # this is the case for a webcam
         elif isinstance(resource_type, int):
             self.resource = cv2.VideoCapture(resource_type)
-            # self.resource.set(cv2.CAP_PROP_FPS, 30)
+            if sys.platform == "darwin":
+                self.resource.set(cv2.CAP_PROP_FPS, 30)
             # TODO make this configurable
             # with v4l2-ctl --list-formats-ext one chan check if the format is supported
             self.resource.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
