@@ -309,9 +309,18 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
             parent = self.video_file_path.parent
             file_name = self.video_file_path.stem
         else:
-            parent = pathlib.Path.home()
-            file_name = "jefapato_webcam"
+            # open save dialog for folder
+            parent = QtWidgets.QFileDialog.getExistingDirectory(
+                self,
+                "Select Directory",
+                pathlib.Path.home().as_posix(),
+            )
+            if parent == "":
+                logger.info("Save Results Dialog canceled")
+                return
 
+            parent = pathlib.Path(parent)
+            file_name = "jefapato_webcam"
         result_path = parent / (file_name + f"_{ts}.csv")
 
         with open(result_path, "w", newline="") as csvfile:
