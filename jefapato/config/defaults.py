@@ -18,11 +18,8 @@ ear = {
 }
 
 landmarks = {
-    "backend": "dlib",
-    "backend_options": {
-        "dlib": "dlib",
-        "mediapipe": "mediapipe",
-    },
+    "backend": "mediapipe",
+    "backend_options": {"mediapipe": "mediapipe"},
     "features": ["EARFeature"],
     "feature_ear": True,
 }

@@ -1,8 +1,12 @@
 # image processing libs
 numpy~=1.20
-dlib~=19.23
-opencv-python~=4.5
-mediapipe~=0.8
+cmake; platform_system != "Darwin" or platform.machine != "arm64"
+boost; platform_system != "Darwin" or platform.machine != "arm64"
+dlib~=19.23; platform_system != "Darwin" or platform.machine != "arm64"
+opencv-python-headless~=4.5
+mediapipe; platform_system != "Darwin" or platform.machine != "arm64"
+mediapipe-silicon; platform_system == "Darwin" and platform.machine == "arm64"
+protobuf>=3.11,<4
 
 # general scientific libs
 scipy~=1.8
@@ -11,7 +15,7 @@ pandas~=1.4
 # gui libs
 qtpy~=2.0
 qtawesome~=1.1
-PyQt5==5.12.3
+PyQt6
 # PySide6~=6.2  # requires a higher ubuntu version
 pyqtgraph~=0.12
 pyqtconfig~=0.9

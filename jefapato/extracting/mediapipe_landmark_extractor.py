@@ -3,7 +3,8 @@ __all__ = ["MediapipeLandmarkExtractor"]
 import queue
 
 import cv2
-import dlib
+
+# import dlib
 import mediapipe as mp
 import numpy as np
 import structlog
@@ -70,18 +71,18 @@ class MediapipeLandmarkExtractor(Extractor):
                 #     )
 
                 results = face_mesh.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-                self.rect = dlib.rectangle(0, 0, 10, 10)
+                self.rect = (0, 0, 10, 10)
 
                 if results.multi_face_landmarks:
                     for i, lm in enumerate(results.multi_face_landmarks[0].landmark):
                         landmarks[i, 0] = int(lm.x * w)
                         landmarks[i, 1] = int(lm.y * h)
 
-                    self.rect = dlib.rectangle(
-                        left=np.min(landmarks[:, 0]),
-                        top=np.min(landmarks[:, 1]),
-                        right=np.max(landmarks[:, 0]),
-                        bottom=np.max(landmarks[:, 1]),
+                    self.rect = (
+                        np.min(landmarks[:, 0]),
+                        np.min(landmarks[:, 1]),
+                        np.max(landmarks[:, 0]),
+                        np.max(landmarks[:, 1]),
                     )
                 self.processingUpdated.emit(image, self.rect, landmarks)
                 processed += 1

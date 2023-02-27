@@ -4,7 +4,8 @@ import collections
 from typing import Any, List, OrderedDict, Type
 
 import cv2
-import dlib
+
+# import dlib
 import numpy as np
 import structlog
 
@@ -70,7 +71,7 @@ class LandmarkAnalyser(VideoAnalyser):
         self, image: np.ndarray, face_rect: Any, features: np.ndarray
     ) -> None:
         # here would be some drawing? and storing of the features we are interested in
-        face_rect: dlib.rectangle = face_rect
+        face_rect: tuple[int, int, int, int] = face_rect
         temp_data = collections.OrderedDict()
 
         for f_name, f_class in self.feature_methods.items():
@@ -81,13 +82,11 @@ class LandmarkAnalyser(VideoAnalyser):
 
         self.pm.hook.updated_feature(feature_data=temp_data)
 
-        face = image[
-            face_rect.top() : face_rect.bottom(), face_rect.left() : face_rect.right()
-        ]
+        face = image[face_rect[1] : face_rect[3], face_rect[0] : face_rect[2]]
         cv2.rectangle(
             image,
-            (face_rect.left(), face_rect.top()),
-            (face_rect.right(), face_rect.bottom()),
+            (face_rect[0], face_rect[1]),
+            (face_rect[2], face_rect[3]),
             (0, 255, 0),
             2,
         )

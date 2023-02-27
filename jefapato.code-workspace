@@ -16,6 +16,7 @@
 			88
 		],
 		"editor.formatOnType": true,
-		"editor.formatOnSave": true
+		"editor.formatOnSave": true,
+		"cSpell.enabled": false
 	}
 }

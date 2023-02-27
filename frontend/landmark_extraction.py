@@ -3,6 +3,7 @@ __all__ = ["LandmarkExtraction"]
 import csv
 import datetime
 import pathlib
+import sys
 from typing import Any, List, OrderedDict, Type
 
 import numpy as np
@@ -186,7 +187,9 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         logger.info("Set features", features=self.features)
 
     def start(self) -> None:
-        self.ea.set_resource_path(self.video_file_path or 0)
+        # if we are on mac based system we have to put 1 instead of
+        cam_id = 1 if sys.platform == "darwin" else 0
+        self.ea.set_resource_path(self.video_file_path or cam_id)
         self.setup_graph()
         self.ea.set_settings(backend=self.get("backend"))
         self.ea.set_features(self.features)
