@@ -58,5 +58,5 @@ class Config(pyqtconfig.ConfigManager):
 
     def save_conf(self):
         self.__cache[self.prefix] = self.as_dict()
-        self.__config_path.write_text(json.dumps(self.__cache))
+        self.__config_path.write_text(json.dumps(self.__cache, indent=4))
         logger.info("Config file written", path=self.__config_path, prefix=self.prefix)
