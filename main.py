@@ -1,3 +1,4 @@
+import argparse
 import pathlib
 import sys
 import time
@@ -12,7 +13,7 @@ logger = structlog.get_logger()
 
 
 class JeFaPaTo(QtWidgets.QMainWindow):
-    def __init__(self):
+    def __init__(self, args: argparse.Namespace):
         super().__init__()
         self.setWindowTitle("JeFaPaTo - Jena Facial Palsy Tool")
         self.showMaximized()
@@ -52,7 +53,10 @@ class JeFaPaTo(QtWidgets.QMainWindow):
         # self.addTab(self.tab_landmark_3d, "Landmark Analyses 3D")
         # self.addTab(self.tab_emotion_rec, "Emotion Recognition")
 
-        self.central_widget.setCurrentIndex(1)
+        tab_idx = args.start_tab
+        if tab_idx > self.central_widget.count():
+            tab_idx = 0
+        self.central_widget.setCurrentIndex(tab_idx)
 
         self.statusBar().addPermanentWidget(self.progress_bar)
 
@@ -107,11 +111,15 @@ class StartUpSplashScreen(QtWidgets.QSplashScreen):
 
 
 def main(argv):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--start-tab", type=int, default=0)
+    args = parser.parse_args(argv[1:])
+
     app = QtWidgets.QApplication(argv)
     splash = StartUpSplashScreen()
     splash.startup(app)
 
-    ex = JeFaPaTo()
+    ex = JeFaPaTo(args)
 
     logger.info("Start JeFaPaTo", version=ex.VERSION)
 
