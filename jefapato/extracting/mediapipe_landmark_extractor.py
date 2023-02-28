@@ -3,8 +3,6 @@ __all__ = ["MediapipeLandmarkExtractor"]
 import queue
 
 import cv2
-
-# import dlib
 import mediapipe as mp
 import numpy as np
 import structlog
@@ -15,7 +13,6 @@ logger = structlog.get_logger()
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
 mp_face_mesh = mp.solutions.face_mesh
-# mp_norm = mp.solutions.drawing_utils._normalized_to_pixel_coordinates
 
 
 class MediapipeLandmarkExtractor(Extractor):
@@ -55,21 +52,6 @@ class MediapipeLandmarkExtractor(Extractor):
                 h, w = image.shape[:2]
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
                 landmarks = np.zeros((478, 2), dtype=np.int32)
-
-                # downscale image?
-                # results = face_mesh.process(image)
-                # bbox = self.detector.process(image)
-                # self.rect = dlib.rectangle(0, 0, 10, 10)
-                # if bbox.detections:
-                #     temp = bbox.detections[0].location_data.relative_bounding_box
-                #     rect_s = mp_norm(temp.xmin, temp.ymin, w, h)
-                #     rect_e = mp_norm(
-                #         temp.xmin + temp.width, temp.ymin + temp.height, w, h
-                #     )
-                #     self.rect = dlib.rectangle(
-                #         rect_s[0], rect_s[1], rect_e[0], rect_e[1]
-                #     )
-
                 results = face_mesh.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
                 self.rect = (0, 0, 10, 10)
 

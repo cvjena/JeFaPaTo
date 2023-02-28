@@ -429,7 +429,6 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         blinking_r: pd.DataFrame,
         **kwargs,
     ) -> None:
-
         # compute the video time (depending on the fps) of the peaks in the data frames
         # for 30 fps and the given fps in kwargs and added to the data frames
         # the columns are called "time30" and timeFPS and the values are in the form

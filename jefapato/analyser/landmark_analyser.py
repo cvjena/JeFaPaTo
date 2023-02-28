@@ -4,8 +4,6 @@ import collections
 from typing import Any, List, OrderedDict, Type
 
 import cv2
-
-# import dlib
 import numpy as np
 import structlog
 
@@ -39,7 +37,7 @@ class LandmarkAnalyser(VideoAnalyser):
             self.feature_data[feature.__name__] = []
 
     def set_settings(self, **kwargs) -> None:
-        kwargs["backend"] = kwargs.get("backend", "dlib")
+        kwargs["backend"] = kwargs.get("backend", "mediapipe")
         self.kwargs = kwargs
 
     def set_skip_count(self, value: int) -> None:
@@ -50,12 +48,10 @@ class LandmarkAnalyser(VideoAnalyser):
 
     def start(self) -> None:
         # this should be done in a nicer way...
-        if self.kwargs["backend"] == "dlib":
-            self.extractor_c = extracting.DlibLandmarkExtractor
-        elif self.kwargs["backend"] == "mediapipe":
+        if self.kwargs["backend"] == "mediapipe":
             self.extractor_c = extracting.MediapipeLandmarkExtractor
         else:
-            logger.error("Only dlib backend is supported in LandmarkAnalyser")
+            logger.error("Unknown Backend", backend=self.kwargs["backend"])
             return
 
         for m_name in self.feature_methods:

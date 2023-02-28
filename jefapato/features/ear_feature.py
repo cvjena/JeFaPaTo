@@ -35,9 +35,9 @@ class EARData(FeatureData):
 
     def draw(self, image: np.ndarray) -> np.ndarray:
         # the dlib landmark points are in the format (x, y)
-        for (x, y) in self.lm_l:
+        for x, y in self.lm_l:
             cv2.circle(image, (x, y), 1, (0, 0, 255), -1)
-        for (x, y) in self.lm_r:
+        for x, y in self.lm_r:
             cv2.circle(image, (x, y), 1, (255, 0, 0), -1)
 
         # draw the eye ratio
@@ -85,20 +85,17 @@ class EARFeature(Feature):
         "ear_r": {"label": "EAR Right", "color": "r", "width": 2},
     }
 
-    dlib_eye_l = np.array([42, 43, 44, 45, 46, 47])
-    dlib_eye_r = np.array([36, 37, 38, 39, 40, 41])
+    # dlib_eye_l = np.array([42, 43, 44, 45, 46, 47])
+    # dlib_eye_r = np.array([36, 37, 38, 39, 40, 41])
     mp_eye_l = np.array([362, 385, 386, 263, 374, 380])
     mp_eye_r = np.array([33, 159, 158, 133, 153, 145])
 
-    def __init__(self, backend: str = "dlib") -> None:
+    def __init__(self, backend: str) -> None:
         super().__init__()
         self.d_type = EARData
         self.backend = backend
 
-        if self.backend == "dlib":
-            self.index_l = self.dlib_eye_l
-            self.index_r = self.dlib_eye_r
-        elif self.backend == "mediapipe":
+        if self.backend == "mediapipe":
             self.index_l = self.mp_eye_l
             self.index_r = self.mp_eye_r
         else:

@@ -13,10 +13,12 @@ Thus, correct usage of software development, UI, and UX are keys in the continuo
 Currently, JeFaPaTo supports the following methods, whereas we distinct between **extraction** and **analysis**.
 
 Extraction (of features):
-- Facial Landmark Extraction [dlib, mediapipe]
-  - EAR Feature [dlib, mediapipe]
+
+- Facial Landmark Extraction  [mediapipe]
+  - EAR Feature [mediapipe]
 
 Analysis (of features):
+
 - Blinking analysis based on EAR Feature
 
 ## Implementation of a new method
@@ -28,7 +30,7 @@ These rules should be kept in mind and followed while planning the implementatio
 
 There are two steps: *joined definitions* and *internal definitions*.
 
-### Joined definitions:
+### Joined definitions
 
 - Data input format (commonly: 2D/3D images, 2D/3D videos, sound files, x-rays)
   - this is most often the data we would receive from the ENT department
@@ -42,7 +44,7 @@ There are two steps: *joined definitions* and *internal definitions*.
   - for the naming of the files, we normally do:
     - input_name\_YYYY-MM-DD_HH-SS\_extra_modifiers
 
-### Internal definitions:
+### Internal definitions
 
 - this is about the specific internal methods we use
 - this can include which kind of backend generates the data
@@ -55,6 +57,7 @@ This section summarizes the information about how to implement a new method insi
 #### Module creation
 
 Todo
+
 #### Logging
 
 ### UI
@@ -72,6 +75,7 @@ The rules for UX include how to notify the user if everything was ok, something 
 Todo
 
 ## Open issues and ideas
+
 - License
   - JeFaPaTo is currently not licensed, and we should add one
   - GPL-v2/v3
