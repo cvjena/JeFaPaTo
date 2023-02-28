@@ -5,18 +5,6 @@
 		}
 	],
 	"settings": {
-		"python.linting.flake8Args": [
-			"--max-line-length=88",
-			"--ignore=E203"
-		],
-		"python.formatting.blackArgs": [
-			"--line-length=88",
-		],
-		"editor.rulers": [
-			88
-		],
-		"editor.formatOnType": true,
-		"editor.formatOnSave": true,
 		"cSpell.enabled": false
 	}
 }

@@ -10,6 +10,7 @@ protobuf>=3.11,<4
 # general scientific libs
 scipy~=1.8
 pandas~=1.4
+openpyxl
 
 # gui libs
 qtpy~=2.0
