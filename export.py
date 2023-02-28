@@ -1,3 +1,4 @@
+import datetime
 import pathlib
 import zipfile
 
@@ -35,21 +36,29 @@ def write_os_files(zfile: zipfile.ZipFile, root_dir: pathlib.Path, os: str) -> N
     """
     logger.info("Writing OS files to zip file", os=os)
 
-    if os == "__windows__":
+    if os == "Windows":
         dd = root_dir / "__windows__"
-        for child in dd.iterdir():
-            if child.is_file():
-                logger.info("Writing file to zip file", file_path=child)
-                zfile.write(child.as_posix(), child.name)
+    elif os == "Linux":
+        dd = root_dir / "__linux__"
+    elif os == "MacOS":
+        dd = root_dir / "__mac__"
+    else:
+        raise ValueError(f"OS {os} is not supported.")
+
+    for child in dd.iterdir():
+        if child.is_file():
+            logger.info("Writing file to zip file", file_path=child)
+            zfile.write(child.as_posix(), child.name)
 
 
-version = "2022.03.24"
+version = datetime.datetime.now().strftime("%Y-%m-%d")
 file_name = f"JeFaPaTo-{version}-Alpha"
 export_dir = pathlib.Path("__exports__")
 export_dir.mkdir(exist_ok=True, parents=True)
-file_dir = export_dir / f"{file_name}.zip"
+system = "MacOS"
+
+file_dir = export_dir / f"{file_name}_{system}.zip"
 jefapato_z = zipfile.ZipFile(file_dir, "w")
-system = "__windows__"
 
 logger.info(
     "Start export of JeFaPaTo",
