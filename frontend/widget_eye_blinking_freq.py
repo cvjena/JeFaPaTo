@@ -22,9 +22,7 @@ class CollapsibleBox(QtWidgets.QWidget):
     def __init__(self, title="", parent=None):
         super(CollapsibleBox, self).__init__(parent)
 
-        self.toggle_button = QtWidgets.QToolButton(
-            text=title, checkable=True, checked=False
-        )
+        self.toggle_button = QtWidgets.QToolButton(text=title, checkable=True, checked=False)
         self.toggle_button.setStyleSheet("QToolButton { border: none; }")
         self.toggle_button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
         self.toggle_button.setArrowType(QtCore.Qt.RightArrow)
@@ -33,9 +31,7 @@ class CollapsibleBox(QtWidgets.QWidget):
         self.toggle_animation = QtCore.QParallelAnimationGroup(self)
 
         self.content_area = QtWidgets.QScrollArea(maximumHeight=0, minimumHeight=0)
-        self.content_area.setSizePolicy(
-            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed
-        )
+        self.content_area.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
         self.content_area.setFrameShape(QtWidgets.QFrame.NoFrame)
 
         lay = QtWidgets.QVBoxLayout(self)
@@ -44,27 +40,15 @@ class CollapsibleBox(QtWidgets.QWidget):
         lay.addWidget(self.toggle_button)
         lay.addWidget(self.content_area)
 
-        self.toggle_animation.addAnimation(
-            QtCore.QPropertyAnimation(self, b"minimumHeight")
-        )
-        self.toggle_animation.addAnimation(
-            QtCore.QPropertyAnimation(self, b"maximumHeight")
-        )
-        self.toggle_animation.addAnimation(
-            QtCore.QPropertyAnimation(self.content_area, b"maximumHeight")
-        )
+        self.toggle_animation.addAnimation(QtCore.QPropertyAnimation(self, b"minimumHeight"))
+        self.toggle_animation.addAnimation(QtCore.QPropertyAnimation(self, b"maximumHeight"))
+        self.toggle_animation.addAnimation(QtCore.QPropertyAnimation(self.content_area, b"maximumHeight"))
 
     @QtCore.Slot()
     def on_pressed(self):
         checked = self.toggle_button.isChecked()
-        self.toggle_button.setArrowType(
-            QtCore.Qt.DownArrow if not checked else QtCore.Qt.RightArrow
-        )
-        self.toggle_animation.setDirection(
-            QtCore.QAbstractAnimation.Forward
-            if not checked
-            else QtCore.QAbstractAnimation.Backward
-        )
+        self.toggle_button.setArrowType(QtCore.Qt.DownArrow if not checked else QtCore.Qt.RightArrow)
+        self.toggle_animation.setDirection(QtCore.QAbstractAnimation.Forward if not checked else QtCore.QAbstractAnimation.Backward)
         self.toggle_animation.start()
 
     def setContentLayout(self, layout):
@@ -79,9 +63,7 @@ class CollapsibleBox(QtWidgets.QWidget):
             animation.setStartValue(collapsed_height)
             animation.setEndValue(collapsed_height + content_height)
 
-        content_animation = self.toggle_animation.animationAt(
-            self.toggle_animation.animationCount() - 1
-        )
+        content_animation = self.toggle_animation.animationAt(self.toggle_animation.animationCount() - 1)
         content_animation.setDuration(500)
         content_animation.setStartValue(0)
         content_animation.setEndValue(content_height)
@@ -106,9 +88,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         config.Config.__init__(self, prefix="ear")
         QtWidgets.QSplitter.__init__(self, parent=parent)
 
-        self.add_hooks(
-            QtWidgets.QGroupBox, (_get_QGroupBox, _set_QGroupBox, _event_QGroupBox)
-        )
+        self.add_hooks(QtWidgets.QGroupBox, (_get_QGroupBox, _set_QGroupBox, _event_QGroupBox))
 
         self.setOrientation(QtCore.Qt.Horizontal)
 
@@ -173,9 +153,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         # Create the specific widgets for the settings layout
         # algorithm specific settings
-        self.btn_load = QtWidgets.QPushButton(
-            qta.icon("ph.folder-open-light"), "Open CSV File"
-        )
+        self.btn_load = QtWidgets.QPushButton(qta.icon("ph.folder-open-light"), "Open CSV File")
         self.btn_anal = QtWidgets.QPushButton(qta.icon("ph.chart-line-fill"), "Analyse")
         self.btn_eprt = QtWidgets.QPushButton(qta.icon("ph.export-light"), "Export")
 
@@ -254,9 +232,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         cb_as_time = QtWidgets.QCheckBox()
         cb_width_height = QtWidgets.QCheckBox()
         cb_simple_draw = QtWidgets.QCheckBox()
-        btn_reset_graph = QtWidgets.QPushButton(
-            qta.icon("msc.refresh"), "Reset Graph Y Range"
-        )
+        btn_reset_graph = QtWidgets.QPushButton(qta.icon("msc.refresh"), "Reset Graph Y Range")
 
         self.add_handler("as_time", cb_as_time)
         self.add_handler("draw_width_height", cb_width_height)
@@ -289,9 +265,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.layout_settings.addWidget(self.box_settings, 2, 0, 1, 2)
         self.layout_settings.addWidget(self.box_visuals, 3, 0, 1, 2)
         spacer = QtWidgets.QWidget()
-        spacer.setSizePolicy(
-            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding
-        )
+        spacer.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
         self.layout_settings.addWidget(spacer, self.layout_settings.rowCount(), 0)
 
         self.ear_l = None
@@ -392,9 +366,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         kwargs["smooth"] = self.get("smooth")
         smooth_size = int(self.get("smooth_size"))
-        kwargs["smooth_size"] = (
-            smooth_size if smooth_size % 2 == 1 else (smooth_size + 1)
-        )
+        kwargs["smooth_size"] = smooth_size if smooth_size % 2 == 1 else (smooth_size + 1)
         kwargs["smooth_poly"] = int(self.get("smooth_poly"))
 
         self.ear_l = ear_l if not kwargs["smooth"] else blinking.smooth(ear_l, **kwargs)
@@ -402,13 +374,9 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         self.progress.setValue(40)
 
-        self.blinking_l = blinking.peaks(
-            self.ear_l, threshold=kwargs["threshold_l"], **kwargs
-        )
+        self.blinking_l = blinking.peaks(self.ear_l, threshold=kwargs["threshold_l"], **kwargs)
         self.progress.setValue(50)
-        self.blinking_r = blinking.peaks(
-            self.ear_r, threshold=kwargs["threshold_r"], **kwargs
-        )
+        self.blinking_r = blinking.peaks(self.ear_r, threshold=kwargs["threshold_r"], **kwargs)
         self.progress.setValue(60)
 
         self.plot_data(self.ear_l, self.ear_r)
@@ -486,9 +454,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self._add()
 
         for index, (start, stop) in enumerate(zip(bins[:-2], bins[1:])):
-            df = blinking_l[
-                (blinking_l["frame"] >= start) & (blinking_l["frame"] < stop)
-            ]
+            df = blinking_l[(blinking_l["frame"] >= start) & (blinking_l["frame"] < stop)]
             _mean = np.mean(df["width"])
             _std = np.std(df["width"])
             self._add(f"Minute {index:02d} L: {_mean: 6.3f} +/- {_std: 6.3f}[frames]")
@@ -500,9 +466,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self._add()
 
         for index, (start, stop) in enumerate(zip(bins[:-2], bins[1:])):
-            df = blinking_r[
-                (blinking_r["frame"] >= start) & (blinking_r["frame"] < stop)
-            ]
+            df = blinking_r[(blinking_r["frame"] >= start) & (blinking_r["frame"] < stop)]
             _mean = np.mean(df["width"])
             _std = np.std(df["width"])
             self._add(f"Minute {index:02d} R: {_mean: 6.3f} +/- {_std: 6.3f}[frames]")
@@ -531,17 +495,10 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         file_info = self.file.parent / (self.file.stem + "_blinking_info.txt")
         logger.info("Saving blinking results", file=file_info)
-
-        with open(file_info, "w") as f:
-            f.write(self.result_text)
-
-        file_blinking_l = self.file.parent / (self.file.stem + "_blinking_l.csv")
-        file_blinking_r = self.file.parent / (self.file.stem + "_blinking_r.csv")
-
-        self.blinking_l.to_csv(file_blinking_l)
-        self.blinking_r.to_csv(file_blinking_r)
-
-        logger.info("Saving bliking finished")
+        file_info.write_text(self.result_text)
+        self.blinking_l.to_excel(self.file.parent / (self.file.stem + "_blinking_l.xlsx"), sheet_name="blinking_l", index=False)
+        self.blinking_r.to_excel(self.file.parent / (self.file.stem + "_blinking_r.xlsx"), sheet_name="blinking_r", index=False)
+        logger.info("Saving blinking finished")
 
     def fill_tables(self, blinking_l: pd.DataFrame, blinking_r: pd.DataFrame) -> None:
         self.model_l.clear()
@@ -552,12 +509,8 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         for _, row in blinking_r.iterrows():
             self.model_r.appendRow(self.to_qt_row(row))
 
-        self.table_l.horizontalHeader().setSectionResizeMode(
-            QtWidgets.QHeaderView.ResizeMode.Stretch
-        )
-        self.table_r.horizontalHeader().setSectionResizeMode(
-            QtWidgets.QHeaderView.ResizeMode.Stretch
-        )
+        self.table_l.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
+        self.table_r.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
 
         self.model_l.setHorizontalHeaderLabels(list(blinking_l.columns))
         self.model_r.setHorizontalHeaderLabels(list(blinking_r.columns))
@@ -565,9 +518,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
     def to_qt_row(self, row: pd.Series) -> list:
         return [QtGui.QStandardItem(str(row[c])) for c in row.index]
 
-    def _show_peaks(
-        self, plot: pg.ScatterPlotItem, blink: pd.DataFrame, settings: dict
-    ) -> None:
+    def _show_peaks(self, plot: pg.ScatterPlotItem, blink: pd.DataFrame, settings: dict) -> None:
         if blink is None:
             return
 
@@ -650,9 +601,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.plot_data()
         self.progress.setValue(100)
 
-    def __handle_legacy_files(
-        self, file: pathlib.Path
-    ) -> tuple[np.ndarray, np.ndarray]:
+    def __handle_legacy_files(self, file: pathlib.Path) -> tuple[np.ndarray, np.ndarray]:
         logger.info("Check if file is legacy format", file=file.as_posix())
 
         df = pd.read_csv(file.as_posix(), sep=";")
@@ -667,9 +616,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
             if "mediapipe_ear_r" in df.columns:
                 return df["mediapipe_ear_r"].values, df["mediapipe_ear_l"].values
 
-            logger.error(
-                "File does not contain any supported columns", file=file.as_posix()
-            )
+            logger.error("File does not contain any supported columns", file=file.as_posix())
             return None, None
 
         # if this case is reached, we know that the back was dlib so the renaming
@@ -742,12 +689,8 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         self.compute_graph_axis()
 
-        self._show_peaks(
-            self.plot_peaks_l, self.blinking_l, {"color": "#00F", "width": 2}
-        )
-        self._show_peaks(
-            self.plot_peaks_r, self.blinking_r, {"color": "#F00", "width": 2}
-        )
+        self._show_peaks(self.plot_peaks_l, self.blinking_l, {"color": "#00F", "width": 2})
+        self._show_peaks(self.plot_peaks_r, self.blinking_r, {"color": "#F00", "width": 2})
 
     def shut_down(self) -> None:
         # this widget doesn't have any shut down requirements
