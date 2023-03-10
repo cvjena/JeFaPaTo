@@ -77,9 +77,7 @@ class JeFaPaTo(QtWidgets.QMainWindow):
 class StartUpSplashScreen(QtWidgets.QSplashScreen):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.setWindowFlags(
-            QtCore.Qt.WindowStaysOnTopHint | QtCore.Qt.FramelessWindowHint
-        )
+        self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint | QtCore.Qt.FramelessWindowHint)
         path = pathlib.Path(__file__).parent / "assets" / "splash.png"
         self.setPixmap(QtGui.QPixmap(path.as_posix()))
         self.setEnabled(False)
@@ -115,6 +113,13 @@ def main(argv):
     parser.add_argument("--start-tab", type=int, default=0)
     args = parser.parse_args(argv[1:])
 
+    # TODO this is temporary and check if it can be handled somewhere else
+    conf = pathlib.Path(__file__).parent / "__static__"
+    conf.mkdir(parents=True, exist_ok=True)
+    conf_f = conf / "conf.json"
+    if not conf_f.exists():
+        conf_f.touch(exist_ok=True)
+        conf_f.write_text("{}")
     app = QtWidgets.QApplication(argv)
     splash = StartUpSplashScreen()
     splash.startup(app)
