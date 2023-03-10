@@ -1,7 +1,7 @@
 __all__ = ["VideoAnalyser"]
 
 import pathlib
-import sys
+import platform
 from typing import Optional, Tuple, Type
 
 import cv2
@@ -21,9 +21,7 @@ class VideoAnalyser(Analyser):
     data from the file or from the webcam.
     """
 
-    def __init__(
-        self, extractor_c: Optional[Type[extracting.Extractor]] = None
-    ) -> None:
+    def __init__(self, extractor_c: Optional[Type[extracting.Extractor]] = None) -> None:
         super().__init__(
             loader_c=loading.VideoDataLoader,
             extractor_c=extractor_c,
@@ -36,9 +34,15 @@ class VideoAnalyser(Analyser):
             self.data_amount = self.resource.get(cv2.CAP_PROP_FRAME_COUNT)
         # this is the case for a webcam
         elif isinstance(resource_type, int):
-            self.resource = cv2.VideoCapture(resource_type)
-            if sys.platform == "darwin":
+            if platform.system() == "Darwin":
+                # check for the architecture
+                if platform.processor() == "arm":
+                    self.resource = cv2.VideoCapture(1)
+                else:
+                    self.resource = cv2.VideoCapture(0)
                 self.resource.set(cv2.CAP_PROP_FPS, 30)
+            else:
+                self.resource = cv2.VideoCapture(0)
             # TODO make this configurable
             # with v4l2-ctl --list-formats-ext one chan check if the format is supported
             self.resource.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
