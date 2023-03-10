@@ -3,3 +3,6 @@ line-length = 160
 
 [tool.ruff]
 line-length = 160
+
+[tool.pyright]
+pythonPlatform = "All"
