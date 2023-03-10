@@ -1,4 +1,6 @@
 #!/bin/bash
+cd -- "$(dirname "$BASH_SOURCE")"
+
 eval "$(conda shell.bash hook)"
 conda create -n jefapato -y
 conda activate jefapato
