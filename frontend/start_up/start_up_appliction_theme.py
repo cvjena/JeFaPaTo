@@ -7,22 +7,12 @@ from qtpy import QtGui, QtWidgets
 from .enum_state import StartUpState
 
 
-def start_up_appliciation_theme(
-    splash_screen: QtWidgets.QSplashScreen, **kwargs
-) -> StartUpState:
+def start_up_appliciation_theme(splash_screen: QtWidgets.QSplashScreen, **kwargs) -> StartUpState:
     splash_screen.showMessage("Setting application theme...")
     app: QtWidgets.QApplication = kwargs.get("app")
     # qta.dark(app)
     qta.light(app)
-    app.setWindowIcon(
-        QtGui.QIcon(
-            (
-                pathlib.Path(__file__).parent.parent.parent
-                / "assets"
-                / "icon_256x256.png"
-            ).as_posix()
-        )
-    )
+    app.setWindowIcon(QtGui.QIcon((pathlib.Path(__file__).parent.parent.parent / "assets" / "icons" / "icon_color.svg").as_posix()))
     splash_screen.showMessage("Load default font...")
     font = QtGui.QFont()
     font.setFamily(font.defaultFamily())

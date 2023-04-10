@@ -78,7 +78,7 @@ class StartUpSplashScreen(QtWidgets.QSplashScreen):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint | QtCore.Qt.FramelessWindowHint)
-        path = pathlib.Path(__file__).parent / "assets" / "splash.png"
+        path = pathlib.Path(__file__).parent / "assets" / "icons" / "icon_color.svg"
         self.setPixmap(QtGui.QPixmap(path.as_posix()))
         self.setEnabled(False)
 
@@ -103,7 +103,7 @@ class StartUpSplashScreen(QtWidgets.QSplashScreen):
             if ret is start_up.StartUpState.FAILURE:
                 logger.error("Start Up Task Failed", task=task.__name__)
                 exit(0)
-
+        time.sleep(1)
         self.showMessage("Start Up complete...")
         logger.info("Start Up Complete", time=time.time() - start)
 
@@ -121,6 +121,8 @@ def main(argv):
         conf_f.touch(exist_ok=True)
         conf_f.write_text("{}")
     app = QtWidgets.QApplication(argv)
+    app.setApplicationDisplayName("JeFaPaTo")
+    app.setApplicationName("JeFaPaTo")
     splash = StartUpSplashScreen()
     splash.startup(app)
 
