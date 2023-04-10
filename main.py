@@ -35,23 +35,8 @@ class JeFaPaTo(QtWidgets.QMainWindow):
         self.tab_eye_blinking_freq = frontend.WidgetEyeBlinkingFreq(self)
         logger.info("Start Time WidgetEyeBlinkingFreq", time=time.time() - start)
 
-        # start = time.time()
-        # self.tab_landmark_2d = frontend.WidgetLandmarkDistance2D()
-        # logger.info("Start Time WidgetLandmarkDistance2D", time=time.time() - start)
-
-        # start = time.time()
-        # self.tab_landmark_3d = frontend.WidgetLandmarkDistance3D()
-        # logger.info("Start Time WidgetLandmarkDistance3D", time=time.time() - start)
-
-        # start = time.time()
-        # self.tab_emotion_rec = frontend.WidgetEmotionRecognition()
-        # logger.info("Start Time WidgetEmotionRecognition", time=time.time() - start)
-
         self.central_widget.addTab(self.tab_eye_blinking, "Landmark Extraction")
         self.central_widget.addTab(self.tab_eye_blinking_freq, "Eye Blinking Frequency")
-        # self.addTab(self.tab_landmark_2d, "Landmark Analyses 2D")
-        # self.addTab(self.tab_landmark_3d, "Landmark Analyses 3D")
-        # self.addTab(self.tab_emotion_rec, "Emotion Recognition")
 
         tab_idx = args.start_tab
         if tab_idx > self.central_widget.count():
@@ -66,10 +51,6 @@ class JeFaPaTo(QtWidgets.QMainWindow):
 
         self.tab_eye_blinking.shut_down()
         self.tab_eye_blinking_freq.shut_down()
-        # self.tab_landmark_2d.shut_down()
-        # self.tab_landmark_3d.shut_down()
-        # self.tab_emotion_rec.shut_down()
-
         logger.info("Internal Shut Down complete", widget=self)
         super().closeEvent(event)
 
