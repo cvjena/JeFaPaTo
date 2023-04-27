@@ -2,5 +2,5 @@
 cd -- "$(dirname "$BASH_SOURCE")"
 
 eval "$(conda shell.bash hook)"
-conda activate jefapato
+conda activate jefapato-prod
 python main.py
