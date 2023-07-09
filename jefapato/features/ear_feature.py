@@ -35,9 +35,9 @@ class EARData(FeatureData):
 
     def draw(self, image: np.ndarray) -> np.ndarray:
         # the dlib landmark points are in the format (x, y)
-        for x, y in self.lm_l:
+        for x, y, _ in self.lm_l:
             cv2.circle(image, (x, y), 1, (0, 0, 255), -1)
-        for x, y in self.lm_r:
+        for x, y, _ in self.lm_r:
             cv2.circle(image, (x, y), 1, (255, 0, 0), -1)
 
         # draw the eye ratio

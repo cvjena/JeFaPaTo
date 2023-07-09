@@ -25,8 +25,8 @@ class MediapipeLandmarkExtractor(Extractor):
         options = vision.FaceLandmarkerOptions(
             base_options=base_options,
             running_mode=vision.RunningMode.IMAGE,
-            output_face_blendshapes=True, 
-            output_facial_transformation_matrixes=True,
+            output_face_blendshapes=False, 
+            output_facial_transformation_matrixes=False,
             num_faces=1,
         )
         self.detector = vision.FaceLandmarker.create_from_options(options)
@@ -58,7 +58,7 @@ class MediapipeLandmarkExtractor(Extractor):
             mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image)
 
             face_landmarker_result = self.detector.detect(mp_image)
-            landmarks = np.empty((478, 2), dtype=np.int32)
+            landmarks = np.empty((478, 3), dtype=np.int32)
             if not face_landmarker_result:
                 self.processingUpdated.emit(image, self.rect, landmarks)
                 processed += 1
@@ -70,13 +70,11 @@ class MediapipeLandmarkExtractor(Extractor):
             for i, lm in enumerate(face_landmarks):
                 landmarks[i, 0] = int(lm.x * w)
                 landmarks[i, 1] = int(lm.y * h)
-                # self.landmarks[i, 2] = int(lm.z * w)
+                landmarks[i, 2] = int(lm.z * w)
 
             self.rect = (
-                np.min(landmarks[:, 0]),
-                np.min(landmarks[:, 1]),
-                np.max(landmarks[:, 0]),
-                np.max(landmarks[:, 1]),
+                *np.min(landmarks, axis=0)[:2],
+                *np.max(landmarks, axis=0)[:2],
             )
             self.processingUpdated.emit(image, self.rect, landmarks)
             processed += 1
