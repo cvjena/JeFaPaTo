@@ -5,6 +5,7 @@ import queue
 import cv2
 import numpy as np
 import structlog
+import time
 
 from pathlib import Path
 
@@ -31,6 +32,7 @@ class MediapipeLandmarkExtractor(Extractor):
         )
         self.detector = vision.FaceLandmarker.create_from_options(options)
         self.rect = (0, 0, 10, 10)
+        self.start_time = time.time()
 
     def set_skip_count(self, _) -> None:
         pass
@@ -40,6 +42,7 @@ class MediapipeLandmarkExtractor(Extractor):
         processed = 0
         logger.info("Extractor Thread", state="starting", type="mediapipe", object=self)
 
+        processed_p_sec = 0
         while True:
             if processed == self.data_amount:
                 break
@@ -51,6 +54,14 @@ class MediapipeLandmarkExtractor(Extractor):
                 self.sleep()
                 continue
 
+            # check if 1 second has passed
+            c_time = time.time()
+            if (c_time - self.start_time) > 1:
+                logger.info("Extractor Thread", state="processing", processed_p_sec=processed_p_sec)
+                processed_p_sec = 0
+                self.start_time = c_time
+
+            processed_p_sec += 1
             image = self.data_queue.get()
             h, w = image.shape[:2]
 
