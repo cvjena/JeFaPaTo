@@ -6,7 +6,7 @@ conda create -n jefapato -y
 conda activate jefapato
 conda install python=3.11 -y
 conda install pip -y
-conda install -c conda-forge opencv=4.7 -y
+# conda install -c conda-forge opencv=4.7 -y
 
 python --version
 

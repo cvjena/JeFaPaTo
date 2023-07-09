@@ -1,6 +1,6 @@
 # image processing libs
-numpy~=1.20
-# opencv-python-headless~=4.5
+numpy
+opencv-python-headless
 mediapipe; platform_system != "Darwin" or platform.machine != "arm64"
 mediapipe-silicon; platform_system == "Darwin" and platform.machine == "arm64"
 protobuf>=3.11,<4
