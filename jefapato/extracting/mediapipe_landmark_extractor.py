@@ -58,8 +58,8 @@ class MediapipeLandmarkExtractor(Extractor):
             c_time = time.time()
             if (c_time - self.start_time) > 1:
                 logger.info("Extractor Thread", state="processing", processed_p_sec=processed_p_sec)
-                processed_p_sec = 0
                 self.start_time = c_time
+                processed_p_sec = 0
 
             processed_p_sec += 1
             image = self.data_queue.get()
