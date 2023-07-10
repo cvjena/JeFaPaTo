@@ -27,7 +27,7 @@ class FaceAnalyzer():
         self.max_ram_size = max_ram_size
 
         self.feature_methods: OrderedDict[str, Feature] = collections.OrderedDict()
-        self.feature_data: OrderedDict[str, FeatureData] = collections.OrderedDict()
+        self.feature_data: OrderedDict[str, list[FeatureData]] = collections.OrderedDict()
 
         self.resource: Any = None
         self.resource_path: Optional[Union[pathlib.Path, int]] = None
@@ -122,10 +122,12 @@ class FaceAnalyzer():
         self.analysis_start()
 
     def handle_update(
-        self, image: np.ndarray, face_rect: Any, features: np.ndarray
+        self, 
+        image: np.ndarray, 
+        face_rect: tuple[int, int, int, int], 
+        features: np.ndarray
     ) -> None:
         # here would be some drawing? and storing of the features we are interested in
-        face_rect: tuple[int, int, int, int] = face_rect
         temp_data = collections.OrderedDict()
 
         for f_name, f_class in self.feature_methods.items():
