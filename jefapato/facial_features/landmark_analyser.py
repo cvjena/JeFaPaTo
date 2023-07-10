@@ -237,3 +237,9 @@ class FaceAnalyzer():
         height = self.resource.get(cv2.CAP_PROP_FRAME_HEIGHT)
         channels = 3
         return width, height, channels
+
+    def get_throughput(self) -> tuple[int, int]:
+        data_input = self.loader.processing_per_second
+        data_proce = self.extractor.processing_per_second
+
+        return data_input, data_proce

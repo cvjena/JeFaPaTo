@@ -19,6 +19,8 @@ class VideoDataLoader(threading.Thread):
         self.data_amount = 0
         self.stopped = False
 
+        self.processing_per_second: int = 0
+
     def run(self):
         logger.info("Loader Thread", state="starting", object=self)
         grabbed: bool = True
@@ -28,12 +30,11 @@ class VideoDataLoader(threading.Thread):
         while grabbed:
             if self.stopped:
                 break
-
             c_time = time.time()
             if (c_time - self.start_time) > 1:
-                logger.info("Loader Thread", state="processing", processed_p_sec=processed_p_sec, queue_size=self.data_queue.qsize())
                 self.start_time = c_time
-                processed_p_sec = 0 
+                self.processing_per_second = processed_p_sec
+                processed_p_sec = 0
 
             if not self.data_queue.full():
                 (grabbed, frame) = self.next_item_func()

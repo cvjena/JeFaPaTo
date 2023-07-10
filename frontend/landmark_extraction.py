@@ -109,13 +109,13 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.flayout_se.addRow(self.bt_reset_graph)
 
         # add two labels to the bottom row of the main layout
-        self.label_frame_load = QtWidgets.QLabel("Loading: ### / s")
-        self.label_frame_load.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
-        self.label_frame_anal = QtWidgets.QLabel("Processing: ### / s")
-        self.label_frame_anal.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
+        self.la_input = QtWidgets.QLabel("Loading: ### frame/s")
+        self.la_input.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
+        self.la_proce = QtWidgets.QLabel("Processing: ### frames/s")
+        self.la_proce.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
 
-        self.parent().statusBar().addWidget(self.label_frame_load)
-        self.parent().statusBar().addWidget(self.label_frame_anal)
+        self.parent().statusBar().addWidget(self.la_input)
+        self.parent().statusBar().addWidget(self.la_proce)
 
         self.features: list[Type[facial_features.Feature]] = []
 
@@ -249,6 +249,10 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
     @facial_features.FaceAnalyzer.hookimpl
     def processed_percentage(self, percentage: int):
         self.pb_anal.setValue(percentage)
+
+        data_input, data_proce = self.ea.get_throughput()
+        self.la_input.setText(f"Input: {data_input: 3d} frames/s")
+        self.la_proce.setText(f"Processed: {data_proce: 3d} frames/s")
 
     @facial_features.FaceAnalyzer.hookimpl
     def updated_feature(self, feature_data: dict[str, Any]) -> None:

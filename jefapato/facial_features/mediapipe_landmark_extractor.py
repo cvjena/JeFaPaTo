@@ -78,6 +78,7 @@ class MediapipeLandmarkExtractor(Extractor):
         self.detector = vision.FaceLandmarker.create_from_options(options)
         self.rect = (0, 0, 10, 10)
         self.start_time = time.time()
+        self.processing_per_second: int = 0
 
     def set_skip_count(self, _) -> None:
         pass
@@ -102,8 +103,8 @@ class MediapipeLandmarkExtractor(Extractor):
             # check if 1 second has passed
             c_time = time.time()
             if (c_time - self.start_time) > 1:
-                logger.info("Extractor Thread", state="processing", processed_p_sec=processed_p_sec)
                 self.start_time = c_time
+                self.processing_per_second = processed_p_sec
                 processed_p_sec = 0
 
             processed_p_sec += 1
