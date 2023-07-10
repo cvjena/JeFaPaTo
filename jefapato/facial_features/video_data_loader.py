@@ -1,22 +1,23 @@
 __all__ = ["VideoDataLoader"]
 
+import queue
 import time
+import threading
 from typing import Callable
 
 import structlog
 
-from .abstract_data_loader import DataLoader
-
 logger = structlog.get_logger()
 
-
-class VideoDataLoader(DataLoader):
-    def __init__(
-        self, next_item_func: Callable, queue_maxsize: int = (1 << 10)
-    ) -> None:
-        super().__init__(next_item_func, queue_maxsize=queue_maxsize)
+class VideoDataLoader(threading.Thread):
+    def __init__(self, next_item_func: Callable, queue_maxsize: int = (1 << 10)) -> None:
+        super().__init__(daemon=True)
 
         self.start_time = time.time()
+        self.next_item_func: Callable = next_item_func
+        self.data_queue = queue.Queue(maxsize=queue_maxsize)
+        self.data_amount = 0
+        self.stopped = False
 
     def run(self):
         logger.info("Loader Thread", state="starting", object=self)

@@ -12,13 +12,13 @@ import qtawesome as qta
 import structlog
 from qtpy import QtCore, QtWidgets
 
-from jefapato import analyser, config, features, plotting
+from jefapato import config, plotting, facial_features
 
 logger = structlog.get_logger()
 
 
 class FeatureCheckBox(QtWidgets.QCheckBox):
-    def __init__(self, feature: Type[features.Feature], **kwargs):
+    def __init__(self, feature: Type[facial_features.Feature], **kwargs):
         super().__init__(**kwargs)
         self.feature = feature
         self.setText(feature.__name__)
@@ -96,7 +96,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.feature_group = QtWidgets.QGroupBox("Features")
         self.feature_layout = QtWidgets.QVBoxLayout()
         self.feature_group.setLayout(self.feature_layout)
-        self.feature_ear = FeatureCheckBox(features.EARFeature)
+        self.feature_ear = FeatureCheckBox(facial_features.EARFeature)
         self.add_handler("feature_ear", self.feature_ear)
         self.feature_ear.clicked.connect(self.save_conf)
         self.feature_ear.clicked.connect(self.set_features)
@@ -120,9 +120,9 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.flayout_se.addRow("Face Detection Skip:", self.skip_faces)
         self.flayout_se.addRow(self.bt_reset_graph)
 
-        self.features: List[Type[features.Feature]] = []
+        self.features: List[Type[facial_features.Feature]] = []
 
-        self.ea = analyser.LandmarkAnalyser()
+        self.ea = facial_features.FaceAnalyzer()
         self.ea.register_hooks(self)
 
         self.button_video_open.clicked.connect(self.load_video)
@@ -198,7 +198,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
     def stop(self) -> None:
         self.ea.stop()
 
-    @analyser.hookimpl
+    @facial_features.FaceAnalyzer.hookimpl
     def started(self):
         self.button_video_open.setDisabled(True)
         self.button_webcam_open.setDisabled(True)
@@ -213,17 +213,17 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         if self.combo_backend.currentText() == "mediapipe":
             self.skip_faces.setDisabled(True)
 
-    @analyser.hookimpl
+    @facial_features.FaceAnalyzer.hookimpl
     def paused(self):
         self.bt_pause_resume.setText("Resume")
         self.bt_pause_resume.setIcon(qta.icon("ph.play-light"))
 
-    @analyser.hookimpl
+    @facial_features.FaceAnalyzer.hookimpl
     def resumed(self):
         self.bt_pause_resume.setText("Pause")
         self.bt_pause_resume.setIcon(qta.icon("ph.pause-light"))
 
-    @analyser.hookimpl
+    @facial_features.FaceAnalyzer.hookimpl
     def finished(self):
         self.save_results()
 
@@ -244,16 +244,16 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         if self.combo_backend.currentText() == "mediapipe":
             self.skip_faces.setDisabled(False)
 
-    @analyser.hookimpl
+    @facial_features.FaceAnalyzer.hookimpl
     def updated_display(self, image: np.ndarray, face: np.ndarray):
         self.widget_frame.set_image(image)
         self.widget_face.set_image(face)
 
-    @analyser.hookimpl
+    @facial_features.FaceAnalyzer.hookimpl
     def processed_percentage(self, percentage: int):
         self.pb_anal.setValue(percentage)
 
-    @analyser.hookimpl
+    @facial_features.FaceAnalyzer.hookimpl
     def updated_feature(self, feature_data: OrderedDict[str, Any]) -> None:
         self.update_count += 1
         for feat in self.features:
