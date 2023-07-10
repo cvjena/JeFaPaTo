@@ -9,6 +9,7 @@ import numpy as np
 import pluggy
 import psutil
 import structlog
+import platform
 
 from .features import Feature, FeatureData
 from .video_data_loader import VideoDataLoader
@@ -179,10 +180,10 @@ class FaceAnalyzer():
         if self.__iter_counter >= len(self.feature_data[keys[0]]):
             raise StopIteration
 
-        row = [self.__iter_counter]
+        row = [str(self.__iter_counter)]
         self.__iter_counter += 1
         for v in self.feature_data.values():
-            row.extend(v[self.__iter_counter - 1].as_row())
+            row.extend([x for x in v[self.__iter_counter - 1].as_row()])
 
         return row
 

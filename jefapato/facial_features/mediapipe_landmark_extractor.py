@@ -115,7 +115,7 @@ class MediapipeLandmarkExtractor(Extractor):
 
             face_landmarker_result = self.detector.detect(mp_image)
             landmarks = np.empty((478, 3), dtype=np.int32)
-            if not face_landmarker_result:
+            if not face_landmarker_result.face_landmarks:
                 self.processingUpdated.emit(image, self.rect, landmarks)
                 processed += 1
                 perc = int((processed / self.data_amount) * 100)
