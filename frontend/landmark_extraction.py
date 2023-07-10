@@ -4,7 +4,7 @@ import csv
 import datetime
 import pathlib
 import sys
-from typing import Any, List, OrderedDict, Type
+from typing import Any, Type
 
 import numpy as np
 import pyqtgraph as pg
@@ -60,33 +60,21 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.addWidget(self.widget_r)
 
         self.cb_anal = QtWidgets.QCheckBox()
-        self.button_video_open = QtWidgets.QPushButton(
-            qta.icon("ph.video-camera-light"), "Open Video"
-        )
-        self.button_webcam_open = QtWidgets.QPushButton(
-            qta.icon("mdi.webcam"), "Open Webcam"
-        )
+        self.button_video_open = QtWidgets.QPushButton(qta.icon("ph.video-camera-light"), "Open Video")
+        self.button_webcam_open = QtWidgets.QPushButton(qta.icon("mdi.webcam"), "Open Webcam")
 
-        self.button_start = QtWidgets.QPushButton(
-            qta.icon("ph.chart-line-fill"), "Analyze"
-        )
+        self.button_start = QtWidgets.QPushButton(qta.icon("ph.chart-line-fill"), "Analyze")
         self.button_stop = QtWidgets.QPushButton(qta.icon("ph.stop-light"), "Stop")
 
-        self.bt_reset_graph = QtWidgets.QPushButton(
-            qta.icon("msc.refresh"), "Reset Graph Y-Range"
-        )
+        self.bt_reset_graph = QtWidgets.QPushButton(qta.icon("msc.refresh"), "Reset Graph Y-Range")
         self.bt_reset_graph.clicked.connect(lambda: self.widget_graph.setYRange(0, 1))
 
-        self.bt_pause_resume = QtWidgets.QPushButton(
-            qta.icon("ph.pause-light"), "Pause"
-        )
+        self.bt_pause_resume = QtWidgets.QPushButton(qta.icon("ph.pause-light"), "Pause")
         self.bt_pause_resume.setDisabled(True)
 
         self.combo_backend = QtWidgets.QComboBox()
         self.combo_backend.addItems(self.get("backend_options").keys())
-        self.add_handler(
-            "backend", self.combo_backend, mapper=self.get("backend_options")
-        )
+        self.add_handler("backend", self.combo_backend, mapper=self.get("backend_options"))
         self.combo_backend.currentTextChanged.connect(self.save_conf)
 
         self.pb_anal = self.parent().progress_bar
@@ -120,7 +108,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.flayout_se.addRow("Face Detection Skip:", self.skip_faces)
         self.flayout_se.addRow(self.bt_reset_graph)
 
-        self.features: List[Type[facial_features.Feature]] = []
+        self.features: list[Type[facial_features.Feature]] = []
 
         self.ea = facial_features.FaceAnalyzer()
         self.ea.register_hooks(self)
@@ -254,7 +242,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.pb_anal.setValue(percentage)
 
     @facial_features.FaceAnalyzer.hookimpl
-    def updated_feature(self, feature_data: OrderedDict[str, Any]) -> None:
+    def updated_feature(self, feature_data: dict[str, Any]) -> None:
         self.update_count += 1
         for feat in self.features:
             f_name = feat.__name__
