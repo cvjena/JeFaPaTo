@@ -2,7 +2,7 @@ __all__ = ["FaceAnalyzer"]
 
 import collections
 import pathlib
-from typing import Any, List, OrderedDict, Tuple, Type, Union
+from typing import Any, List, OrderedDict, Tuple, Type, Union, Optional
 
 import cv2
 import numpy as np
@@ -10,35 +10,27 @@ import pluggy
 import psutil
 import structlog
 
-
 from .features import Feature, FeatureData
 from .video_data_loader import VideoDataLoader
 from .mediapipe_landmark_extractor import MediapipeLandmarkExtractor
 
 logger = structlog.get_logger()
 
-MAX_RAM_SIZE = 4 << 28  # ~4GB # TODO move this to a config file
-logger = structlog.get_logger()
-
 class FaceAnalyzer():
     hookimpl = pluggy.HookimplMarker("analyser")
     hookspec = pluggy.HookspecMarker("analyser")
-    def __init__(self, **kwargs) -> None:
+    def __init__(
+        self, 
+        max_ram_size: int = 4<<28
+    ):
         super().__init__()
-
-        self.loader_c = VideoDataLoader
-        self.extractor_c = MediapipeLandmarkExtractor
-
-        self.loader = None
-        self.extractor = None
-
-        self.kwargs = kwargs
+        self.max_ram_size = max_ram_size
 
         self.feature_methods: OrderedDict[str, Feature] = collections.OrderedDict()
         self.feature_data: OrderedDict[str, FeatureData] = collections.OrderedDict()
 
         self.resource: Any = None
-        self.resource_path: Union[pathlib.Path, int] = None
+        self.resource_path: Optional[Union[pathlib.Path, int]] = None
         self.data_amount: int = 0
 
         self.pm = pluggy.PluginManager("analyser")
@@ -52,7 +44,7 @@ class FaceAnalyzer():
             self.load_resource()
 
         # compute how much RAM space we have
-        available_memory = min(psutil.virtual_memory().available, MAX_RAM_SIZE)
+        available_memory = min(psutil.virtual_memory().available, self.max_ram_size)
         item_size = self.get_item_size_in_bytes()
         items_to_place = int(available_memory // item_size)
 
@@ -62,21 +54,16 @@ class FaceAnalyzer():
         logger.info("Available memory", memory=available_memory)
         logger.info("Data loader queue space", space=items_to_place)
 
-        self.loader = self.loader_c(self.get_next_item, items_to_place)
-        self.extractor = self.extractor_c(
-            data_queue=self.loader.data_queue, data_amount=self.data_amount
-        )
+        self.loader = VideoDataLoader(self.get_next_item, items_to_place)
+        self.extractor = MediapipeLandmarkExtractor(data_queue=self.loader.data_queue, data_amount=self.data_amount)
 
-        self.extractor.processedPercentage.connect(
-            lambda x: self.pm.hook.processed_percentage(percentage=x)
-        )
+        self.extractor.processedPercentage.connect(lambda x: self.pm.hook.processed_percentage(percentage=x))
         self.extractor.processingFinished.connect(lambda: self.pm.hook.finished())
         self.extractor.processingFinished.connect(self.release_resource)
         return True
 
     def analysis_start(self):
         self.pm.hook.started()
-
         self.loader.start()
         logger.info("Started loader thread.", loader=self.loader)
         self.extractor.start()
@@ -86,7 +73,7 @@ class FaceAnalyzer():
         self.resource_path = value
         self.load_resource()
 
-    def get_resource_path(self) -> Union[pathlib.Path, None]:
+    def get_resource_path(self) -> Union[pathlib.Path, int, None]:
         return self.resource_path
 
     def stop(self):
