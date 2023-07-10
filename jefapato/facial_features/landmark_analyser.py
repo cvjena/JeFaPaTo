@@ -1,8 +1,8 @@
 __all__ = ["FaceAnalyzer"]
 
-import collections
 import pathlib
-from typing import Any, List, OrderedDict, Tuple, Type, Union, Optional
+from typing import Any, Type
+from collections import OrderedDict
 
 import cv2
 import numpy as np
@@ -27,11 +27,11 @@ class FaceAnalyzer():
         super().__init__()
         self.max_ram_size = max_ram_size
 
-        self.feature_methods: OrderedDict[str, Feature] = collections.OrderedDict()
-        self.feature_data: OrderedDict[str, list[FeatureData]] = collections.OrderedDict()
+        self.feature_methods: OrderedDict[str, Feature] = OrderedDict()
+        self.feature_data: OrderedDict[str, list[FeatureData]] = OrderedDict()
 
         self.resource: Any = None
-        self.resource_path: Optional[Union[pathlib.Path, int]] = None
+        self.resource_path: pathlib.Path | int | None = None
         self.data_amount: int = 0
 
         self.pm = pluggy.PluginManager("analyser")
@@ -70,11 +70,11 @@ class FaceAnalyzer():
         self.extractor.start()
         logger.info("Started extractor thread.", extractor=self.extractor)
 
-    def set_resource_path(self, value: Union[int, pathlib.Path]) -> None:
+    def set_resource_path(self, value: int | pathlib.Path) -> None:
         self.resource_path = value
         self.load_resource()
 
-    def get_resource_path(self) -> Union[pathlib.Path, int, None]:
+    def get_resource_path(self) -> pathlib.Path | int | None:
         return self.resource_path
 
     def stop(self):
@@ -94,7 +94,7 @@ class FaceAnalyzer():
     def register_hooks(self, plugin: object) -> None:
         self.pm.register(plugin)
 
-    def set_features(self, features: List[Type[Feature]]) -> None:
+    def set_features(self, features: list[Type[Feature]]) -> None:
         self.feature_methods.clear()
         self.feature_data.clear()
 
@@ -129,7 +129,7 @@ class FaceAnalyzer():
         features: np.ndarray
     ) -> None:
         # here would be some drawing? and storing of the features we are interested in
-        temp_data = collections.OrderedDict()
+        temp_data = OrderedDict()
 
         for f_name, f_class in self.feature_methods.items():
             res = f_class.compute(features)
@@ -161,7 +161,7 @@ class FaceAnalyzer():
         Trigger a hook that the features were updated.
         """
 
-    def get_header(self) -> List[str]:
+    def get_header(self) -> list[str]:
         header = ["frame"]
         for v in self.feature_methods.values():
             header.extend(v.get_header())
@@ -219,7 +219,7 @@ class FaceAnalyzer():
         self.resource.release()
         self.resource = None
 
-    def get_next_item(self) -> Tuple[bool, np.ndarray]:
+    def get_next_item(self) -> tuple[bool, np.ndarray]:
         return self.resource.read()
 
     def get_fps(self) -> float:
@@ -232,7 +232,7 @@ class FaceAnalyzer():
         data_size_in_bytes = 1
         return width * height * channels * data_size_in_bytes
 
-    def get_item_size(self) -> Tuple[int, int, int]:
+    def get_item_size(self) -> tuple[int, int, int]:
         width = self.resource.get(cv2.CAP_PROP_FRAME_WIDTH)
         height = self.resource.get(cv2.CAP_PROP_FRAME_HEIGHT)
         channels = 3
