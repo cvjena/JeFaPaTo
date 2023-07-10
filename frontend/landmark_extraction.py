@@ -108,6 +108,15 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.flayout_se.addRow("Face Detection Skip:", self.skip_faces)
         self.flayout_se.addRow(self.bt_reset_graph)
 
+        # add two labels to the bottom row of the main layout
+        self.label_frame_load = QtWidgets.QLabel("Loading: ### / s")
+        self.label_frame_load.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
+        self.label_frame_anal = QtWidgets.QLabel("Processing: ### / s")
+        self.label_frame_anal.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
+
+        self.parent().statusBar().addWidget(self.label_frame_load)
+        self.parent().statusBar().addWidget(self.label_frame_anal)
+
         self.features: list[Type[facial_features.Feature]] = []
 
         self.ea = facial_features.FaceAnalyzer()
