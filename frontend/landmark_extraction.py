@@ -78,6 +78,9 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
 
         self.pb_anal = self.parent().progress_bar
         self.skip_frame = QtWidgets.QSpinBox()
+        self.auto_save = QtWidgets.QCheckBox("Auto-Save")
+        self.auto_save.setChecked(True)
+        self.auto_save.setToolTip("Save the extracted data automatically after the analysis is finished.")
 
         self.feature_group = QtWidgets.QGroupBox("Features")
         self.feature_layout = QtWidgets.QVBoxLayout()
@@ -104,6 +107,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.flayout_se.addRow(self.feature_group)
         self.flayout_se.addRow("Graph Update Delay:", self.skip_frame)
         self.flayout_se.addRow(self.bt_reset_graph)
+        self.flayout_se.addRow(self.auto_save)
 
         # add two labels to the bottom row of the main layout
         self.la_input = QtWidgets.QLabel("Loading: ### frame/s")
@@ -293,7 +297,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         logger.info("Save Results Dialog", widget=self)
         ts = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-        if self.video_file_path is not None:
+        if self.video_file_path is not None and self.auto_save.isChecked():
             parent = self.video_file_path.parent
             file_name = self.video_file_path.stem
         else:
@@ -308,7 +312,10 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
                 return
 
             parent = Path(parent)
-            file_name = "jefapato_webcam"
+            if self.video_file_path is None:
+                file_name = "jefapato_webcam"
+            else:
+                file_name = self.video_file_path.stem
         result_path = parent / (file_name + f"_{ts}.csv")
 
         with open(result_path, "w", newline="") as csvfile:
