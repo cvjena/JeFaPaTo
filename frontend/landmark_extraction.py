@@ -181,10 +181,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         logger.info("Set features", features=self.features)
 
     def start(self) -> None:
-        if self.video_resource is None:
-            raise ValueError("User circumvented the GUI and did not set a video resource")
         
-        self.ea.prepare_video_resource(self.video_resource)
         self.setup_graph()
         self.ea.set_features(self.features)
         self.ea.start()
@@ -290,7 +287,10 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         if isinstance(self.video_resource, Path):
             self.la_current_file.setText(f"File: {str(self.video_resource.absolute())}")
         else:
-            self.la_current_file.setText("File: Live Webcam Feed")    
+            self.la_current_file.setText("File: Live Webcam Feed")
+
+        frame = self.ea.prepare_video_resource(self.video_resource)
+        self.widget_frame.set_image(frame)
 
     def load_cleanup(self) -> None:
         self.widget_frame.set_image(np.ones((100, 100, 3), dtype=np.uint8) * 255)

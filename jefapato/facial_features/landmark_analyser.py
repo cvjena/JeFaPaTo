@@ -172,7 +172,7 @@ class FaceAnalyzer():
 
         return row
 
-    def prepare_video_resource(self, value: Path | int):
+    def prepare_video_resource(self, value: Path | int) -> tuple[bool, np.ndarray]:
         self.video_resource = value
 
         if not isinstance(self.video_resource, (Path, int)):
@@ -184,7 +184,9 @@ class FaceAnalyzer():
 
             self.resource_interface = cv2.VideoCapture(str(self.video_resource.absolute()))
             self.data_amount = self.resource_interface.get(cv2.CAP_PROP_FRAME_COUNT)
-            return
+            
+            _, image = self.resource_interface.read()
+            return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
         if self.video_resource != -1:
             raise ValueError("Video resource must be a Path or -1 for webcam.")
@@ -197,6 +199,11 @@ class FaceAnalyzer():
         self.resource_interface.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)  # 1280 # TODO check if this is correct
         self.resource_interface.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)  # 720 # TODO check if this is correct
         self.data_amount = -1
+
+        success, image = self.resource_interface.read()
+        if not success:
+            raise RuntimeError("Could not read from webcam.")
+        return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
     def release_resource(self):
         self.resource_interface.release()
