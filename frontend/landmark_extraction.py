@@ -77,6 +77,10 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.add_handler("backend", self.combo_backend, mapper=self.get("backend_options"))
         self.combo_backend.currentTextChanged.connect(self.save_conf)
 
+        self.la_current_file = QtWidgets.QLabel("File: No file loaded")
+        self.la_current_file.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
+        self.la_current_file.setWordWrap(True)
+
         self.pb_anal = self.parent().progress_bar
         self.skip_faces = QtWidgets.QSpinBox()
         self.skip_frame = QtWidgets.QSpinBox()
@@ -99,6 +103,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         open_l.addWidget(self.button_video_open)
         open_l.addWidget(self.button_webcam_open)
         self.flayout_se.addRow(open_l)
+        self.flayout_se.addRow(self.la_current_file)
         self.flayout_se.addRow(self.button_start)
         self.flayout_se.addRow(self.bt_pause_resume)
         self.flayout_se.addRow(self.button_stop)
@@ -281,13 +286,14 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         if fileName != "":
             logger.info("Video file selected", file_name=fileName)
             self.video_file_path = Path(fileName)
-
             self.button_start.setDisabled(False)
-
             self.load_cleanup()
+
+            self.la_current_file.setText(f"File: {str(self.video_file_path.absolute())}")
         else:
             logger.info("Open File Dialog canceled")
             self.button_start.setDisabled(True)
+            self.la_current_file.setText("File: None selected")
 
     def load_webcam(self):
         logger.info("Open Webcam", widget=self)
