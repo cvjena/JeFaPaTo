@@ -18,5 +18,6 @@ class InputQueueItem:
 class AnalyzeQueueItem:
     """A dataclass for holding an input image and its metadata."""
 
-    image: bytes
-    metadata: dict[str, str]
+    image: np.ndarray
+    face_rect: tuple[int, int, int, int]
+    landmark_features: np.ndarray

@@ -12,14 +12,14 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from qtpy.QtCore import QThread, Signal
 
-from .queue_items import InputQueueItem
+from .queue_items import InputQueueItem, AnalyzeQueueItem
 
 logger = structlog.get_logger()
 
 
 class Extractor(QThread):
     processingStarted = Signal()
-    processingUpdated = Signal(object, object, object)
+    processingUpdated = Signal(object)
     processingPaused = Signal()
     processingResumed = Signal()
     processingFinished = Signal()
@@ -118,24 +118,21 @@ class MediapipeLandmarkExtractor(Extractor):
 
             face_landmarker_result = self.detector.detect(mp_image)
             landmarks = np.empty((478, 3), dtype=np.int32)
-            if not face_landmarker_result.face_landmarks:
-                self.processingUpdated.emit(image, self.rect, landmarks)
-                processed += 1
-                perc = int((processed / self.data_amount) * 100)
-                self.processedPercentage.emit(perc)
-                continue
 
-            face_landmarks = face_landmarker_result.face_landmarks[0]
-            for i, lm in enumerate(face_landmarks):
-                landmarks[i, 0] = int(lm.x * w)
-                landmarks[i, 1] = int(lm.y * h)
-                landmarks[i, 2] = int(lm.z * w)
+            if face_landmarker_result.face_landmarks:
+                face_landmarks = face_landmarker_result.face_landmarks[0]
+                for i, lm in enumerate(face_landmarks):
+                    landmarks[i, 0] = int(lm.x * w)
+                    landmarks[i, 1] = int(lm.y * h)
+                    landmarks[i, 2] = int(lm.z * w)
 
-            self.rect = (
-                *np.min(landmarks, axis=0)[:2],
-                *np.max(landmarks, axis=0)[:2],
-            )
-            self.processingUpdated.emit(image, self.rect, landmarks)
+                self.rect = (
+                    *np.min(landmarks, axis=0)[:2],
+                    *np.max(landmarks, axis=0)[:2],
+                )
+
+            item = AnalyzeQueueItem(image, self.rect, landmarks)
+            self.processingUpdated.emit(item)
             processed += 1
             perc = int((processed / self.data_amount) * 100)
             self.processedPercentage.emit(perc)

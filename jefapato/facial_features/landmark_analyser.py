@@ -14,6 +14,7 @@ import platform
 from .features import Feature, FeatureData
 from .video_data_loader import VideoDataLoader
 from .mediapipe_landmark_extractor import MediapipeLandmarkExtractor
+from .queue_items import AnalyzeQueueItem
 
 logger = structlog.get_logger()
 
@@ -122,14 +123,13 @@ class FaceAnalyzer():
         self.extractor.processingResumed.connect(self.pm.hook.resumed)
         self.analysis_start()
 
-    def handle_update(
-        self, 
-        image: np.ndarray, 
-        face_rect: tuple[int, int, int, int], 
-        features: np.ndarray
-    ) -> None:
+    def handle_update(self, q_item: AnalyzeQueueItem) -> None:
         # here would be some drawing? and storing of the features we are interested in
         temp_data = OrderedDict()
+
+        image = q_item.image
+        face_rect = q_item.face_rect
+        features = q_item.landmark_features
 
         for f_name, f_class in self.feature_methods.items():
             res = f_class.compute(features)
