@@ -31,19 +31,17 @@ class FaceAnalyzer():
         self.feature_methods: OrderedDict[str, Feature] = OrderedDict()
         self.feature_data: OrderedDict[str, list[FeatureData]] = OrderedDict()
 
-        self.resource: Any = None
-        self.resource_path: Path | int | None = None
+        self.resource_interface: Any = None
+        self.video_resource: Path | int | None = None
         self.data_amount: int = 0
 
         self.pm = pluggy.PluginManager("analyser")
         self.pm.add_hookspecs(self.__class__)# TODO could be an issue!
 
     def analysis_setup(self) -> bool:
-        if self.resource is None:
-            if self.resource_path is None:
-                logger.error("Resource could not be created!")
-                return False
-            self.load_resource()
+        if self.resource_interface is None:
+            logger.error("No resource interface set.")
+            raise ValueError("No resource interface set.")
 
         # compute how much RAM space we have
         available_memory = min(psutil.virtual_memory().available, self.max_ram_size)
@@ -71,23 +69,16 @@ class FaceAnalyzer():
         self.extractor.start()
         logger.info("Started extractor thread.", extractor=self.extractor)
 
-    def set_resource_path(self, value: int | Path) -> None:
-        self.resource_path = value
-        self.load_resource()
-
-    def get_resource_path(self) -> Path | int | None:
-        return self.resource_path
 
     def stop(self):
         # TODO create a stop function for the loader and extractor
         #      and don't use the variables directly...
-        if self.loader is not None:
-            self.loader.stopped = True
-            self.loader.join()
-        if self.extractor is not None:
-            self.extractor.stopped = True
-            # self.extractor.terminate()
-            self.extractor.wait()
+        if (loader := getattr(self, "loader", None)) is not None:
+            loader.stopped = True
+            loader.join()
+        if (extractor := getattr(self, "extractor", None)) is not None:
+            extractor.stopped = True
+            extractor.wait()
 
     def reset(self):
         self.features = list()
@@ -100,12 +91,8 @@ class FaceAnalyzer():
         self.feature_data.clear()
 
         for feature in features:
-            self.feature_methods[feature.__name__] = feature(**self.kwargs)
+            self.feature_methods[feature.__name__] = feature()
             self.feature_data[feature.__name__] = []
-
-    def set_settings(self, **kwargs) -> None:
-        kwargs["backend"] = kwargs.get("backend", "mediapipe")
-        self.kwargs = kwargs
 
     def set_skip_count(self, value: int) -> None:
         self.extractor.set_skip_count(value)
@@ -187,54 +174,52 @@ class FaceAnalyzer():
 
         return row
 
-    def call_after_resource_load(self) -> None:
-        pass
+    def prepare_video_resource(self, value: Path | int):
+        self.video_resource = value
 
-    def load_resource(self):
-        resource_type = self.resource_path
-        if isinstance(resource_type, Path):
-            self.resource = cv2.VideoCapture(resource_type.as_posix())
-            self.data_amount = self.resource.get(cv2.CAP_PROP_FRAME_COUNT)
+        if not isinstance(self.video_resource, (Path, int)):
+            raise ValueError("Video resource must be a Path or an integer.")
+
+        if isinstance(self.video_resource, Path):
+            if not self.video_resource.exists():
+                raise FileNotFoundError(f"File {self.video_resource} does not exist.")
+
+            self.resource_interface = cv2.VideoCapture(str(self.video_resource.absolute()))
+            self.data_amount = self.resource_interface.get(cv2.CAP_PROP_FRAME_COUNT)
+            return
+
+        if self.video_resource != -1:
+            raise ValueError("Video resource must be a Path or -1 for webcam.")
+        
         # this is the case for a webcam
-        elif isinstance(resource_type, int):
-            if platform.system() == "Darwin":
-                # check for the architecture
-                if platform.processor() == "arm":
-                    self.resource = cv2.VideoCapture(1)
-                else:
-                    self.resource = cv2.VideoCapture(0)
-                self.resource.set(cv2.CAP_PROP_FPS, 30)
-            else:
-                self.resource = cv2.VideoCapture(0)
-            # TODO make this configurable
-            # with v4l2-ctl --list-formats-ext one chan check if the format is supported
-            self.resource.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
-            self.resource.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)  # 1280
-            self.resource.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)  # 720
-            self.data_amount = np.inf
-        else:
-            raise ValueError("The resource path must be a Path or an int")
+        # check on which kind of system we are running 
+        self.resource_interface = cv2.VideoCapture(1 if platform.system() == "Darwin" else 0)
+        self.resource_interface.set(cv2.CAP_PROP_FPS, 30)
+        self.resource_interface.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
+        self.resource_interface.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)  # 1280 # TODO check if this is correct
+        self.resource_interface.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)  # 720 # TODO check if this is correct
+        self.data_amount = -1
 
     def release_resource(self):
-        self.resource.release()
-        self.resource = None
+        self.resource_interface.release()
+        self.resource_interface = None
 
     def get_next_item(self) -> tuple[bool, np.ndarray]:
-        return self.resource.read()
+        return self.resource_interface.read()
 
     def get_fps(self) -> float:
-        return self.resource.get(cv2.CAP_PROP_FPS)
+        return self.resource_interface.get(cv2.CAP_PROP_FPS)
 
     def get_item_size_in_bytes(self) -> int:
-        width = self.resource.get(cv2.CAP_PROP_FRAME_WIDTH)
-        height = self.resource.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        width = self.resource_interface.get(cv2.CAP_PROP_FRAME_WIDTH)
+        height = self.resource_interface.get(cv2.CAP_PROP_FRAME_HEIGHT)
         channels = 3
         data_size_in_bytes = 1
         return width * height * channels * data_size_in_bytes
 
     def get_item_size(self) -> tuple[int, int, int]:
-        width = self.resource.get(cv2.CAP_PROP_FRAME_WIDTH)
-        height = self.resource.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        width = self.resource_interface.get(cv2.CAP_PROP_FRAME_WIDTH)
+        height = self.resource_interface.get(cv2.CAP_PROP_FRAME_HEIGHT)
         channels = 3
         return width, height, channels
 

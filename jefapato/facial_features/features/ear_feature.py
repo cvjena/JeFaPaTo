@@ -84,22 +84,14 @@ class EARFeature(Feature):
         "ear_l": {"label": "EAR Left", "color": "b", "width": 2},
         "ear_r": {"label": "EAR Right", "color": "r", "width": 2},
     }
-
-    # dlib_eye_l = np.array([42, 43, 44, 45, 46, 47])
-    # dlib_eye_r = np.array([36, 37, 38, 39, 40, 41])
     mp_eye_l = np.array([362, 385, 386, 263, 374, 380])
     mp_eye_r = np.array([33, 159, 158, 133, 153, 145])
 
-    def __init__(self, backend: str) -> None:
+    def __init__(self) -> None:
         super().__init__()
         self.d_type = EARData
-        self.backend = backend
-
-        if self.backend == "mediapipe":
-            self.index_l = self.mp_eye_l
-            self.index_r = self.mp_eye_r
-        else:
-            logger.error("EARFeature: unknown backend", backend=self.backend)
+        self.index_l = self.mp_eye_l
+        self.index_r = self.mp_eye_r
 
     def ear_score(self, eye: np.ndarray) -> float:
         """Compute the EAR Score for eye landmarks
@@ -143,10 +135,7 @@ class EARFeature(Feature):
         # extract the eye landmarks
         lm_l = in_data[self.index_l]
         lm_r = in_data[self.index_r]
-        ear_valid = not (
-            np.allclose(np.zeros_like(lm_l), lm_l)
-            and np.allclose(np.zeros_like(lm_r), lm_r)
-        )
+        ear_valid = not (np.allclose(np.zeros_like(lm_l), lm_l) and np.allclose(np.zeros_like(lm_r), lm_r))
         ear_l = self.ear_score(lm_l) if ear_valid else 1.0
         ear_r = self.ear_score(lm_r) if ear_valid else 1.0
         return EARData(lm_l, lm_r, ear_l, ear_r, ear_valid)
@@ -158,10 +147,8 @@ class EARFeature(Feature):
         List[str]
             The header for the feature including the valid and all the landmarks
         """
-        be = self.backend
-
-        l_x = [f"{be}_l_x_{i:03d}" for i in self.index_l]
-        l_y = [f"{be}_l_y_{i:03d}" for i in self.index_l]
-        r_x = [f"{be}_r_x_{i:03d}" for i in self.index_r]
-        r_y = [f"{be}_r_y_{i:03d}" for i in self.index_r]
-        return l_x + l_y + r_x + r_y + [f"{be}_ear_l", f"{be}_ear_r", f"{be}_ear_valid"]
+        l_x = [f"l_x_{i:03d}" for i in self.index_l]
+        l_y = [f"l_y_{i:03d}" for i in self.index_l]
+        r_x = [f"r_x_{i:03d}" for i in self.index_r]
+        r_y = [f"r_y_{i:03d}" for i in self.index_r]
+        return l_x + l_y + r_x + r_y + ["ear_l", "ear_r", "ear_valid"]

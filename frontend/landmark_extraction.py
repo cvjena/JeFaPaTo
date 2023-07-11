@@ -31,7 +31,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         config.Config.__init__(self, prefix="landmarks")
         QtWidgets.QSplitter.__init__(self, parent=parent)
 
-        self.video_file_path: Path | None = None
+        self.video_resource: Path | int | None = None
 
         self.widget_frame = plotting.ImageBox()
         self.widget_face = plotting.ImageBox()
@@ -181,11 +181,11 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         logger.info("Set features", features=self.features)
 
     def start(self) -> None:
-        # if we are on mac based system we have to put 1 instead of
-        cam_id = 1 if sys.platform == "darwin" else 0
-        self.ea.set_resource_path(self.video_file_path or cam_id)
+        if self.video_resource is None:
+            raise ValueError("User circumvented the GUI and did not set a video resource")
+        
+        self.ea.prepare_video_resource(self.video_resource)
         self.setup_graph()
-        self.ea.set_settings(backend=self.get("backend"))
         self.ea.set_features(self.features)
         self.ea.start()
 
@@ -268,25 +268,29 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
             options=QtWidgets.QFileDialog.DontUseNativeDialog,
         )
 
-        if fileName != "":
-            logger.info("Video file selected", file_name=fileName)
-            self.video_file_path = Path(fileName)
-            self.button_start.setDisabled(False)
-            self.load_cleanup()
-
-            self.la_current_file.setText(f"File: {str(self.video_file_path.absolute())}")
-        else:
+        if fileName == "":
             logger.info("Open File Dialog canceled")
             self.button_start.setDisabled(True)
             self.la_current_file.setText("File: None selected")
+            self.video_resource = None
+            return
+        
+        logger.info("Open File Dialog selected", file=fileName)
+        self.set_resource(Path(fileName))
 
     def load_webcam(self):
         logger.info("Open Webcam", widget=self)
-        self.video_file_path = None
+        self.set_resource(-1)
+
+    def set_resource(self, resource: Path | int) -> None:
+        self.video_resource = resource
         self.button_start.setDisabled(False)
-        self.skip_frame.setValue(1)
         self.load_cleanup()
-        self.start()
+
+        if isinstance(self.video_resource, Path):
+            self.la_current_file.setText(f"File: {str(self.video_resource.absolute())}")
+        else:
+            self.la_current_file.setText("File: Live Webcam Feed")    
 
     def load_cleanup(self) -> None:
         self.widget_frame.set_image(np.ones((100, 100, 3), dtype=np.uint8) * 255)
@@ -297,9 +301,9 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         logger.info("Save Results Dialog", widget=self)
         ts = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-        if self.video_file_path is not None and self.auto_save.isChecked():
-            parent = self.video_file_path.parent
-            file_name = self.video_file_path.stem
+        if self.video_resource is not None and self.auto_save.isChecked():
+            parent = self.video_resource.parent
+            file_name = self.video_resource.stem
         else:
             # open save dialog for folder
             parent = QtWidgets.QFileDialog.getExistingDirectory(
@@ -312,10 +316,10 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
                 return
 
             parent = Path(parent)
-            if self.video_file_path is None:
+            if self.video_resource is None:
                 file_name = "jefapato_webcam"
             else:
-                file_name = self.video_file_path.stem
+                file_name = self.video_resource.stem
         result_path = parent / (file_name + f"_{ts}.csv")
 
         with open(result_path, "w", newline="") as csvfile:
