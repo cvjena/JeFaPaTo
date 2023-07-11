@@ -1,8 +1,8 @@
 __all__ = ["FaceAnalyzer"]
 
-import pathlib
 from typing import Any, Type
 from collections import OrderedDict
+from pathlib import Path
 
 import cv2
 import numpy as np
@@ -31,7 +31,7 @@ class FaceAnalyzer():
         self.feature_data: OrderedDict[str, list[FeatureData]] = OrderedDict()
 
         self.resource: Any = None
-        self.resource_path: pathlib.Path | int | None = None
+        self.resource_path: Path | int | None = None
         self.data_amount: int = 0
 
         self.pm = pluggy.PluginManager("analyser")
@@ -70,11 +70,11 @@ class FaceAnalyzer():
         self.extractor.start()
         logger.info("Started extractor thread.", extractor=self.extractor)
 
-    def set_resource_path(self, value: int | pathlib.Path) -> None:
+    def set_resource_path(self, value: int | Path) -> None:
         self.resource_path = value
         self.load_resource()
 
-    def get_resource_path(self) -> pathlib.Path | int | None:
+    def get_resource_path(self) -> Path | int | None:
         return self.resource_path
 
     def stop(self):
@@ -192,7 +192,7 @@ class FaceAnalyzer():
 
     def load_resource(self):
         resource_type = self.resource_path
-        if isinstance(resource_type, pathlib.Path):
+        if isinstance(resource_type, Path):
             self.resource = cv2.VideoCapture(resource_type.as_posix())
             self.data_amount = self.resource.get(cv2.CAP_PROP_FRAME_COUNT)
         # this is the case for a webcam
@@ -213,7 +213,7 @@ class FaceAnalyzer():
             self.resource.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)  # 720
             self.data_amount = np.inf
         else:
-            raise ValueError("The resource path must be a pathlib.Path or an int")
+            raise ValueError("The resource path must be a Path or an int")
 
     def release_resource(self):
         self.resource.release()

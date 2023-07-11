@@ -2,9 +2,9 @@ __all__ = ["LandmarkExtraction"]
 
 import csv
 import datetime
-import pathlib
 import sys
 from typing import Any, Type
+from pathlib import Path
 
 import numpy as np
 import pyqtgraph as pg
@@ -31,7 +31,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         config.Config.__init__(self, prefix="landmarks")
         QtWidgets.QSplitter.__init__(self, parent=parent)
 
-        self.video_file_path: pathlib.Path = None
+        self.video_file_path: Path | None = None
 
         self.widget_frame = plotting.ImageBox()
         self.widget_face = plotting.ImageBox()
@@ -280,7 +280,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
 
         if fileName != "":
             logger.info("Video file selected", file_name=fileName)
-            self.video_file_path = pathlib.Path(fileName)
+            self.video_file_path = Path(fileName)
 
             self.button_start.setDisabled(False)
 
@@ -314,13 +314,13 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
             parent = QtWidgets.QFileDialog.getExistingDirectory(
                 self,
                 "Select Directory",
-                pathlib.Path.home().as_posix(),
+                Path.home().as_posix(),
             )
             if parent == "":
                 logger.info("Save Results Dialog canceled")
                 return
 
-            parent = pathlib.Path(parent)
+            parent = Path(parent)
             file_name = "jefapato_webcam"
         result_path = parent / (file_name + f"_{ts}.csv")
 
