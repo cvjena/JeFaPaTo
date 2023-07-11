@@ -10,7 +10,9 @@ import numpy as np
 import structlog
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
-from qtpy.QtCore import QThread, Signal 
+from qtpy.QtCore import QThread, Signal
+
+from .queue_items import InputQueueItem
 
 logger = structlog.get_logger()
 
@@ -24,7 +26,7 @@ class Extractor(QThread):
     processedPercentage = Signal(int)
 
     def __init__(
-        self, data_queue: queue.Queue, data_amount: int, sleep_duration: float = 0.1
+        self, data_queue: queue.Queue[InputQueueItem], data_amount: int, sleep_duration: float = 0.1
     ) -> None:
         super().__init__()
         self.data_queue = data_queue
@@ -64,7 +66,7 @@ class Extractor(QThread):
 
 
 class MediapipeLandmarkExtractor(Extractor):
-    def __init__(self, data_queue: queue.Queue, data_amount: int) -> None:
+    def __init__(self, data_queue: queue.Queue[InputQueueItem], data_amount: int) -> None:
         super().__init__(data_queue=data_queue, data_amount=data_amount)
 
         base_options = python.BaseOptions(model_asset_path=str(Path(__file__).parent / "models/2023-07-09_face_landmarker.task"))
@@ -108,7 +110,7 @@ class MediapipeLandmarkExtractor(Extractor):
                 processed_p_sec = 0
 
             processed_p_sec += 1
-            image = self.data_queue.get()
+            image = self.data_queue.get().frame
             h, w = image.shape[:2]
 
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)

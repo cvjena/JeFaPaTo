@@ -7,6 +7,8 @@ from typing import Callable
 
 import structlog
 
+from .queue_items import InputQueueItem
+
 logger = structlog.get_logger()
 
 class VideoDataLoader(threading.Thread):
@@ -15,7 +17,7 @@ class VideoDataLoader(threading.Thread):
 
         self.start_time = time.time()
         self.next_item_func: Callable = next_item_func
-        self.data_queue = queue.Queue(maxsize=queue_maxsize)
+        self.data_queue: queue.Queue[InputQueueItem] = queue.Queue(maxsize=queue_maxsize)
         self.data_amount = 0
         self.stopped = False
 
@@ -41,8 +43,8 @@ class VideoDataLoader(threading.Thread):
                 if not grabbed:
                     self.stopped = True
                     break
-
-                self.data_queue.put(frame)
+ 
+                self.data_queue.put(InputQueueItem(frame=frame, timestamp=c_time))
                 processed_p_sec += 1
             else:
                 # we have to put it to sleep, else it will freeze
