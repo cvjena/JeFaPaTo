@@ -301,7 +301,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         logger.info("Save Results Dialog", widget=self)
         ts = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-        if self.video_resource is not None and self.auto_save.isChecked():
+        if isinstance(self.video_resource, Path) and self.auto_save.isChecked():
             parent = self.video_resource.parent
             file_name = self.video_resource.stem
         else:
@@ -316,12 +316,14 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
                 return
 
             parent = Path(parent)
-            if self.video_resource is None:
+            if isinstance(self.video_resource, int):
                 file_name = "jefapato_webcam"
-            else:
+            elif isinstance(self.video_resource, Path):
                 file_name = self.video_resource.stem
-        result_path = parent / (file_name + f"_{ts}.csv")
+            else:
+                raise ValueError("Invalid video resource")
 
+        result_path = parent / (file_name + f"_{ts}.csv")
         with open(result_path, "w", newline="") as csvfile:
             writer = csv.writer(csvfile)
 
