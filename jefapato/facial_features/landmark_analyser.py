@@ -71,8 +71,6 @@ class FaceAnalyzer():
 
 
     def stop(self):
-        # TODO create a stop function for the loader and extractor
-        #      and don't use the variables directly...
         if (loader := getattr(self, "loader", None)) is not None:
             loader.stopped = True
             loader.join()
