@@ -21,3 +21,4 @@ class AnalyzeQueueItem:
     image: np.ndarray
     face_rect: tuple[int, int, int, int]
     landmark_features: np.ndarray
+    blendshape_features: dict[str, float]

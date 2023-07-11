@@ -78,6 +78,9 @@ class FaceAnalyzer():
             extractor.stopped = True
             extractor.wait()
 
+        if self.resource_interface is not None:
+            self.resource_interface.release()
+
     def reset(self):
         self.features = list()
 
@@ -185,8 +188,8 @@ class FaceAnalyzer():
             self.resource_interface = cv2.VideoCapture(str(self.video_resource.absolute()))
             self.data_amount = self.resource_interface.get(cv2.CAP_PROP_FRAME_COUNT)
             
-            _, image = self.resource_interface.read()
-            return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            success, image = self.resource_interface.read()
+            return success, cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
         if self.video_resource != -1:
             raise ValueError("Video resource must be a Path or -1 for webcam.")
@@ -203,7 +206,7 @@ class FaceAnalyzer():
         success, image = self.resource_interface.read()
         if not success:
             raise RuntimeError("Could not read from webcam.")
-        return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        return success, cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
     def release_resource(self):
         self.resource_interface.release()

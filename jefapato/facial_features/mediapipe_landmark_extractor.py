@@ -63,7 +63,7 @@ class Extractor(QThread):
             "Extractor.run() must be implemented in the inherited class."
         )
 
-
+KEYS = ['_neutral', 'browDownLeft', 'browDownRight', 'browInnerUp', 'browOuterUpLeft', 'browOuterUpRight', 'cheekPuff', 'cheekSquintLeft', 'cheekSquintRight', 'eyeBlinkLeft', 'eyeBlinkRight', 'eyeLookDownLeft', 'eyeLookDownRight', 'eyeLookInLeft', 'eyeLookInRight', 'eyeLookOutLeft', 'eyeLookOutRight', 'eyeLookUpLeft', 'eyeLookUpRight', 'eyeSquintLeft', 'eyeSquintRight', 'eyeWideLeft', 'eyeWideRight', 'jawForward', 'jawLeft', 'jawOpen', 'jawRight', 'mouthClose', 'mouthDimpleLeft', 'mouthDimpleRight', 'mouthFrownLeft', 'mouthFrownRight', 'mouthFunnel', 'mouthLeft', 'mouthLowerDownLeft', 'mouthLowerDownRight', 'mouthPressLeft', 'mouthPressRight', 'mouthPucker', 'mouthRight', 'mouthRollLower', 'mouthRollUpper', 'mouthShrugLower', 'mouthShrugUpper', 'mouthSmileLeft', 'mouthSmileRight', 'mouthStretchLeft', 'mouthStretchRight', 'mouthUpperUpLeft', 'mouthUpperUpRight', 'noseSneerLeft', 'noseSneerRight']
 
 class MediapipeLandmarkExtractor(Extractor):
     def __init__(self, data_queue: queue.Queue[InputQueueItem], data_amount: int) -> None:
@@ -73,7 +73,7 @@ class MediapipeLandmarkExtractor(Extractor):
         options = vision.FaceLandmarkerOptions(
             base_options=base_options,
             running_mode=vision.RunningMode.IMAGE,
-            output_face_blendshapes=False, 
+            output_face_blendshapes=True, 
             output_facial_transformation_matrixes=False,
             num_faces=1,
         )
@@ -118,6 +118,7 @@ class MediapipeLandmarkExtractor(Extractor):
 
             face_landmarker_result = self.detector.detect(mp_image)
             landmarks = np.empty((478, 3), dtype=np.int32)
+            blenshapes = {key: 0.0 for key in KEYS}
 
             if face_landmarker_result.face_landmarks:
                 face_landmarks = face_landmarker_result.face_landmarks[0]
@@ -130,8 +131,10 @@ class MediapipeLandmarkExtractor(Extractor):
                     *np.min(landmarks, axis=0)[:2],
                     *np.max(landmarks, axis=0)[:2],
                 )
+                for face_blendshape in face_landmarker_result.face_blendshapes[0]:
+                    blenshapes[face_blendshape.category_name] = face_blendshape.score
 
-            item = AnalyzeQueueItem(image, self.rect, landmarks)
+            item = AnalyzeQueueItem(image, self.rect, landmarks, blenshapes)
             self.processingUpdated.emit(item)
             processed += 1
             perc = int((processed / self.data_amount) * 100)
