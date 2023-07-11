@@ -72,17 +72,11 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.bt_pause_resume = QtWidgets.QPushButton(qta.icon("ph.pause-light"), "Pause")
         self.bt_pause_resume.setDisabled(True)
 
-        self.combo_backend = QtWidgets.QComboBox()
-        self.combo_backend.addItems(self.get("backend_options").keys())
-        self.add_handler("backend", self.combo_backend, mapper=self.get("backend_options"))
-        self.combo_backend.currentTextChanged.connect(self.save_conf)
-
         self.la_current_file = QtWidgets.QLabel("File: No file loaded")
         self.la_current_file.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
         self.la_current_file.setWordWrap(True)
 
         self.pb_anal = self.parent().progress_bar
-        self.skip_faces = QtWidgets.QSpinBox()
         self.skip_frame = QtWidgets.QSpinBox()
 
         self.feature_group = QtWidgets.QGroupBox("Features")
@@ -109,8 +103,6 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.flayout_se.addRow(self.button_stop)
         self.flayout_se.addRow(self.feature_group)
         self.flayout_se.addRow("Graph Update Delay:", self.skip_frame)
-        self.flayout_se.addRow("Backend", self.combo_backend)
-        self.flayout_se.addRow("Face Detection Skip:", self.skip_faces)
         self.flayout_se.addRow(self.bt_reset_graph)
 
         # add two labels to the bottom row of the main layout
@@ -133,10 +125,6 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.button_start.clicked.connect(self.start)
         self.button_stop.clicked.connect(self.stop)
         self.bt_pause_resume.clicked.connect(self.ea.toggle_pause)
-
-        self.skip_faces.setRange(3, 20)
-        self.skip_faces.setValue(5)
-        self.skip_faces.valueChanged.connect(self.ea.set_skip_count)
 
         self.skip_frame.setRange(1, 20)
         self.skip_frame.setValue(5)
@@ -209,11 +197,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.button_stop.setDisabled(False)
         self.cb_anal.setDisabled(True)
         self.feature_group.setDisabled(True)
-        self.combo_backend.setDisabled(True)
         self.bt_pause_resume.setDisabled(False)
-
-        if self.combo_backend.currentText() == "mediapipe":
-            self.skip_faces.setDisabled(True)
 
     @facial_features.FaceAnalyzer.hookimpl
     def paused(self):
@@ -236,15 +220,12 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.button_start.setDisabled(False)
         self.button_stop.setDisabled(True)
         self.feature_group.setDisabled(False)
-        self.combo_backend.setDisabled(False)
         self.cb_anal.setDisabled(False)
 
         # reset the pause/resume button
         self.bt_pause_resume.setDisabled(True)
         self.bt_pause_resume.setText("Pause")
 
-        if self.combo_backend.currentText() == "mediapipe":
-            self.skip_faces.setDisabled(False)
 
     @facial_features.FaceAnalyzer.hookimpl
     def updated_display(self, image: np.ndarray, face: np.ndarray):
