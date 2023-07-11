@@ -198,7 +198,7 @@ class FaceAnalyzer():
         # check on which kind of system we are running 
         self.resource_interface = cv2.VideoCapture(1 if platform.system() == "Darwin" else 0)
         self.resource_interface.set(cv2.CAP_PROP_FPS, 30)
-        self.resource_interface.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
+        self.resource_interface.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter.fourcc("M", "J", "P", "G"))
         self.resource_interface.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)  # 1280 # TODO check if this is correct
         self.resource_interface.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)  # 720 # TODO check if this is correct
         self.data_amount = -1
