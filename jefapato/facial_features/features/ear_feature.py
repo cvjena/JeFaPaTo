@@ -1,4 +1,4 @@
-__all__ = ["EARFeature", "EARData"]
+__all__ = ["EAR2D6_Feature", "EAR2D6_Data"]
 
 import dataclasses
 from typing import Any, Dict, List
@@ -14,7 +14,7 @@ logger = structlog.get_logger()
 
 
 @dataclasses.dataclass
-class EARData(FeatureData):
+class EAR2D6_Data(FeatureData):
     """A simple data class to combine the ear score results"""
 
     lm_l: np.ndarray
@@ -70,7 +70,7 @@ class EARData(FeatureData):
         return image
 
 
-class EARFeature(Feature):
+class EAR2D6_Feature(Feature):
     """EyeBlinking Classifier Class for 68 facial landmarks features
 
     This class implements a classifier specificly for the 68 landmarking
@@ -89,7 +89,7 @@ class EARFeature(Feature):
 
     def __init__(self) -> None:
         super().__init__()
-        self.d_type = EARData
+        self.d_type = EAR2D6_Data
         self.index_l = self.mp_eye_l
         self.index_r = self.mp_eye_r
 
@@ -116,7 +116,7 @@ class EARFeature(Feature):
 
         return (A + B) / (2.0 * C)
 
-    def compute(self, in_data: np.ndarray) -> EARData:
+    def compute(self, in_data: np.ndarray) -> EAR2D6_Data:
         """
         Compute the feature for the given data
 
@@ -138,7 +138,7 @@ class EARFeature(Feature):
         ear_valid = not (np.allclose(np.zeros_like(lm_l), lm_l) and np.allclose(np.zeros_like(lm_r), lm_r))
         ear_l = self.ear_score(lm_l) if ear_valid else 1.0
         ear_r = self.ear_score(lm_r) if ear_valid else 1.0
-        return EARData(lm_l, lm_r, ear_l, ear_r, ear_valid)
+        return EAR2D6_Data(lm_l, lm_r, ear_l, ear_r, ear_valid)
 
     def get_header(self) -> List[str]:
         """
