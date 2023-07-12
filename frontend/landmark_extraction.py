@@ -120,14 +120,14 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
 
         # add two labels to the bottom row of the main layout
         self.la_input = QtWidgets.QLabel("Loading: ### frame/s")
-        self.la_input.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
         self.la_proce = QtWidgets.QLabel("Processing: ### frames/s")
+        self.la_input.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
         self.la_proce.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
 
         self.parent().statusBar().addWidget(self.la_input)
         self.parent().statusBar().addWidget(self.la_proce)
 
-        self.features: list[Type[facial_features.Feature]] = []
+        self.features_classes: list[Type[facial_features.Feature]] = []
 
         self.ea = facial_features.FaceAnalyzer()
         self.ea.register_hooks(self)
@@ -153,11 +153,11 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.set_features()
 
     def setup_graph(self) -> None:
-        logger.info("Setup graph for all features to plot", features=self.features)
+        logger.info("Setup graph for all features to plot", features=self.features_classes)
         self.widget_graph.clear()
         self.update_count = 0
-        for k in self.plot_item:
-            self.widget_graph.removeItem(k)
+        for feature_name in self.plot_item:
+            self.widget_graph.removeItem(feature_name)
 
         self.plot_item.clear()
         self.plot_data.clear()
@@ -177,23 +177,24 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
             ]
         )
 
-        for feature in self.features:
-            for k, v in feature.plot_info.items():
-                self.plot_item[k] = self.widget_graph.add_curve(**v)
-                self.plot_data[k] = np.zeros(self.chunk_size)
+        for feature_class in self.features_classes:
+            for feature_name, feature_plot_settings in feature_class.plot_info.items():
+                # feature_name = f"{feature_class.__name__}_{feature_name}"
+                self.plot_item[feature_name] = self.widget_graph.add_curve(**feature_plot_settings)
+                self.plot_data[feature_name] = np.zeros(self.chunk_size)
 
     def set_features(self) -> None:
-        self.features.clear()
+        self.features_classes.clear()
         for c in self.feature_checkboxes:
             if c.isChecked():
-                self.features.append(c.feature)
-        logger.info("Set features", features=self.features)
+                self.features_classes.append(c.feature)
+        logger.info("Set features", features=self.features_classes)
 
     def start(self) -> None:
         if self.video_resource is not None:
             self.set_resource(self.video_resource)
         self.setup_graph()
-        self.ea.set_features(self.features)
+        self.ea.set_features(self.features_classes)
         self.ea.start()
 
     def stop(self) -> None:
@@ -255,16 +256,17 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
     @facial_features.FaceAnalyzer.hookimpl
     def updated_feature(self, feature_data: dict[str, Any]) -> None:
         self.update_count += 1
-        for feat in self.features:
-            f_name = feat.__name__
-            if f_name in feature_data:
-                for k in feat.plot_info:
-                    val = getattr(feature_data[f_name], k)
-                    self.plot_data[k][:-1] = self.plot_data[k][1:]
-                    self.plot_data[k][-1] = val
+        for feature_class in self.features_classes:
+            if feature_class.__name__ not in feature_data:
+                continue
+            for feature_name in feature_class.plot_info.keys():
+                feature_value = getattr(feature_data[feature_class.__name__], feature_name)
+                # feature_name = f"{feature_class.__name__}_{feature_name}"
+                self.plot_data[feature_name][:-1] = self.plot_data[feature_name][1:]
+                self.plot_data[feature_name][-1] = feature_value
 
-                    if self.update_count % self.skip_frame.value() == 0:
-                        self.plot_item[k].setData(self.plot_data[k])
+                if self.update_count % self.skip_frame.value() == 0:
+                    self.plot_item[feature_name].setData(self.plot_data[feature_name])
 
     def load_video(self):
         logger.info("Open File Dialog", widget=self)
