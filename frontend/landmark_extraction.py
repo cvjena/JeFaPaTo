@@ -345,7 +345,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.stop()
         logger.info("Shutdown", state="finished", widget=self)
 
-    def dragEnterEvent(self, event):
+    def dragEnterEvent(self, event: QtGui.QDropEvent):
         logger.info("User started dragging event", widget=self)
         if event.mimeData().hasUrls():
             event.accept()
@@ -353,7 +353,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         else:
             event.ignore()
 
-    def dropEvent(self, event):
+    def dropEvent(self, event: QtGui.QDropEvent):
         files = [u.toLocalFile() for u in event.mimeData().urls()]
 
         if len(files) > 1:
