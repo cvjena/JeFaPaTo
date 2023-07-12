@@ -10,7 +10,7 @@ import numpy as np
 import pyqtgraph as pg
 import qtawesome as qta
 import structlog
-from qtpy import QtCore, QtWidgets
+from qtpy import QtCore, QtWidgets, QtGui
 
 from jefapato import config, plotting, facial_features
 
@@ -30,6 +30,8 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
     def __init__(self, parent=None):
         config.Config.__init__(self, prefix="landmarks")
         QtWidgets.QSplitter.__init__(self, parent=parent)
+
+        self.setAcceptDrops(True)
 
         self.video_resource: Path | int | None = None
 
@@ -207,6 +209,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.cb_anal.setDisabled(True)
         self.feature_group.setDisabled(True)
         self.bt_pause_resume.setDisabled(False)
+        self.setAcceptDrops(False)
 
     @facial_features.FaceAnalyzer.hookimpl
     def paused(self):
@@ -234,7 +237,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         # reset the pause/resume button
         self.bt_pause_resume.setDisabled(True)
         self.bt_pause_resume.setText("Pause")
-
+        self.setAcceptDrops(True)
 
     @facial_features.FaceAnalyzer.hookimpl
     def updated_display(self, image: np.ndarray, face: np.ndarray):
@@ -341,3 +344,24 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         logger.info("Shutdown", state="starting", widget=self)
         self.stop()
         logger.info("Shutdown", state="finished", widget=self)
+
+    def dragEnterEvent(self, event):
+        logger.info("User started dragging event", widget=self)
+        if event.mimeData().hasUrls():
+            event.accept()
+            logger.info("User started dragging event with mime file", widget=self)
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        files = [u.toLocalFile() for u in event.mimeData().urls()]
+
+        if len(files) > 1:
+            logger.info("User dropped multiple files", widget=self)
+        file = files[0]
+
+        file = Path(file)
+        if file.suffix not in [".mp4", ".flv", ".ts", ".mts", ".avi", ".mov"]:
+            logger.info("User dropped invalid file", widget=self)
+            return
+        self.set_resource(Path(file)) 

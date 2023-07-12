@@ -1,4 +1,4 @@
-__all__ = ["EAR2D6", "EAR_Data", "EAR3d6"]
+__all__ = ["EAR2D6", "EAR_Data", "EAR3D6"]
 
 import dataclasses
 from typing import Any, Dict, List
