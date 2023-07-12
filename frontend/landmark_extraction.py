@@ -179,7 +179,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
 
         for feature_class in self.features_classes:
             for feature_name, feature_plot_settings in feature_class.plot_info.items():
-                # feature_name = f"{feature_class.__name__}_{feature_name}"
+                feature_name = f"{feature_class.__name__}_{feature_name}"
                 self.plot_item[feature_name] = self.widget_graph.add_curve(**feature_plot_settings)
                 self.plot_data[feature_name] = np.zeros(self.chunk_size)
 
@@ -261,7 +261,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
                 continue
             for feature_name in feature_class.plot_info.keys():
                 feature_value = getattr(feature_data[feature_class.__name__], feature_name)
-                # feature_name = f"{feature_class.__name__}_{feature_name}"
+                feature_name = f"{feature_class.__name__}_{feature_name}"
                 self.plot_data[feature_name][:-1] = self.plot_data[feature_name][1:]
                 self.plot_data[feature_name][-1] = feature_value
 
