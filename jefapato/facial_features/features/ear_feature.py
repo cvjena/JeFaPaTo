@@ -65,9 +65,9 @@ class EAR(Feature):
         color_l = self.plot_info["ear_l"]["color"]
 
         for (x, y, *_) in data.lm_l:
-            cv2.circle(image, (x, y), 1, (0, 0, 255), -1)
+            cv2.circle(image, (x, y), 1, color_l, -1)
         for (x, y, *_) in data.lm_r:
-            cv2.circle(image, (x, y), 1, (255, 0, 0), -1)
+            cv2.circle(image, (x, y), 1, color_r, -1)
 
         # draw the eye ratio
         # horizontal lines

@@ -139,7 +139,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.bt_pause_resume.clicked.connect(self.ea.toggle_pause)
 
         self.skip_frame.setRange(1, 20)
-        self.skip_frame.setValue(5)
+        self.skip_frame.setValue(1)
 
         # disable analyse button and check box
         self.button_start.setDisabled(True)
