@@ -2,17 +2,16 @@ __all__ = ["LandmarkExtraction"]
 
 import csv
 import datetime
-import sys
-from typing import Any, Type
 from pathlib import Path
+from typing import Any, Type
 
 import numpy as np
 import pyqtgraph as pg
 import qtawesome as qta
 import structlog
-from qtpy import QtCore, QtWidgets, QtGui
+from qtpy import QtCore, QtGui, QtWidgets
 
-from jefapato import config, plotting, facial_features
+from jefapato import config, facial_features, plotting
 
 logger = structlog.get_logger()
 
