@@ -28,7 +28,7 @@ class FaceAnalyzer():
         super().__init__()
         self.max_ram_size = max_ram_size
 
-        self.feature_methods: OrderedDict[str, Feature] = OrderedDict()
+        self.feature_classes: OrderedDict[str, Feature] = OrderedDict()
         self.feature_data: OrderedDict[str, list[FeatureData]] = OrderedDict()
 
         self.resource_interface: Any = None
@@ -88,12 +88,13 @@ class FaceAnalyzer():
         self.pm.register(plugin)
 
     def set_features(self, features: list[Type[Feature]]) -> None:
-        self.feature_methods.clear()
+        self.feature_classes.clear()
         self.feature_data.clear()
 
         for feature in features:
-            self.feature_methods[feature.__name__] = feature()
+            self.feature_classes[feature.__name__] = feature()
             self.feature_data[feature.__name__] = []
+
 
     def set_skip_count(self, value: int) -> None:
         self.extractor.set_skip_count(value)
@@ -102,7 +103,7 @@ class FaceAnalyzer():
         self.extractor.toggle_pause()
 
     def start(self) -> None:
-        for m_name in self.feature_methods:
+        for m_name in self.feature_classes:
             self.feature_data[m_name].clear()
 
         self.analysis_setup()
@@ -119,11 +120,11 @@ class FaceAnalyzer():
         face_rect = q_item.face_rect
         features = q_item.landmark_features
 
-        for f_name, f_class in self.feature_methods.items():
-            res = f_class.compute(features)
-            image = res.draw(image)
-            self.feature_data[f_name].append(res)
-            temp_data[f_name] = res
+        for f_name, f_class in self.feature_classes.items():
+            feature_data = f_class.compute(features)
+            f_class.draw(image=image, data=feature_data)
+            self.feature_data[f_name].append(feature_data)
+            temp_data[f_name] = feature_data
 
         self.pm.hook.updated_feature(feature_data=temp_data)
 
@@ -151,9 +152,8 @@ class FaceAnalyzer():
 
     def get_header(self) -> list[str]:
         header = ["frame"]
-        for v in self.feature_methods.values():
-            header.extend(v.get_header())
-
+        for feature in self.feature_classes.values():
+            header.extend(feature.get_header())
         return header
 
     def __iter__(self):
@@ -170,8 +170,10 @@ class FaceAnalyzer():
 
         row = [str(self.__iter_counter)]
         self.__iter_counter += 1
-        for v in self.feature_data.values():
-            row.extend([x for x in v[self.__iter_counter - 1].as_row()])
+
+        for feature_name, feature_data in self.feature_data.items():
+            feature_class = self.feature_classes[feature_name]
+            row.extend([x for x in feature_class.as_row(feature_data[self.__iter_counter - 1])])
 
         return row
 

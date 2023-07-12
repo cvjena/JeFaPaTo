@@ -38,83 +38,74 @@ def ear_score(eye: np.ndarray) -> float:
 @dataclasses.dataclass
 class EAR_Data(FeatureData):
     """A simple data class to combine the ear score results"""
-
-    lm_l: np.ndarray
-    lm_r: np.ndarray
     ear_l: float
     ear_r: float
     ear_valid: bool
+    lm_l: np.ndarray
+    lm_r: np.ndarray
 
-    def as_row(self) -> List[str]:
+class EAR(Feature):
+    index_l = np.array([362, 385, 386, 263, 374, 380])
+    index_r = np.array([ 33, 159, 158, 133, 153, 145])
+    def get_header(self) -> List[str]:
+        """
+        Returns
+        -------
+        List[str]
+            The header for the feature including the valid and all the landmarks
+        """
+        return [f"{self.__class__.__name__}_l", f"{self.__class__.__name__}_r", f"{self.__class__.__name__}_valid"]
+
+    def as_row(self, data: EAR_Data) -> List[str]:
         """Return the data as a row as in the same order as the header"""
-        return (
-            list(map(str, self.lm_l[:, 0]))
-            + list(map(str, self.lm_l[:, 1]))
-            + list(map(str, self.lm_r[:, 0]))
-            + list(map(str, self.lm_r[:, 1]))
-            + [f"{self.ear_l: .8f}", f"{self.ear_r: .8f}", str(self.ear_valid)]
-        )
+        return [f"{data.ear_l: .8f}", f"{data.ear_r: .8f}", str(data.ear_valid)]
 
-    def draw(self, image: np.ndarray) -> np.ndarray:
-        # the dlib landmark points are in the format (x, y)
-        for (x, y, *_) in self.lm_l:
+    def draw(self, image: np.ndarray, data: EAR_Data) -> np.ndarray:        
+        color_r = self.plot_info["ear_r"]["color"]
+        color_l = self.plot_info["ear_l"]["color"]
+
+        for (x, y, *_) in data.lm_l:
             cv2.circle(image, (x, y), 1, (0, 0, 255), -1)
-        for (x, y, *_) in self.lm_r:
+        for (x, y, *_) in data.lm_r:
             cv2.circle(image, (x, y), 1, (255, 0, 0), -1)
 
         # draw the eye ratio
         # horizontal lines
         cv2.line(
             image,
-            pt1=(self.lm_l[0, 0], self.lm_l[0, 1]),
-            pt2=(self.lm_l[3, 0], self.lm_l[3, 1]),
-            color=(0, 0, 255),
+            pt1=(data.lm_l[0, 0], data.lm_l[0, 1]),
+            pt2=(data.lm_l[3, 0], data.lm_l[3, 1]),
+            color=color_l,
             thickness=1,
-            # lineType=cv2.LINE_AA,
         )
         cv2.line(
             image,
-            pt1=(self.lm_r[0, 0], self.lm_r[0, 1]),
-            pt2=(self.lm_r[3, 0], self.lm_r[3, 1]),
-            color=(255, 0, 0),
+            pt1=(data.lm_r[0, 0], data.lm_r[0, 1]),
+            pt2=(data.lm_r[3, 0], data.lm_r[3, 1]),
+            color=color_r,
             thickness=1,
-            # lineType=cv2.LINE_AA,
         )
         # vertical line
-        t = (self.lm_l[1] + self.lm_l[2]) // 2
-        b = (self.lm_l[4] + self.lm_l[5]) // 2
-        cv2.line(image, (t[0], t[1]), (b[0], b[1]), (0, 0, 255), 1)
+        t = (data.lm_l[1] + data.lm_l[2]) // 2
+        b = (data.lm_l[4] + data.lm_l[5]) // 2
+        cv2.line(image, (t[0], t[1]), (b[0], b[1]), color_l, 1)
 
-        t = (self.lm_r[1] + self.lm_r[2]) // 2
-        b = (self.lm_r[4] + self.lm_r[5]) // 2
-        cv2.line(image, (t[0], t[1]), (b[0], b[1]), (255, 0, 0), 1)
-
+        t = (data.lm_r[1] + data.lm_r[2]) // 2
+        b = (data.lm_r[4] + data.lm_r[5]) // 2
+        cv2.line(image, (t[0], t[1]), (b[0], b[1]), color_r, 1)
         return image
 
-
-class EAR2D6(Feature):
-    """EyeBlinking Classifier Class for 68 facial landmarks features
+class EAR2D6(EAR):
+    """Eye-Aspect-Ratio Feature based on 2D landmarks
 
     This class implements a classifier specificly for the 68 landmarking
     schemata.
     """
 
-    # the dict keys need to be the same name as the class attributes in the
-    # dataclass in self.d_type
-    # because we access with with getattr(self, key)
-    plot_info: Dict[str, Dict[str, Any]] = {
-        "ear_l": {"label": "EAR Left", "color": "b", "width": 2},
-        "ear_r": {"label": "EAR Right", "color": "r", "width": 2},
+    plot_info: dict[str, dict[str, Any]] = {
+        "ear_l": {"label": "EAR Left",  "color": (  0,   0, 255), "width": 2},
+        "ear_r": {"label": "EAR Right", "color": (255,   0,   0), "width": 2},
     }
-    mp_eye_l = np.array([362, 385, 386, 263, 374, 380])
-    mp_eye_r = np.array([33, 159, 158, 133, 153, 145])
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.d_type = EAR_Data
-        self.index_l = self.mp_eye_l
-        self.index_r = self.mp_eye_r
-
     def compute(self, features: np.ndarray) -> EAR_Data:
         """
         Compute the feature for the given data
@@ -138,37 +129,14 @@ class EAR2D6(Feature):
         ear_valid = not (np.allclose(np.zeros_like(lm_l), lm_l) and np.allclose(np.zeros_like(lm_r), lm_r))
         ear_l = ear_score(lm_l) if ear_valid else 1.0
         ear_r = ear_score(lm_r) if ear_valid else 1.0
-        return EAR_Data(lm_l, lm_r, ear_l, ear_r, ear_valid)
-
-    def get_header(self) -> List[str]:
-        """
-        Returns
-        -------
-        List[str]
-            The header for the feature including the valid and all the landmarks
-        """
-        l_x = [f"l_x_{i:03d}" for i in self.index_l]
-        l_y = [f"l_y_{i:03d}" for i in self.index_l]
-        r_x = [f"r_x_{i:03d}" for i in self.index_r]
-        r_y = [f"r_y_{i:03d}" for i in self.index_r]
-        return l_x + l_y + r_x + r_y + ["ear_l", "ear_r", "ear_valid"]
+        return EAR_Data(ear_l, ear_r, ear_valid, lm_l, lm_r)
 
 
-class EAR3D6(Feature):
+class EAR3D6(EAR):
     plot_info: Dict[str, Dict[str, Any]] = {
-        "ear_l": {"label": "EAR Left", "color": "b", "width": 2},
-        "ear_r": {"label": "EAR Right", "color": "r", "width": 2},
+        "ear_l": {"label": "EAR Left",  "color": (44, 111, 187), "width": 2}, # matte blue
+        "ear_r": {"label": "EAR Right", "color": (201, 44,  17), "width": 2}, # thunderbird red
     }
-    mp_eye_l = np.array([362, 385, 386, 263, 374, 380])
-    mp_eye_r = np.array([33, 159, 158, 133, 153, 145])
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.d_type = EAR_Data
-        self.index_l = self.mp_eye_l
-        self.index_r = self.mp_eye_r
-
-
     def compute(self, features: np.ndarray) -> EAR_Data:
         """
         Compute the feature for the given data
@@ -186,23 +154,10 @@ class EAR3D6(Feature):
             The computed features with the raw data
         """
         # extract the eye landmarks
-        lm_l = features[self.index_l, :3]
-        lm_r = features[self.index_r, :3]
+        lm_l = features[self.index_l]
+        lm_r = features[self.index_r]
 
         ear_valid = not (np.allclose(np.zeros_like(lm_l), lm_l) and np.allclose(np.zeros_like(lm_r), lm_r))
         ear_l = ear_score(lm_l) if ear_valid else 1.0
         ear_r = ear_score(lm_r) if ear_valid else 1.0
-        return EAR_Data(lm_l, lm_r, ear_l, ear_r, ear_valid)
-
-    def get_header(self) -> List[str]:
-        """
-        Returns
-        -------
-        List[str]
-            The header for the feature including the valid and all the landmarks
-        """
-        l_x = [f"l_x_{i:03d}" for i in self.index_l]
-        l_y = [f"l_y_{i:03d}" for i in self.index_l]
-        r_x = [f"r_x_{i:03d}" for i in self.index_r]
-        r_y = [f"r_y_{i:03d}" for i in self.index_r]
-        return l_x + l_y + r_x + r_y + ["ear_l", "ear_r", "ear_valid"]
+        return EAR_Data(ear_l, ear_r, ear_valid, lm_l, lm_r)

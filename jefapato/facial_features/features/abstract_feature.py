@@ -3,32 +3,28 @@ from __future__ import annotations
 __all__ = ["Feature", "FeatureData"]
 
 import abc
-from typing import Any, Dict, List
-
+from typing import Any
 import numpy as np
+
+class FeatureData(abc.ABC):
+    pass
 
 
 class Feature(abc.ABC):
-    plot_info: Dict[str, Dict[str, Any]] = {}
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.d_type = None
+    plot_info: dict[str, dict[str, Any]] = {}
 
     @abc.abstractmethod
     def compute(self, features: Any) -> FeatureData:
         pass
 
     @abc.abstractmethod
-    def get_header(self) -> List[str]:
-        pass
-
-
-class FeatureData(abc.ABC):
-    @abc.abstractmethod
-    def as_row(self) -> List[str]:
+    def get_header(self) -> list[str]:
         pass
 
     @abc.abstractmethod
-    def draw(self, image: np.ndarray) -> np.ndarray:
+    def as_row(self, data: FeatureData) -> list[str]:
+        pass
+
+    @abc.abstractmethod
+    def draw(self, image: np.ndarray, data: FeatureData) -> np.ndarray:
         pass
