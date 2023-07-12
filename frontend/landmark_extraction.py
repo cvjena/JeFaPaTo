@@ -270,11 +270,11 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
     def load_video(self):
         logger.info("Open File Dialog", widget=self)
         fileName, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self,
-            "Select video file",
-            ".",
-            "Video Files (*.mp4 *.flv *.ts *.mts *.avi *.mov)",
-            options=QtWidgets.QFileDialog.DontUseNativeDialog,
+            parent=self,
+            caption="Select video file",
+            directory=".",
+            filter="Video Files (*.mp4 *.flv *.ts *.mts *.avi *.mov)",
+            options=QtWidgets.QFileDialog.Option.DontUseNativeDialog,
         )
 
         if fileName == "":
@@ -314,11 +314,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
             file_name = self.video_resource.stem
         else:
             # open save dialog for folder
-            parent = QtWidgets.QFileDialog.getExistingDirectory(
-                self,
-                "Select Directory",
-                Path.home().as_posix(),
-            )
+            parent = QtWidgets.QFileDialog.getExistingDirectory(parent=self, caption="Select Directory",directory=str(Path.home()))
             if parent == "":
                 logger.info("Save Results Dialog canceled")
                 return
