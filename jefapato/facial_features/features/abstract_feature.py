@@ -16,7 +16,7 @@ class Feature(abc.ABC):
         self.d_type = None
 
     @abc.abstractmethod
-    def compute(self, in_data: Any) -> FeatureData:
+    def compute(self, features: Any) -> FeatureData:
         pass
 
     @abc.abstractmethod

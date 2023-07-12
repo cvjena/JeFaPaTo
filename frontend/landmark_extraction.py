@@ -85,14 +85,21 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.feature_group = QtWidgets.QGroupBox("Features")
         self.feature_layout = QtWidgets.QVBoxLayout()
         self.feature_group.setLayout(self.feature_layout)
-        self.feature_ear = FeatureCheckBox(facial_features.EAR2D6_Feature)
-        self.add_handler("feature_ear", self.feature_ear)
-        self.feature_ear.clicked.connect(self.save_conf)
-        self.feature_ear.clicked.connect(self.set_features)
+        self.feature_ear2d6 = FeatureCheckBox(facial_features.EAR2D6)
+        self.feature_ear3d6 = FeatureCheckBox(facial_features.EAR3D6)
 
-        self.feature_checkboxes = [self.feature_ear]
+        self.add_handler("feature_ear", self.feature_ear2d6)
+        self.feature_ear2d6.clicked.connect(self.save_conf)
+        self.feature_ear2d6.clicked.connect(self.set_features)
 
-        self.feature_layout.addWidget(self.feature_ear)
+        self.add_handler("feature_ear3d6", self.feature_ear3d6)
+        self.feature_ear3d6.clicked.connect(self.save_conf)
+        self.feature_ear3d6.clicked.connect(self.set_features)
+
+        self.feature_checkboxes = [self.feature_ear2d6, self.feature_ear3d6]
+
+        self.feature_layout.addWidget(self.feature_ear2d6)
+        self.feature_layout.addWidget(self.feature_ear3d6)
 
         self.vlayout_rs.addLayout(self.flayout_se)
 
