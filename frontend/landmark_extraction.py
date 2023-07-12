@@ -3,7 +3,7 @@ __all__ = ["LandmarkExtraction"]
 import csv
 import datetime
 from pathlib import Path
-from typing import Any, Type
+from typing import Any, Type, Callable
 
 import numpy as np
 import pyqtgraph as pg
@@ -17,10 +17,30 @@ logger = structlog.get_logger()
 
 
 class FeatureCheckBox(QtWidgets.QCheckBox):
-    def __init__(self, feature: Type[facial_features.Feature], **kwargs):
+    def __init__(self, feature_class: Type[facial_features.Feature], **kwargs):
         super().__init__(**kwargs)
-        self.feature = feature
-        self.setText(feature.__name__)
+        self.feature_class = feature_class
+        self.setText(feature_class.__name__)
+
+class FeatureGroupBox(QtWidgets.QGroupBox):
+    def __init__(self, callbacks: list[Callable] | None = None, **kwargs):
+        super().__init__(**kwargs)
+        self.setTitle("Facial Features")
+        self.setLayout(QtWidgets.QVBoxLayout())
+        self.feature_checkboxes: list[FeatureCheckBox] = []
+        self.callsbacks = callbacks or []
+
+    def add_feature(self, feature_class: Type[facial_features.Feature]):
+        cb = FeatureCheckBox(feature_class)
+        self.layout().addWidget(cb)
+        self.feature_checkboxes.append(cb)
+
+        for callback in self.callsbacks:
+            # this is a hacky workaround but currently the only way to do it
+            if callback.__name__ == "add_handler":
+                callback(cb.feature_class.__name__, cb)
+            else:
+                cb.clicked.connect(callback)
 
 
 class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
@@ -83,24 +103,9 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.auto_save.setChecked(True)
         self.auto_save.setToolTip("Save the extracted data automatically after the analysis is finished.")
 
-        self.feature_group = QtWidgets.QGroupBox("Features")
-        self.feature_layout = QtWidgets.QVBoxLayout()
-        self.feature_group.setLayout(self.feature_layout)
-        self.feature_ear2d6 = FeatureCheckBox(facial_features.EAR2D6)
-        self.feature_ear3d6 = FeatureCheckBox(facial_features.EAR3D6)
-
-        self.add_handler("feature_ear", self.feature_ear2d6)
-        self.feature_ear2d6.clicked.connect(self.save_conf)
-        self.feature_ear2d6.clicked.connect(self.set_features)
-
-        self.add_handler("feature_ear3d6", self.feature_ear3d6)
-        self.feature_ear3d6.clicked.connect(self.save_conf)
-        self.feature_ear3d6.clicked.connect(self.set_features)
-
-        self.feature_checkboxes = [self.feature_ear2d6, self.feature_ear3d6]
-
-        self.feature_layout.addWidget(self.feature_ear2d6)
-        self.feature_layout.addWidget(self.feature_ear3d6)
+        self.feature_group = FeatureGroupBox([self.save_conf, self.set_features, self.add_handler])
+        self.feature_group.add_feature(facial_features.EAR2D6)
+        self.feature_group.add_feature(facial_features.EAR3D6)
 
         self.vlayout_rs.addLayout(self.flayout_se)
 
@@ -126,7 +131,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.parent().statusBar().addWidget(self.la_input)
         self.parent().statusBar().addWidget(self.la_proce)
 
-        self.features_classes: list[Type[facial_features.Feature]] = []
+        self.used_features_classes: list[Type[facial_features.Feature]] = []
 
         self.ea = facial_features.FaceAnalyzer()
         self.ea.register_hooks(self)
@@ -152,7 +157,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.set_features()
 
     def setup_graph(self) -> None:
-        logger.info("Setup graph for all features to plot", features=self.features_classes)
+        logger.info("Setup graph for all features to plot", features=self.used_features_classes)
         self.widget_graph.clear()
         self.update_count = 0
         for feature_name in self.plot_item:
@@ -176,24 +181,24 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
             ]
         )
 
-        for feature_class in self.features_classes:
+        for feature_class in self.used_features_classes:
             for feature_name, feature_plot_settings in feature_class.plot_info.items():
                 feature_name = f"{feature_class.__name__}_{feature_name}"
                 self.plot_item[feature_name] = self.widget_graph.add_curve(**feature_plot_settings)
                 self.plot_data[feature_name] = np.zeros(self.chunk_size)
 
     def set_features(self) -> None:
-        self.features_classes.clear()
-        for c in self.feature_checkboxes:
+        self.used_features_classes.clear()
+        for c in self.feature_group.feature_checkboxes:
             if c.isChecked():
-                self.features_classes.append(c.feature)
-        logger.info("Set features", features=self.features_classes)
+                self.used_features_classes.append(c.feature_class)
+        logger.info("Set features", features=self.used_features_classes)
 
     def start(self) -> None:
         if self.video_resource is not None:
             self.set_resource(self.video_resource)
         self.setup_graph()
-        self.ea.set_features(self.features_classes)
+        self.ea.set_features(self.used_features_classes)
         self.ea.start()
 
     def stop(self) -> None:
@@ -255,7 +260,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
     @facial_features.FaceAnalyzer.hookimpl
     def updated_feature(self, feature_data: dict[str, Any]) -> None:
         self.update_count += 1
-        for feature_class in self.features_classes:
+        for feature_class in self.used_features_classes:
             if feature_class.__name__ not in feature_data:
                 continue
             for feature_name in feature_class.plot_info.keys():
