@@ -9,3 +9,4 @@ from jefapato.facial_features.features.blendshape_feature import BS_Neutral, BS_
 
 
 BLENDSHAPES = [BS_Neutral, BS_BrowDownLeft, BS_BrowDownRight]
+BLENDSHAPES.sort(key=lambda x: x.mediapipe_key)

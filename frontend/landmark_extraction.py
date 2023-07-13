@@ -80,7 +80,6 @@ class BlendShapeFeatureGroupBox(QtWidgets.QGroupBox):
         temp_layout.addLayout(self.layout_left, stretch=1)
         temp_layout.addLayout(self.layout_right, stretch=1)
 
-
         self.layout().addWidget(temp_widget)
 
     def add_feature(self, feature_class: Type[features.Blendshape]):
