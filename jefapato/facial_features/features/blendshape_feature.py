@@ -71,7 +71,6 @@ KEYS = [
     'noseSneerRight'
 ]
 
-
 class BS_Neutral(Blendshape):
     """A class to represent the neutral expression"""
 

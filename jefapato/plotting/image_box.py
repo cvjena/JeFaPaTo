@@ -31,7 +31,7 @@ class ImageBox(pg.ViewBox):
 
         self.frame = pg.ImageItem()
         self.addItem(self.frame)
-        self.setMouseEnabled(x=True, y=True)
+        # self.setMouseEnabled(x=True, y=True)
 
     def set_image(self, image: np.ndarray) -> None:
         self.frame.setImage(image)
