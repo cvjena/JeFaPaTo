@@ -12,15 +12,21 @@ import structlog
 from qtpy import QtCore, QtGui, QtWidgets
 
 from jefapato import config, facial_features, plotting
+from jefapato.facial_features import features
+
 
 logger = structlog.get_logger()
 
 
 class FeatureCheckBox(QtWidgets.QCheckBox):
-    def __init__(self, feature_class: Type[facial_features.Feature], **kwargs):
+    def __init__(self, feature_class: Type[features.Feature], **kwargs):
         super().__init__(**kwargs)
         self.feature_class = feature_class
-        self.setText(feature_class.__name__)
+
+        name = feature_class.__name__
+        name = name.replace("Feature", "")
+        name = name.replace("BS_", "")
+        self.setText(name)
 
 class FeatureGroupBox(QtWidgets.QGroupBox):
     def __init__(self, callbacks: list[Callable] | None = None, **kwargs):
@@ -30,7 +36,8 @@ class FeatureGroupBox(QtWidgets.QGroupBox):
         self.feature_checkboxes: list[FeatureCheckBox] = []
         self.callsbacks = callbacks or []
 
-    def add_feature(self, feature_class: Type[facial_features.Feature]):
+    def add_feature(self, feature_class: Type[features.Feature]):
+        # TODO rename cb to something more descriptive and not be confused with callback
         cb = FeatureCheckBox(feature_class)
         self.layout().addWidget(cb)
         self.feature_checkboxes.append(cb)
@@ -42,6 +49,37 @@ class FeatureGroupBox(QtWidgets.QGroupBox):
             else:
                 cb.clicked.connect(callback)
 
+class BlendShapeFeatureGroupBox(FeatureGroupBox):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.setTitle("Blend Shape Features")
+
+        # have two vertical layouts, one for the left and one for the right
+        self.layout_left = QtWidgets.QVBoxLayout()
+        self.layout_right = QtWidgets.QVBoxLayout()
+
+        self.setLayout(QtWidgets.QHBoxLayout())
+        self.layout().addLayout(self.layout_left)
+        self.layout().addLayout(self.layout_left)
+        
+
+    def add_feature(self, feature_class: Type[features.Blendshape]):
+        cb = FeatureCheckBox(feature_class)
+        self.feature_checkboxes.append(cb)
+
+        if feature_class.side == "left":
+            self.layout_left.addWidget(cb)
+        elif feature_class.side == "right":
+            self.layout_right.addWidget(cb)
+        else:
+            self.layout().addWidget(cb)
+
+        for callback in self.callsbacks:
+            # this is a hacky workaround but currently the only way to do it
+            if callback.__name__ == "add_handler":
+                callback(cb.feature_class.__name__, cb)
+            else:
+                cb.clicked.connect(callback)
 
 class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
     updated = QtCore.Signal(int)
@@ -104,8 +142,11 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.auto_save.setToolTip("Save the extracted data automatically after the analysis is finished.")
 
         self.feature_group = FeatureGroupBox([self.save_conf, self.set_features, self.add_handler])
-        self.feature_group.add_feature(facial_features.EAR2D6)
-        self.feature_group.add_feature(facial_features.EAR3D6)
+        self.feature_group.add_feature(features.EAR2D6)
+        self.feature_group.add_feature(features.EAR3D6)
+
+        self.blends_shape_group = BlendShapeFeatureGroupBox(callbacks=[self.save_conf, self.set_features, self.add_handler])
+        self.blends_shape_group.add_feature(features.BLENDSHAPES[0])
 
         self.vlayout_rs.addLayout(self.flayout_se)
 
@@ -118,6 +159,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.flayout_se.addRow(self.bt_pause_resume)
         self.flayout_se.addRow(self.button_stop)
         self.flayout_se.addRow(self.feature_group)
+        self.flayout_se.addRow(self.blends_shape_group)
         self.flayout_se.addRow("Graph Update Delay:", self.skip_frame)
         self.flayout_se.addRow(self.bt_reset_graph)
         self.flayout_se.addRow(self.auto_save)
@@ -131,7 +173,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.parent().statusBar().addWidget(self.la_input)
         self.parent().statusBar().addWidget(self.la_proce)
 
-        self.used_features_classes: list[Type[facial_features.Feature]] = []
+        self.used_features_classes: list[Type[features.Feature]] = []
 
         self.ea = facial_features.FaceAnalyzer()
         self.ea.register_hooks(self)
@@ -192,6 +234,10 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         for c in self.feature_group.feature_checkboxes:
             if c.isChecked():
                 self.used_features_classes.append(c.feature_class)
+        for c in self.blends_shape_group.feature_checkboxes:
+            if c.isChecked():
+                self.used_features_classes.append(c.feature_class) 
+
         logger.info("Set features", features=self.used_features_classes)
 
     def start(self) -> None:

@@ -12,6 +12,7 @@ class FeatureData(abc.ABC):
 
 class Feature(abc.ABC):
     plot_info: dict[str, dict[str, Any]] = {}
+    is_blendshape = False
 
     @abc.abstractmethod
     def compute(self, features: Any) -> FeatureData:
@@ -25,6 +26,5 @@ class Feature(abc.ABC):
     def as_row(self, data: FeatureData) -> list[str]:
         pass
 
-    @abc.abstractmethod
-    def draw(self, image: np.ndarray, data: FeatureData) -> np.ndarray:
+    def draw(self, image: np.ndarray, data: FeatureData) -> None:
         pass
