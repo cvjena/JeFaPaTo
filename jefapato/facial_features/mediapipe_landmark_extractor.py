@@ -30,7 +30,7 @@ class Extractor(QThread):
     ) -> None:
         super().__init__()
         self.data_queue = data_queue
-        self.data_amount: int = data_amount
+        self.data_amount: int = int(data_amount) - 1 
         self.stopped = False
         self.paused = False
         self.sleep_duration = sleep_duration
@@ -86,7 +86,7 @@ class MediapipeLandmarkExtractor(Extractor):
     def run(self) -> None:
         # init values
         processed = 0
-        logger.info("Extractor Thread", state="starting", type="mediapipe", object=self)
+        logger.info("Extractor Thread", state="starting", type="mediapipe", object=self, data_amount=self.data_amount)
 
         processed_p_sec = 0
         while True:
