@@ -431,7 +431,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         file = files[0]
 
         file = Path(file)
-        if file.suffix not in [".mp4", ".flv", ".ts", ".mts", ".avi", ".mov"]:
+        if file.suffix.lower() not in [".mp4", ".flv", ".ts", ".mts", ".avi", ".mov"]:
             logger.info("User dropped invalid file", widget=self)
             return
         self.set_resource(Path(file)) 
