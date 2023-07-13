@@ -34,7 +34,7 @@ class Blendshape(Feature):
         """Return the data as a row as in the same order as the header"""
         return [f"{data.blendshape_value: .8f}", str(data.blendshape_valid)]
 
-    def compute(self, features: dict[str, Any]) -> BlendshapeData:
+    def compute(self, features: dict[str, Any], valid: bool) -> BlendshapeData:
         """
         Extract the blendshape value
 
@@ -49,6 +49,9 @@ class Blendshape(Feature):
             The computed blendshape value
         """
         if self.mediapipe_key == "NOT_SET":
+            return BlendshapeData(blendshape_value=0, blendshape_valid=False, side=self.side)
+        
+        if not valid:
             return BlendshapeData(blendshape_value=0, blendshape_valid=False, side=self.side)
 
         # TODO check how to compute the valid state...

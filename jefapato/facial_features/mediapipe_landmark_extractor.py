@@ -118,7 +118,9 @@ class MediapipeLandmarkExtractor(Extractor):
             landmarks = np.empty((478, 3), dtype=np.int32)
             blendshapes = {}
 
+            valid = False
             if face_landmarker_result.face_landmarks:
+                valid = True
                 face_landmarks = face_landmarker_result.face_landmarks[0]
                 for i, lm in enumerate(face_landmarks):
                     landmarks[i, 0] = int(lm.x * w)
@@ -132,7 +134,7 @@ class MediapipeLandmarkExtractor(Extractor):
                 for face_blendshape in face_landmarker_result.face_blendshapes[0]:
                     blendshapes[face_blendshape.category_name] = face_blendshape.score
 
-            item = AnalyzeQueueItem(image, self.rect, landmarks, blendshapes)
+            item = AnalyzeQueueItem(image, self.rect, valid, landmarks, blendshapes)
             self.processingUpdated.emit(item)
             processed += 1
             perc = int((processed / self.data_amount) * 100)

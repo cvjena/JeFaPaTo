@@ -15,7 +15,7 @@ class Feature(abc.ABC):
     is_blendshape = False
 
     @abc.abstractmethod
-    def compute(self, features: Any) -> FeatureData:
+    def compute(self, features: Any, valid: bool) -> FeatureData:
         pass
 
     @abc.abstractmethod

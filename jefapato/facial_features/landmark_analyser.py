@@ -115,15 +115,16 @@ class FaceAnalyzer():
 
         image = q_item.image
         face_rect = q_item.face_rect
+        valid = q_item.valid
         features = q_item.landmark_features
         blendshapes = q_item.blendshape_features
 
         for f_name, f_class in self.feature_classes.items():
             # if it f_class is a blendshape feature, we need to pass the blendshapes
             if f_class.is_blendshape:
-                feature_data = f_class.compute(blendshapes)
+                feature_data = f_class.compute(blendshapes, valid)
             else:
-                feature_data = f_class.compute(features)
+                feature_data = f_class.compute(features, valid)
             f_class.draw(image=image, data=feature_data)
             self.feature_data[f_name].append(feature_data)
             temp_data[f_name] = feature_data

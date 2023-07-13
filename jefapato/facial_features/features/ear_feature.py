@@ -106,7 +106,7 @@ class EAR2D6(EAR):
         "ear_l": {"label": "EAR Left",  "color": (  0,   0, 255), "width": 2},
         "ear_r": {"label": "EAR Right", "color": (255,   0,   0), "width": 2},
     }
-    def compute(self, features: np.ndarray) -> EAR_Data:
+    def compute(self, features: np.ndarray, valid: bool) -> EAR_Data:
         """
         Compute the feature for the given data
 
@@ -126,6 +126,9 @@ class EAR2D6(EAR):
         lm_l = features[self.index_l, :2]
         lm_r = features[self.index_r, :2]
 
+        if not valid:
+            return EAR_Data(1.0, 1.0, False, lm_l, lm_r)
+
         ear_valid = not (np.allclose(np.zeros_like(lm_l), lm_l) and np.allclose(np.zeros_like(lm_r), lm_r))
         ear_l = ear_score(lm_l) if ear_valid else 1.0
         ear_r = ear_score(lm_r) if ear_valid else 1.0
@@ -137,7 +140,7 @@ class EAR3D6(EAR):
         "ear_l": {"label": "EAR Left",  "color": (44, 111, 187), "width": 2}, # matte blue
         "ear_r": {"label": "EAR Right", "color": (201, 44,  17), "width": 2}, # thunderbird red
     }
-    def compute(self, features: np.ndarray) -> EAR_Data:
+    def compute(self, features: np.ndarray, valid: bool) -> EAR_Data:
         """
         Compute the feature for the given data
 
@@ -156,6 +159,9 @@ class EAR3D6(EAR):
         # extract the eye landmarks
         lm_l = features[self.index_l]
         lm_r = features[self.index_r]
+
+        if not valid:
+            return EAR_Data(1.0, 1.0, False, lm_l, lm_r)
 
         ear_valid = not (np.allclose(np.zeros_like(lm_l), lm_l) and np.allclose(np.zeros_like(lm_r), lm_r))
         ear_l = ear_score(lm_l) if ear_valid else 1.0
