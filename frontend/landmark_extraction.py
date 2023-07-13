@@ -26,6 +26,8 @@ class FeatureCheckBox(QtWidgets.QCheckBox):
         name = feature_class.__name__
         name = name.replace("Feature", "")
         name = name.replace("BS_", "")
+        name = name.replace("Left", "")
+        name = name.replace("Right", "")
         self.setText(name)
 
 class FeatureGroupBox(QtWidgets.QGroupBox):
@@ -49,37 +51,55 @@ class FeatureGroupBox(QtWidgets.QGroupBox):
             else:
                 cb.clicked.connect(callback)
 
-class BlendShapeFeatureGroupBox(FeatureGroupBox):
-    def __init__(self, **kwargs):
+class BlendShapeFeatureGroupBox(QtWidgets.QGroupBox):
+    def __init__(self, callbacks: list[Callable] | None = None, **kwargs):
         super().__init__(**kwargs)
+        self.feature_checkboxes: list[FeatureCheckBox] = []
+        self.callsbacks = callbacks or []
         self.setTitle("Blend Shape Features")
 
         # have two vertical layouts, one for the left and one for the right
         self.layout_left = QtWidgets.QVBoxLayout()
         self.layout_right = QtWidgets.QVBoxLayout()
+        self.layout_whole = QtWidgets.QVBoxLayout()
 
-        self.setLayout(QtWidgets.QHBoxLayout())
-        self.layout().addLayout(self.layout_left)
-        self.layout().addLayout(self.layout_left)
-        
+        # self.layout_left.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
+        # self.layout_right.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
+
+        ## add a text at the top of each layout to indicate the side
+        self.layout_left.addWidget(QtWidgets.QLabel("Left"))
+        self.layout_right.addWidget(QtWidgets.QLabel("Right"))
+        self.layout_whole.addWidget(QtWidgets.QLabel("Whole"))
+
+        self.setLayout(QtWidgets.QVBoxLayout())
+
+        temp_widget = QtWidgets.QWidget()
+        temp_layout = QtWidgets.QHBoxLayout()
+        temp_widget.setLayout(temp_layout)
+        temp_layout.addLayout(self.layout_whole, stretch=1)
+        temp_layout.addLayout(self.layout_left, stretch=1)
+        temp_layout.addLayout(self.layout_right, stretch=1)
+
+
+        self.layout().addWidget(temp_widget)
 
     def add_feature(self, feature_class: Type[features.Blendshape]):
-        cb = FeatureCheckBox(feature_class)
-        self.feature_checkboxes.append(cb)
+        checkbox = FeatureCheckBox(feature_class)
+        self.feature_checkboxes.append(checkbox)
 
-        if feature_class.side == "left":
-            self.layout_left.addWidget(cb)
-        elif feature_class.side == "right":
-            self.layout_right.addWidget(cb)
+        if "Left" in feature_class.__name__:
+            self.layout_left.addWidget(checkbox)
+        elif "Right" in feature_class.__name__:
+            self.layout_right.addWidget(checkbox)
         else:
-            self.layout().addWidget(cb)
+            self.layout_whole.addWidget(checkbox)
 
         for callback in self.callsbacks:
             # this is a hacky workaround but currently the only way to do it
             if callback.__name__ == "add_handler":
-                callback(cb.feature_class.__name__, cb)
+                callback(checkbox.feature_class.__name__, checkbox)
             else:
-                cb.clicked.connect(callback)
+                checkbox.clicked.connect(callback)
 
 class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
     updated = QtCore.Signal(int)

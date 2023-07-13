@@ -1,4 +1,4 @@
-__all__ = ["Blendshape", "Neutral"]
+__all__ = ["Blendshape", "BS_Neutral", "BS_BrowDownLeft", "BS_BrowDownRight"]
 
 from dataclasses import dataclass
 from typing import Any
@@ -59,7 +59,7 @@ class Blendshape(Feature):
         )
 
 KEYS = [
-    '_neutral', 'browDownLeft', 'browDownRight', 'browInnerUp', 'browOuterUpLeft', 'browOuterUpRight', 'cheekPuff', 'cheekSquintLeft', 'cheekSquintRight', 
+    'browInnerUp', 'browOuterUpLeft', 'browOuterUpRight', 'cheekPuff', 'cheekSquintLeft', 'cheekSquintRight', 
     'eyeBlinkLeft', 'eyeBlinkRight', 'eyeLookDownLeft', 'eyeLookDownRight', 'eyeLookInLeft', 'eyeLookInRight', 'eyeLookOutLeft', 'eyeLookOutRight', 
     'eyeLookUpLeft', 'eyeLookUpRight', 'eyeSquintLeft', 'eyeSquintRight', 'eyeWideLeft', 'eyeWideRight', 'jawForward', 'jawLeft', 'jawOpen', 'jawRight', 
     'mouthClose', 'mouthDimpleLeft', 'mouthDimpleRight', 'mouthFrownLeft', 'mouthFrownRight', 'mouthFunnel', 'mouthLeft', 'mouthLowerDownLeft', 
@@ -75,3 +75,16 @@ class BS_Neutral(Blendshape):
     def __init__(self):
         self.mediapipe_key = "_neutral"
         self.side = "whole"
+
+class BS_BrowDownLeft(Blendshape):
+    """A class to represent the brow down left expression"""
+
+    def __init__(self):
+        self.mediapipe_key = "browDownLeft"
+        self.side = "left"
+
+class BS_BrowDownRight(Blendshape):
+    """"""
+    def __init__(self):
+        self.mediapipe_key = "browDownRight"
+        self.side = "right"
