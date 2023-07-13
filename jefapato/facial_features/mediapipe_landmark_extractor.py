@@ -86,7 +86,10 @@ class MediapipeLandmarkExtractor(Extractor):
     def run(self) -> None:
         # init values
         processed = 0
-        logger.info("Extractor Thread", state="starting", type="mediapipe", object=self, data_amount=self.data_amount)
+        logger.info("Extractor Thread", state="starting", data_amount=self.data_amount)
+
+        # wait for the queue to be filled
+        time.sleep(1)
 
         processed_p_sec = 0
         while True:
@@ -108,7 +111,14 @@ class MediapipeLandmarkExtractor(Extractor):
                 processed_p_sec = 0
 
             processed_p_sec += 1
+            if self.data_queue.empty():
+                # TODO here we might have the edge case of processing being faster than the queue being filled
+                #      we should rather count how often we sleep after each other and then break if we sleep too often
+                logger.info("Extractor Thread", state="QUEUE EMPTY", data_amount=self.data_amount, processed=processed)
+                break
+
             image = self.data_queue.get().frame
+
             h, w = image.shape[:2]
 
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -140,5 +150,6 @@ class MediapipeLandmarkExtractor(Extractor):
             perc = int((processed / self.data_amount) * 100)
             self.processedPercentage.emit(perc)
 
+        self.processedPercentage.emit(100)
         self.processingFinished.emit()
-        logger.info("Extractor Thread", state="finished", type="mediapipe", object=self)
+        logger.info("Extractor Thread", state="finished")
