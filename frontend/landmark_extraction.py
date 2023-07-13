@@ -146,7 +146,8 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.feature_group.add_feature(features.EAR3D6)
 
         self.blends_shape_group = BlendShapeFeatureGroupBox(callbacks=[self.save_conf, self.set_features, self.add_handler])
-        self.blends_shape_group.add_feature(features.BLENDSHAPES[0])
+        for blendshape in features.BLENDSHAPES:
+            self.blends_shape_group.add_feature(blendshape)
 
         self.vlayout_rs.addLayout(self.flayout_se)
 
@@ -259,6 +260,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.button_stop.setDisabled(False)
         self.cb_anal.setDisabled(True)
         self.feature_group.setDisabled(True)
+        self.blends_shape_group.setDisabled(True)
         self.bt_pause_resume.setDisabled(False)
         self.setAcceptDrops(False)
 
@@ -283,6 +285,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.button_start.setDisabled(False)
         self.button_stop.setDisabled(True)
         self.feature_group.setDisabled(False)
+        self.blends_shape_group.setDisabled(False)
         self.cb_anal.setDisabled(False)
 
         # reset the pause/resume button
