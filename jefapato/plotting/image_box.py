@@ -4,6 +4,10 @@ import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore
 
+PEN = pg.mkPen(color="g", width=3, style=QtCore.Qt.DashLine, join=QtCore.Qt.RoundJoin, cap=QtCore.Qt.RoundCap)
+PEN_H = pg.mkPen(color="r", width=3,  style=QtCore.Qt.DashLine, join=QtCore.Qt.RoundJoin, cap=QtCore.Qt.RoundCap)
+PEN_HANDLE = pg.mkPen(color="k", width=8, style=QtCore.Qt.SolidLine, join=QtCore.Qt.RoundJoin, cap=QtCore.Qt.RoundCap)
+
 class SimpleImage(pg.ViewBox):
     def __init__(self, **kwargs):
         super().__init__(invertY=True, lockAspect=True, **kwargs)
@@ -26,7 +30,7 @@ class ImageBox(pg.ViewBox):
         self.addItem(self.frame)
 
         self.face_box: SimpleImage = face_box
-        self.roi: pg.ROI = pg.ROI(pos=(0, 0), movable=True, resizable=True, rotatable=False, removable=False)
+        self.roi: pg.ROI = pg.ROI(pos=(0, 0), movable=True, resizable=True, rotatable=False, removable=False, pen=PEN, handlePen=PEN_HANDLE, hoverPen=PEN_H, handleHoverPen=PEN_H)
         ## handles scaling horizontally around center
         self.addItem(self.roi)
         self.roi.sigRegionChanged.connect(self.__update)
