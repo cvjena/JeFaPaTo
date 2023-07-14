@@ -1,4 +1,4 @@
-__all__ = ["WidgetGraph", "ImageBox"]
+__all__ = ["WidgetGraph", "ImageBox", "SimpleImage"]
 
-from jefapato.plotting.image_box import ImageBox
+from jefapato.plotting.image_box import ImageBox, SimpleImage
 from jefapato.plotting.widget_graph import WidgetGraph

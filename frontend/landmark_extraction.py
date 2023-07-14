@@ -111,8 +111,8 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
 
         self.video_resource: Path | int | None = None
 
-        self.widget_frame = plotting.ImageBox(enableMouse=False)
-        self.widget_face = plotting.ImageBox(enableMouse=False)
+        self.widget_face = plotting.SimpleImage(enableMouse=False)
+        self.widget_frame = plotting.ImageBox(face_box=self.widget_face, enableMouse=False)
         self.widget_graph = plotting.WidgetGraph(add_yruler=False)
 
         self.plot_item = {}
@@ -316,7 +316,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
     @facial_features.FaceAnalyzer.hookimpl
     def updated_display(self, image: np.ndarray, face: np.ndarray):
         self.widget_frame.set_image(image)
-        self.widget_face.set_image(face)
+        # self.widget_face.set_image(face)
 
     @facial_features.FaceAnalyzer.hookimpl
     def processed_percentage(self, percentage: int):
