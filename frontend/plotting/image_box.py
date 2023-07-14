@@ -6,15 +6,15 @@ import cv2
 import numpy as np
 import pyqtgraph as pg
 import structlog
-from pyqtgraph.Qt import QtCore
 from qtpy.QtWidgets import QCheckBox
+from qtpy.QtCore import Qt, QRectF
 
 logger = structlog.get_logger(__name__)
 
 
-PEN = pg.mkPen(color="g", width=3, style=QtCore.Qt.DashLine, join=QtCore.Qt.RoundJoin, cap=QtCore.Qt.RoundCap)
-PEN_H = pg.mkPen(color="r", width=3,  style=QtCore.Qt.DashLine, join=QtCore.Qt.RoundJoin, cap=QtCore.Qt.RoundCap)
-PEN_HANDLE = pg.mkPen(color="k", width=8, style=QtCore.Qt.SolidLine, join=QtCore.Qt.RoundJoin, cap=QtCore.Qt.RoundCap)
+PEN = pg.mkPen(color="g", width=3, style=Qt.PenStyle.DashLine, join=Qt.PenJoinStyle.RoundJoin, cap=Qt.PenCapStyle.RoundCap)
+PEN_H = pg.mkPen(color="r", width=3,  style=Qt.PenStyle.DashLine, join=Qt.PenJoinStyle.RoundJoin, cap=Qt.PenCapStyle.RoundCap)
+PEN_HANDLE = pg.mkPen(color="k", width=8, style=Qt.PenStyle.SolidLine, join=Qt.PenJoinStyle.RoundJoin, cap=Qt.PenCapStyle.RoundCap)
 
 class SimpleImage(pg.ViewBox):
     def __init__(self, **kwargs):
@@ -53,7 +53,7 @@ class FaceSelectBox(pg.ViewBox):
         self.image = image
         self.frame.setImage(image)
         h, w = image.shape[:2]
-        self.roi.maxBounds = QtCore.QRectF(0, 0, w, h)
+        self.roi.maxBounds = QRectF(0, 0, w, h)
         self.__update()
 
     def set_roi(self, pos: tuple, size: tuple) -> None:
