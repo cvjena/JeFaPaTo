@@ -263,7 +263,6 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
     def start(self) -> None:
         # if self.video_resource is not None:
         #     self.set_resource(self.video_resource)
-        
         self.setup_graph()
         self.ea.set_features(self.used_features_classes)
         self.ea.start()
@@ -314,7 +313,6 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.bt_pause_resume.setText("Pause")
         self.setAcceptDrops(True)
         self.widget_frame.set_interactive(True)
-
 
     @facial_features.FaceAnalyzer.hookimpl
     def updated_display(self, image: np.ndarray):

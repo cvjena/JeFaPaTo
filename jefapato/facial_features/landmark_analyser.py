@@ -75,9 +75,6 @@ class FaceAnalyzer():
             extractor.stopped = True
             extractor.wait()
 
-        if self.resource_interface is not None:
-            self.resource_interface.release()
-
     def reset(self):
         self.features = list()
 
@@ -203,8 +200,8 @@ class FaceAnalyzer():
         return success, cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
     def release_resource(self):
-        self.resource_interface.release()
-        self.resource_interface = None
+        # reset the resource back to the first frame
+        self.resource_interface.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
     def get_next_item(self) -> tuple[bool, np.ndarray]:
         return self.resource_interface.read()
