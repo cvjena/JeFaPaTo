@@ -4,9 +4,7 @@
 eval "$(conda shell.bash hook)"
 conda create -n jefapato -y
 conda activate jefapato
-conda install python=3.11 -y
-conda install pip -y
-# conda install -c conda-forge opencv=4.7 -y
+conda install python=3.10 pip -y
 
 python --version
 
@@ -15,5 +13,5 @@ python --version
 python -m pip install -r requirements-dev.txt
 python -m pip install -r requirements.txt
 
-pre-commit install
-pre-commit autoupdate
+# pre-commit install
+# pre-commit autoupdate
