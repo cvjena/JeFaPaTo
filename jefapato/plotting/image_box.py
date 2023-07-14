@@ -26,21 +26,11 @@ class ImageBox(pg.ViewBox):
         self.addItem(self.frame)
 
         self.face_box: SimpleImage = face_box
-        self.roi = pg.ROI(pos=(0, 0), size=(10, 10), movable=True, resizable=True, rotatable=False, removable=False)
+        self.roi: pg.ROI = pg.ROI(pos=(0, 0), movable=True, resizable=True, rotatable=False, removable=False)
         ## handles scaling horizontally around center
-        self.roi.addScaleHandle([1, 0.5], [0.5, 0.5])
-        self.roi.addScaleHandle([0, 0.5], [0.5, 0.5])
-
-        ## handles scaling vertically from opposite edge
-        self.roi.addScaleHandle([0.5, 0], [0.5, 1])
-        self.roi.addScaleHandle([0.5, 1], [0.5, 0])
-
-        ## handles scaling both vertically and horizontally
-        self.roi.addScaleHandle([1, 1], [0, 0])
-        self.roi.addScaleHandle([0, 0], [1, 1])
         self.addItem(self.roi)
         self.roi.sigRegionChanged.connect(self.__update)
-        
+
         self.image: np.ndarray | None = None
 
     def set_selection_image(self, image: np.ndarray) -> None:
@@ -48,14 +38,13 @@ class ImageBox(pg.ViewBox):
         self.set_image(image)
 
         h, w = image.shape[:2]
-
         # create the position and size of the roi, such that 
         # the roi center is in the middle of the image, and the size 
         # is a rect that would fit a face
-
         pos = (w / 2 - w / 6, h / 2 - h / 3)
         size = (w / 3, h / 2)
         self.set_roi(pos, size)
+        self.set_interactive(True)
 
         # TODO replace with correct qt import
         self.roi.maxBounds = QtCore.QRectF(0, 0, w, h)
@@ -78,3 +67,25 @@ class ImageBox(pg.ViewBox):
         size = self.roi.size()
         sub_img = self.image[int(pos.y()) : int(pos.y() + size.y()), int(pos.x()) : int(pos.x() + size.x())]
         self.face_box.set_image(sub_img)
+
+    def set_interactive(self, state: bool) -> None:
+        self.roi.translatable = state
+        self.roi.resizable = state
+
+        if state:
+            self.roi.addScaleHandle([1, 0.5], [0.5, 0.5])
+            self.roi.addScaleHandle([0, 0.5], [0.5, 0.5])
+
+            ## handles scaling vertically from opposite edge
+            self.roi.addScaleHandle([0.5, 0], [0.5, 1])
+            self.roi.addScaleHandle([0.5, 1], [0.5, 0])
+
+            ## handles scaling both vertically and horizontally
+            self.roi.addScaleHandle([1, 1], [0, 0])
+            self.roi.addScaleHandle([0, 0], [1, 1])
+        else:
+            self.roi.removeHandle(4)
+            self.roi.removeHandle(3)
+            self.roi.removeHandle(2)
+            self.roi.removeHandle(1)
+            self.roi.removeHandle(0)

@@ -283,6 +283,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.blends_shape_group.setDisabled(True)
         self.bt_pause_resume.setDisabled(False)
         self.setAcceptDrops(False)
+        self.widget_frame.set_interactive(False)
 
     @facial_features.FaceAnalyzer.hookimpl
     def paused(self):
@@ -312,6 +313,8 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.bt_pause_resume.setDisabled(True)
         self.bt_pause_resume.setText("Pause")
         self.setAcceptDrops(True)
+        self.widget_frame.set_interactive(True)
+
 
     @facial_features.FaceAnalyzer.hookimpl
     def updated_display(self, image: np.ndarray):
