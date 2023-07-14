@@ -190,6 +190,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.flayout_se.addRow(self.bt_reset_graph)
         self.flayout_se.addRow(self.auto_save)
         self.flayout_se.addRow(self.use_bbox)
+        self.flayout_se.addRow(self.widget_frame.cb_auto_find)
 
         # add two labels to the bottom row of the main layout
         self.la_input = QtWidgets.QLabel("Loading: ### frame/s")

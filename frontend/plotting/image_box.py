@@ -2,7 +2,13 @@ __all__ = ["FaceSelectBox", "SimpleImage"]
 
 import numpy as np
 import pyqtgraph as pg
-from pyqtgraph.Qt import QtCore
+from pyqtgraph.Qt import QtCore 
+
+from qtpy.QtWidgets import QCheckBox
+import structlog
+
+logger = structlog.get_logger(__name__)
+
 
 PEN = pg.mkPen(color="g", width=3, style=QtCore.Qt.DashLine, join=QtCore.Qt.RoundJoin, cap=QtCore.Qt.RoundCap)
 PEN_H = pg.mkPen(color="r", width=3,  style=QtCore.Qt.DashLine, join=QtCore.Qt.RoundJoin, cap=QtCore.Qt.RoundCap)
@@ -38,6 +44,9 @@ class FaceSelectBox(pg.ViewBox):
         self.image: np.ndarray | None = None
         self.set_interactive(False)
 
+        self.cb_auto_find = QCheckBox("Auto find face")
+        self.cb_auto_find.setChecked(True)
+
     def set_selection_image(self, image: np.ndarray) -> None:
         # TODO check if necessary later on...
         self.set_image(image)
@@ -46,6 +55,9 @@ class FaceSelectBox(pg.ViewBox):
         # create the position and size of the roi, such that 
         # the roi center is in the middle of the image, and the size 
         # is a rect that would fit a face
+        if self.cb_auto_find.isChecked():
+            logger.error("Auto find face not implemented yet")
+
         pos = (w / 2 - w / 6, h / 2 - h / 3)
         size = (w / 3, h / 2)
         self.set_roi(pos, size)
