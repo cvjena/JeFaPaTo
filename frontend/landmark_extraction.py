@@ -261,8 +261,9 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         logger.info("Set features", features=self.used_features_classes)
 
     def start(self) -> None:
-        if self.video_resource is not None:
-            self.set_resource(self.video_resource)
+        # if self.video_resource is not None:
+        #     self.set_resource(self.video_resource)
+        
         self.setup_graph()
         self.ea.set_features(self.used_features_classes)
         self.ea.start()
@@ -375,7 +376,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
 
         success, frame = self.ea.prepare_video_resource(self.video_resource)
         if success:
-            self.widget_frame.set_image(frame)
+            self.widget_frame.set_selection_image(frame)
 
 
     def save_results(self) -> None:
@@ -422,6 +423,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
             logger.info("User started dragging event with mime file", widget=self)
         else:
             event.ignore()
+            logger.info("User started dragging event with invalid mime file", widget=self)
 
     def dropEvent(self, event: QtGui.QDropEvent):
         files = [u.toLocalFile() for u in event.mimeData().urls()]
