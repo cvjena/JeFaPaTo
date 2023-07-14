@@ -11,9 +11,10 @@ import qtawesome as qta
 import structlog
 from qtpy import QtCore, QtGui, QtWidgets
 
-from jefapato import config, facial_features, plotting
+from jefapato import config, facial_features
 from jefapato.facial_features import features
 
+from frontend import plotting
 
 logger = structlog.get_logger()
 
