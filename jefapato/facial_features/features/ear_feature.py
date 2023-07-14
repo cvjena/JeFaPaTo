@@ -60,39 +60,39 @@ class EAR(Feature):
         """Return the data as a row as in the same order as the header"""
         return [f"{data.ear_l: .8f}", f"{data.ear_r: .8f}", str(data.ear_valid)]
 
-    def draw(self, image: np.ndarray, data: EAR_Data) -> np.ndarray:        
+    def draw(self, image: np.ndarray, data: EAR_Data, x_offset: int = 0, y_offset: int = 0) -> np.ndarray:        
         color_r = self.plot_info["ear_r"]["color"]
         color_l = self.plot_info["ear_l"]["color"]
 
         for (x, y, *_) in data.lm_l:
-            cv2.circle(image, (x, y), 1, color_l, -1)
+            cv2.circle(image, (x+x_offset, y+y_offset), 1, color_l, -1)
         for (x, y, *_) in data.lm_r:
-            cv2.circle(image, (x, y), 1, color_r, -1)
+            cv2.circle(image, (x+x_offset, y+y_offset), 1, color_r, -1)
 
         # draw the eye ratio
         # horizontal lines
         cv2.line(
             image,
-            pt1=(data.lm_l[0, 0], data.lm_l[0, 1]),
-            pt2=(data.lm_l[3, 0], data.lm_l[3, 1]),
+            pt1=(data.lm_l[0, 0] + x_offset, data.lm_l[0, 1]+y_offset),
+            pt2=(data.lm_l[3, 0] + x_offset, data.lm_l[3, 1]+y_offset),
             color=color_l,
             thickness=1,
         )
         cv2.line(
             image,
-            pt1=(data.lm_r[0, 0], data.lm_r[0, 1]),
-            pt2=(data.lm_r[3, 0], data.lm_r[3, 1]),
+            pt1=(data.lm_r[0, 0]+x_offset, data.lm_r[0, 1]+y_offset),
+            pt2=(data.lm_r[3, 0]+x_offset, data.lm_r[3, 1]+y_offset),
             color=color_r,
             thickness=1,
         )
         # vertical line
         t = (data.lm_l[1] + data.lm_l[2]) // 2
         b = (data.lm_l[4] + data.lm_l[5]) // 2
-        cv2.line(image, (t[0], t[1]), (b[0], b[1]), color_l, 1)
+        cv2.line(image, (t[0]+x_offset, t[1]+y_offset), (b[0]+x_offset, b[1]+y_offset), color_l, 1)
 
         t = (data.lm_r[1] + data.lm_r[2]) // 2
         b = (data.lm_r[4] + data.lm_r[5]) // 2
-        cv2.line(image, (t[0], t[1]), (b[0], b[1]), color_r, 1)
+        cv2.line(image, (t[0]+x_offset, t[1]+y_offset), (b[0]+x_offset, b[1]+y_offset), color_r, 1)
         return image
 
 class EAR2D6(EAR):

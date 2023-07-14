@@ -156,9 +156,14 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
 
         self.pb_anal = self.parent().progress_bar
         self.skip_frame = QtWidgets.QSpinBox()
+
         self.auto_save = QtWidgets.QCheckBox("Auto-Save")
         self.auto_save.setChecked(True)
         self.auto_save.setToolTip("Save the extracted data automatically after the analysis is finished.")
+
+        self.use_bbox = QtWidgets.QCheckBox("Use Bounding Box")
+        self.use_bbox.setChecked(True)
+        self.use_bbox.setToolTip("Use the bounding box to extract the landmarks.")
 
         self.feature_group = FeatureGroupBox([self.save_conf, self.set_features, self.add_handler])
         self.feature_group.add_feature(features.EAR2D6)
@@ -183,6 +188,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.flayout_se.addRow("Graph Update Delay:", self.skip_frame)
         self.flayout_se.addRow(self.bt_reset_graph)
         self.flayout_se.addRow(self.auto_save)
+        self.flayout_se.addRow(self.use_bbox)
 
         # add two labels to the bottom row of the main layout
         self.la_input = QtWidgets.QLabel("Loading: ### frame/s")
@@ -265,7 +271,9 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         #     self.set_resource(self.video_resource)
         self.setup_graph()
         self.ea.set_features(self.used_features_classes)
-        self.ea.start()
+        
+        rect = self.widget_frame.get_roi_rect() if self.use_bbox.isChecked() else None        
+        self.ea.start(rect)
 
     def stop(self) -> None:
         self.ea.stop()

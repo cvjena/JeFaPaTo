@@ -19,7 +19,8 @@ class AnalyzeQueueItem:
     """A dataclass for holding an input image and its metadata."""
 
     image: np.ndarray
-    face_rect: tuple[int, int, int, int]
     valid: bool
     landmark_features: np.ndarray
     blendshape_features: dict[str, float]
+    x_offset: int
+    y_offset: int

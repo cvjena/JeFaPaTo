@@ -4,6 +4,7 @@ import queue
 import time
 import threading
 from typing import Callable
+import cv2
 
 import structlog
 
@@ -43,7 +44,7 @@ class VideoDataLoader(threading.Thread):
                 if not grabbed:
                     self.stopped = True
                     break
- 
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 self.data_queue.put(InputQueueItem(frame=frame, timestamp=c_time))
                 processed_p_sec += 1
             else:

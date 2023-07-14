@@ -64,7 +64,12 @@ class Extractor(QThread):
         )
 
 class MediapipeLandmarkExtractor(Extractor):
-    def __init__(self, data_queue: queue.Queue[InputQueueItem], data_amount: int) -> None:
+    def __init__(
+        self, 
+        data_queue: queue.Queue[InputQueueItem], 
+        data_amount: int,
+        bbox_slice: tuple[int, int, int, int] | None = None,
+    ) -> None:
         super().__init__(data_queue=data_queue, data_amount=data_amount)
 
         base_options = python.BaseOptions(model_asset_path=str(Path(__file__).parent / "models/2023-07-09_face_landmarker.task"))
@@ -76,9 +81,9 @@ class MediapipeLandmarkExtractor(Extractor):
             num_faces=1,
         )
         self.detector = vision.FaceLandmarker.create_from_options(options)
-        self.rect = (0, 0, 10, 10)
         self.start_time = time.time()
         self.processing_per_second: int = 0
+        self.bbox_slice = bbox_slice
 
     def set_skip_count(self, _) -> None:
         pass
@@ -117,11 +122,14 @@ class MediapipeLandmarkExtractor(Extractor):
                 logger.info("Extractor Thread", state="QUEUE EMPTY", data_amount=self.data_amount, processed=processed)
                 break
 
-            image = self.data_queue.get().frame
+            frame = self.data_queue.get().frame
+            image = frame.copy()
+
+            if self.bbox_slice:
+                y1, y2, x1, x2 = self.bbox_slice
+                image = image[y1:y2, x1:x2].copy()
 
             h, w = image.shape[:2]
-
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image)
 
             face_landmarker_result = self.detector.detect(mp_image)
@@ -137,14 +145,13 @@ class MediapipeLandmarkExtractor(Extractor):
                     landmarks[i, 1] = int(lm.y * h)
                     landmarks[i, 2] = int(lm.z * w)
 
-                self.rect = (
-                    *np.min(landmarks, axis=0)[:2],
-                    *np.max(landmarks, axis=0)[:2],
-                )
                 for face_blendshape in face_landmarker_result.face_blendshapes[0]:
                     blendshapes[face_blendshape.category_name] = face_blendshape.score
 
-            item = AnalyzeQueueItem(image, self.rect, valid, landmarks, blendshapes)
+            x_offset = 0 if self.bbox_slice is None else self.bbox_slice[2]
+            y_offset = 0 if self.bbox_slice is None else self.bbox_slice[0]
+
+            item = AnalyzeQueueItem(frame, valid, landmarks, blendshapes, x_offset, y_offset)
             self.processingUpdated.emit(item)
             processed += 1
             perc = int((processed / self.data_amount) * 100)

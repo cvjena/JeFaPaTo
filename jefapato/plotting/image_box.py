@@ -62,14 +62,14 @@ class ImageBox(pg.ViewBox):
     def __update(self, _) -> None:
         if self.image is None:
             return        
-        h_sclice, w_slice = self.get_roi_rect()
-        sub_img = self.image[h_sclice, w_slice]
+        y1, y2, x1, x2 = self.get_roi_rect()
+        sub_img = self.image[y1:y2, x1:x2]
         self.face_box.set_image(sub_img)
 
-    def get_roi_rect(self) -> tuple[slice, slice]:
+    def get_roi_rect(self) -> tuple[int, int, int, int]: 
         pos = self.roi.pos()
         size = self.roi.size()
-        return slice(int(pos.y()), int(pos.y() + size.y())), slice(int(pos.x()), int(pos.x() + size.x()))
+        return int(pos.y()), int(pos.y() + size.y()), int(pos.x()), int(pos.x() + size.x())
 
     def set_interactive(self, state: bool) -> None:
         self.roi.translatable = state

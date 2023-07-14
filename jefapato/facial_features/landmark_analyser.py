@@ -34,6 +34,7 @@ class FaceAnalyzer():
 
         self.pm = pluggy.PluginManager("analyser")
         self.pm.add_hookspecs(self.__class__)# TODO could be an issue!
+        self.bbox_slice: tuple[int, int, int, int] | None = None
 
     def analysis_setup(self) -> bool:
         if self.resource_interface is None:
@@ -52,7 +53,7 @@ class FaceAnalyzer():
         logger.info("Data loader queue space", space=items_to_place)
 
         self.loader = VideoDataLoader(self.get_next_item, items_to_place)
-        self.extractor = MediapipeLandmarkExtractor(data_queue=self.loader.data_queue, data_amount=self.data_amount)
+        self.extractor = MediapipeLandmarkExtractor(data_queue=self.loader.data_queue, data_amount=self.data_amount, bbox_slice=self.bbox_slice)
 
         self.extractor.processedPercentage.connect(lambda x: self.pm.hook.processed_percentage(percentage=x))
         self.extractor.processingFinished.connect(lambda: self.pm.hook.finished())
@@ -96,10 +97,11 @@ class FaceAnalyzer():
     def toggle_pause(self) -> None:
         self.extractor.toggle_pause()
 
-    def start(self) -> None:
+    def start(self, bbox_slice: tuple[int, int, int, int] | None) -> None:
         for m_name in self.feature_classes:
             self.feature_data[m_name].clear()
 
+        self.bbox_slice = bbox_slice
         self.analysis_setup()
         self.extractor.processingUpdated.connect(self.handle_update)
         self.extractor.processingPaused.connect(self.pm.hook.paused)
@@ -113,6 +115,8 @@ class FaceAnalyzer():
         valid = q_item.valid
         features = q_item.landmark_features
         blendshapes = q_item.blendshape_features
+        x_offset, y_offset = q_item.x_offset, q_item.y_offset
+
 
         for f_name, f_class in self.feature_classes.items():
             # if it f_class is a blendshape feature, we need to pass the blendshapes
@@ -120,7 +124,7 @@ class FaceAnalyzer():
                 feature_data = f_class.compute(blendshapes, valid)
             else:
                 feature_data = f_class.compute(features, valid)
-            f_class.draw(image=image, data=feature_data)
+            f_class.draw(image=image, data=feature_data, x_offset=x_offset, y_offset=y_offset)
             self.feature_data[f_name].append(feature_data)
             temp_data[f_name] = feature_data
 
