@@ -113,7 +113,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.video_resource: Path | int | None = None
 
         self.widget_face = plotting.SimpleImage(enableMouse=False)
-        self.widget_frame = plotting.ImageBox(face_box=self.widget_face, enableMouse=False)
+        self.widget_frame = plotting.FaceSelectBox(face_box=self.widget_face, enableMouse=False)
         self.widget_graph = plotting.WidgetGraph(add_yruler=False)
 
         self.plot_item = {}

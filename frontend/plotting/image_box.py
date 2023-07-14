@@ -1,4 +1,4 @@
-__all__ = ["ImageBox", "SimpleImage"]
+__all__ = ["FaceSelectBox", "SimpleImage"]
 
 import numpy as np
 import pyqtgraph as pg
@@ -18,7 +18,7 @@ class SimpleImage(pg.ViewBox):
         self.frame.setImage(image)
 
 
-class ImageBox(pg.ViewBox):
+class FaceSelectBox(pg.ViewBox):
     def __init__(
         self,
         face_box: SimpleImage,
