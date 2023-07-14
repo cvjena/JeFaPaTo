@@ -87,6 +87,7 @@ class ImageBox(pg.ViewBox):
             self.roi.addScaleHandle([1, 1], [0, 0])
             self.roi.addScaleHandle([0, 0], [1, 1])
         else:
+            self.roi.removeHandle(5)
             self.roi.removeHandle(4)
             self.roi.removeHandle(3)
             self.roi.removeHandle(2)
