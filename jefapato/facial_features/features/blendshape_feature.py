@@ -73,20 +73,14 @@ KEYS = [
 
 class BS_Neutral(Blendshape):
     """A class to represent the neutral expression"""
-
-    def __init__(self):
-        self.mediapipe_key = "_neutral"
-        self.side = "whole"
+    mediapipe_key = "_neutral"
+    side = "whole"
 
 class BS_BrowDownLeft(Blendshape):
     """A class to represent the brow down left expression"""
-
-    def __init__(self):
-        self.mediapipe_key = "browDownLeft"
-        self.side = "left"
+    mediapipe_key = "browDownLeft"
+    side = "left"
 
 class BS_BrowDownRight(Blendshape):
-    """"""
-    def __init__(self):
-        self.mediapipe_key = "browDownRight"
-        self.side = "right"
+    mediapipe_key = "browDownRight"
+    side = "right"
