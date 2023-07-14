@@ -36,6 +36,7 @@ class ImageBox(pg.ViewBox):
         self.roi.sigRegionChanged.connect(self.__update)
 
         self.image: np.ndarray | None = None
+        self.set_interactive(False)
 
     def set_selection_image(self, image: np.ndarray) -> None:
         # TODO check if necessary later on...
@@ -91,9 +92,12 @@ class ImageBox(pg.ViewBox):
             self.roi.addScaleHandle([1, 1], [0, 0])
             self.roi.addScaleHandle([0, 0], [1, 1])
         else:
-            self.roi.removeHandle(5)
-            self.roi.removeHandle(4)
-            self.roi.removeHandle(3)
-            self.roi.removeHandle(2)
-            self.roi.removeHandle(1)
-            self.roi.removeHandle(0)
+            try:
+                self.roi.removeHandle(5)
+                self.roi.removeHandle(4)
+                self.roi.removeHandle(3)
+                self.roi.removeHandle(2)
+                self.roi.removeHandle(1)
+                self.roi.removeHandle(0)
+            except IndexError:
+                pass
