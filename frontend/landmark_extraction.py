@@ -314,9 +314,8 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.setAcceptDrops(True)
 
     @facial_features.FaceAnalyzer.hookimpl
-    def updated_display(self, image: np.ndarray, face: np.ndarray):
+    def updated_display(self, image: np.ndarray):
         self.widget_frame.set_image(image)
-        # self.widget_face.set_image(face)
 
     @facial_features.FaceAnalyzer.hookimpl
     def processed_percentage(self, percentage: int):

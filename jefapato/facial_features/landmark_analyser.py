@@ -112,9 +112,7 @@ class FaceAnalyzer():
     def handle_update(self, q_item: AnalyzeQueueItem) -> None:
         # here would be some drawing? and storing of the features we are interested in
         temp_data = OrderedDict()
-
         image = q_item.image
-        face_rect = q_item.face_rect
         valid = q_item.valid
         features = q_item.landmark_features
         blendshapes = q_item.blendshape_features
@@ -130,19 +128,10 @@ class FaceAnalyzer():
             temp_data[f_name] = feature_data
 
         self.pm.hook.updated_feature(feature_data=temp_data)
-
-        face = image[face_rect[1] : face_rect[3], face_rect[0] : face_rect[2]]
-        cv2.rectangle(
-            image,
-            (face_rect[0], face_rect[1]),
-            (face_rect[2], face_rect[3]),
-            (0, 255, 0),
-            2,
-        )
-        self.pm.hook.updated_display(image=image, face=face)
+        self.pm.hook.updated_display(image=image)
 
     @hookspec
-    def updated_display(self, image: np.ndarray, face: np.ndarray):
+    def updated_display(self, image: np.ndarray):
         """
         Trigger a hook that the displaying information was updated.
         """
