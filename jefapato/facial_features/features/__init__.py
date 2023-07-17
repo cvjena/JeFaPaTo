@@ -69,4 +69,6 @@ BLENDSHAPES: list[type[Blendshape]] = [
     BS_MouthUpperUpLeft, BS_MouthUpperUpRight,
     BS_NoseSneerLeft, BS_NoseSneerRight
 ]
-BLENDSHAPES.sort(key=lambda x: x.mediapipe_key)
+
+# Sort blendshapes by mediapipe key but ignore Left and Right during sorting
+BLENDSHAPES.sort(key=lambda x: x.mediapipe_key.replace("Left", "").replace("Right", ""))
