@@ -64,10 +64,12 @@ class BlendShapeFeatureGroupBox(QtWidgets.QGroupBox):
         self.layout_right = QtWidgets.QVBoxLayout()
         self.layout_whole = QtWidgets.QVBoxLayout()
 
-        # self.layout_left.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
-        # self.layout_right.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
+        self.layout_left.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
+        self.layout_right.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
+        self.layout_whole.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
 
         ## add a text at the top of each layout to indicate the side
+        
         self.layout_left.addWidget(QtWidgets.QLabel("Left"))
         self.layout_right.addWidget(QtWidgets.QLabel("Right"))
         self.layout_whole.addWidget(QtWidgets.QLabel("Whole"))
