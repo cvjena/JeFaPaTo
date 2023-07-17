@@ -1,4 +1,15 @@
-__all__ = ["Blendshape", "BS_Neutral", "BS_BrowDownLeft", "BS_BrowDownRight"]
+__all__ = [
+    "Blendshape", 
+    "BS_Neutral", 
+    "BS_BrowDownLeft", 
+    "BS_BrowDownRight", 
+    "BS_BrowInnerUp", 
+    "BS_BrowOuterUpLeft", 
+    "BS_BrowOuterUpRight",
+    "BS_CheekPuff",
+    "BS_CheekSquintLeft",
+    "BS_CheekSquintRight",
+]
 
 from dataclasses import dataclass
 from typing import Any
@@ -62,7 +73,6 @@ class Blendshape(Feature):
         )
 
 KEYS = [
-    'browInnerUp', 'browOuterUpLeft', 'browOuterUpRight', 'cheekPuff', 'cheekSquintLeft', 'cheekSquintRight', 
     'eyeBlinkLeft', 'eyeBlinkRight', 'eyeLookDownLeft', 'eyeLookDownRight', 'eyeLookInLeft', 'eyeLookInRight', 'eyeLookOutLeft', 'eyeLookOutRight', 
     'eyeLookUpLeft', 'eyeLookUpRight', 'eyeSquintLeft', 'eyeSquintRight', 'eyeWideLeft', 'eyeWideRight', 'jawForward', 'jawLeft', 'jawOpen', 'jawRight', 
     'mouthClose', 'mouthDimpleLeft', 'mouthDimpleRight', 'mouthFrownLeft', 'mouthFrownRight', 'mouthFunnel', 'mouthLeft', 'mouthLowerDownLeft', 
@@ -83,4 +93,29 @@ class BS_BrowDownLeft(Blendshape):
 
 class BS_BrowDownRight(Blendshape):
     mediapipe_key = "browDownRight"
+    side = "right"
+
+class BS_BrowInnerUp(Blendshape):
+    mediapipe_key = "browInnerUp"
+    side = "whole"
+
+
+class BS_BrowOuterUpLeft(Blendshape):
+    mediapipe_key = "browOuterUpLeft"
+    side = "left"
+
+class BS_BrowOuterUpRight(Blendshape):
+    mediapipe_key = "browOuterUpRight"
+    side = "right"
+
+class BS_CheekPuff(Blendshape):
+    mediapipe_key = "cheekPuff"
+    side = "whole"
+
+class BS_CheekSquintLeft(Blendshape):
+    mediapipe_key = "cheekSquintLeft"
+    side = "left"
+
+class BS_CheekSquintRight(Blendshape):  
+    mediapipe_key = "cheekSquintRight"
     side = "right"
