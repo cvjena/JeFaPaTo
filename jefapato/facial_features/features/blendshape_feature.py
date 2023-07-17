@@ -21,6 +21,10 @@ __all__ = [
     "BS_EyeSquintRight",
     "BS_EyeWideLeft",
     "BS_EyeWideRight",
+    "BS_JawForward",
+    "BS_JawLeft",
+    "BS_JawOpen",
+    "BS_JawRight",
 ]
 
 from dataclasses import dataclass
@@ -85,7 +89,6 @@ class Blendshape(Feature):
         )
 
 KEYS = [
-    'jawForward', 'jawLeft', 'jawOpen', 'jawRight', 
     'mouthClose', 'mouthDimpleLeft', 'mouthDimpleRight', 'mouthFrownLeft', 'mouthFrownRight', 'mouthFunnel', 'mouthLeft', 'mouthLowerDownLeft', 
     'mouthLowerDownRight', 'mouthPressLeft', 'mouthPressRight', 'mouthPucker', 'mouthRight', 'mouthRollLower', 'mouthRollUpper', 'mouthShrugLower', 
     'mouthShrugUpper', 'mouthSmileLeft', 'mouthSmileRight', 'mouthStretchLeft', 'mouthStretchRight', 'mouthUpperUpLeft', 'mouthUpperUpRight', 'noseSneerLeft', 
@@ -186,3 +189,19 @@ class BS_EyeWideLeft(Blendshape):
 class BS_EyeWideRight(Blendshape):
     mediapipe_key = "eyeWideRight"
     side = "right"
+
+class BS_JawForward(Blendshape):
+    mediapipe_key = "jawForward"
+    side = "whole"
+
+class BS_JawLeft(Blendshape):
+    mediapipe_key = "jawLeft"
+    side = "whole"
+
+class BS_JawOpen(Blendshape):
+    mediapipe_key = "jawOpen"
+    side = "whole"
+
+class BS_JawRight(Blendshape):
+    mediapipe_key = "jawRight"
+    side = "whole"
