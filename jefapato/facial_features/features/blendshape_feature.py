@@ -29,7 +29,13 @@ __all__ = [
     "BS_MouthDimpleLeft",
     "BS_MouthDimpleRight",
     "BS_MouthFrownLeft",
-    "BS_MouthFrownRight", 
+    "BS_MouthFrownRight",
+    "BS_MouthFunnel",
+    "BS_MouthLeft",
+    "BS_MouthLowerDownLeft",
+    "BS_MouthLowerDownRight",
+    "BS_MouthPressLeft",
+    "BS_MouthPressRight",
 ]
 
 from dataclasses import dataclass
@@ -94,10 +100,6 @@ class Blendshape(Feature):
         )
 
 KEYS = [
-    'mouthFunnel', 
-    'mouthLeft',
-    'mouthLowerDownLeft', 'mouthLowerDownRight', 
-    'mouthPressLeft', 'mouthPressRight', 
     'mouthPucker', 
     'mouthRight', 
     'mouthRollLower','mouthRollUpper',
@@ -237,4 +239,28 @@ class BS_MouthFrownLeft(Blendshape):
 
 class BS_MouthFrownRight(Blendshape):
     mediapipe_key = "mouthFrownRight"
+    side = "right"
+
+class BS_MouthFunnel(Blendshape):
+    mediapipe_key = "mouthFunnel"
+    side = "whole"
+
+class BS_MouthLeft(Blendshape):
+    mediapipe_key = "mouthLeft"
+    side = "left"
+
+class BS_MouthLowerDownLeft(Blendshape):
+    mediapipe_key = "mouthLowerDownLeft"
+    side = "left"
+
+class BS_MouthLowerDownRight(Blendshape):
+    mediapipe_key = "mouthLowerDownRight"
+    side = "right"
+
+class BS_MouthPressLeft(Blendshape):
+    mediapipe_key = "mouthPressLeft"
+    side = "left"
+
+class BS_MouthPressRight(Blendshape):
+    mediapipe_key = "mouthPressRight"
     side = "right"
