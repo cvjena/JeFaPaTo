@@ -25,6 +25,11 @@ __all__ = [
     "BS_JawLeft",
     "BS_JawOpen",
     "BS_JawRight",
+    "BS_MouthClose",
+    "BS_MouthDimpleLeft",
+    "BS_MouthDimpleRight",
+    "BS_MouthFrownLeft",
+    "BS_MouthFrownRight", 
 ]
 
 from dataclasses import dataclass
@@ -89,10 +94,18 @@ class Blendshape(Feature):
         )
 
 KEYS = [
-    'mouthClose', 'mouthDimpleLeft', 'mouthDimpleRight', 'mouthFrownLeft', 'mouthFrownRight', 'mouthFunnel', 'mouthLeft', 'mouthLowerDownLeft', 
-    'mouthLowerDownRight', 'mouthPressLeft', 'mouthPressRight', 'mouthPucker', 'mouthRight', 'mouthRollLower', 'mouthRollUpper', 'mouthShrugLower', 
-    'mouthShrugUpper', 'mouthSmileLeft', 'mouthSmileRight', 'mouthStretchLeft', 'mouthStretchRight', 'mouthUpperUpLeft', 'mouthUpperUpRight', 'noseSneerLeft', 
-    'noseSneerRight'
+    'mouthFunnel', 
+    'mouthLeft',
+    'mouthLowerDownLeft', 'mouthLowerDownRight', 
+    'mouthPressLeft', 'mouthPressRight', 
+    'mouthPucker', 
+    'mouthRight', 
+    'mouthRollLower','mouthRollUpper',
+    'mouthShrugLower', 'mouthShrugUpper',
+    'mouthSmileLeft', 'mouthSmileRight', 
+    'mouthStretchLeft', 'mouthStretchRight',
+    'mouthUpperUpLeft', 'mouthUpperUpRight',
+    'noseSneerLeft', 'noseSneerRight'
 ]
 
 class BS_Neutral(Blendshape):
@@ -205,3 +218,23 @@ class BS_JawOpen(Blendshape):
 class BS_JawRight(Blendshape):
     mediapipe_key = "jawRight"
     side = "whole"
+
+class BS_MouthClose(Blendshape):
+    mediapipe_key = "mouthClose"
+    side = "whole"
+
+class BS_MouthDimpleLeft(Blendshape):
+    mediapipe_key = "mouthDimpleLeft"
+    side = "left"
+
+class BS_MouthDimpleRight(Blendshape):
+    mediapipe_key = "mouthDimpleRight"
+    side = "right"
+
+class BS_MouthFrownLeft(Blendshape):
+    mediapipe_key = "mouthFrownLeft"
+    side = "left"
+
+class BS_MouthFrownRight(Blendshape):
+    mediapipe_key = "mouthFrownRight"
+    side = "right"
