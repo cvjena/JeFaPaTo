@@ -36,6 +36,20 @@ __all__ = [
     "BS_MouthLowerDownRight",
     "BS_MouthPressLeft",
     "BS_MouthPressRight",
+    "BS_MouthPucker",
+    "BS_MouthRight",
+    "BS_MouthRollLower",
+    "BS_MouthRollUpper",
+    "BS_MouthShrugLower",
+    "BS_MouthShrugUpper",
+    "BS_MouthSmileLeft",
+    "BS_MouthSmileRight",
+    "BS_MouthStretchLeft",
+    "BS_MouthStretchRight",
+    "BS_MouthUpperUpLeft",
+    "BS_MouthUpperUpRight",
+    "BS_NoseSneerLeft",
+    "BS_NoseSneerRight"
 ]
 
 from dataclasses import dataclass
@@ -98,17 +112,6 @@ class Blendshape(Feature):
             blendshape_valid=True,
             side=self.side,
         )
-
-KEYS = [
-    'mouthPucker', 
-    'mouthRight', 
-    'mouthRollLower','mouthRollUpper',
-    'mouthShrugLower', 'mouthShrugUpper',
-    'mouthSmileLeft', 'mouthSmileRight', 
-    'mouthStretchLeft', 'mouthStretchRight',
-    'mouthUpperUpLeft', 'mouthUpperUpRight',
-    'noseSneerLeft', 'noseSneerRight'
-]
 
 class BS_Neutral(Blendshape):
     """A class to represent the neutral expression"""
@@ -263,4 +266,60 @@ class BS_MouthPressLeft(Blendshape):
 
 class BS_MouthPressRight(Blendshape):
     mediapipe_key = "mouthPressRight"
+    side = "right"
+
+class BS_MouthPucker(Blendshape):
+    mediapipe_key = "mouthPucker"
+    side = "whole"
+
+class BS_MouthRight(Blendshape):
+    mediapipe_key = "mouthRight"
+    side = "right"
+
+class BS_MouthRollLower(Blendshape):
+    mediapipe_key = "mouthRollLower"
+    side = "whole"
+
+class BS_MouthRollUpper(Blendshape):
+    mediapipe_key = "mouthRollUpper"
+    side = "whole"
+
+class BS_MouthShrugLower(Blendshape):
+    mediapipe_key = "mouthShrugLower"
+    side = "whole"
+
+class BS_MouthShrugUpper(Blendshape):
+    mediapipe_key = "mouthShrugUpper"
+    side = "whole"
+
+class BS_MouthSmileLeft(Blendshape):
+    mediapipe_key = "mouthSmileLeft"
+    side = "left"
+
+class BS_MouthSmileRight(Blendshape):
+    mediapipe_key = "mouthSmileRight"
+    side = "right"
+
+class BS_MouthStretchLeft(Blendshape):
+    mediapipe_key = "mouthStretchLeft"
+    side = "left"
+
+class BS_MouthStretchRight(Blendshape):
+    mediapipe_key = "mouthStretchRight"
+    side = "right"
+
+class BS_MouthUpperUpLeft(Blendshape):
+    mediapipe_key = "mouthUpperUpLeft"
+    side = "left"
+
+class BS_MouthUpperUpRight(Blendshape):
+    mediapipe_key = "mouthUpperUpRight"
+    side = "right"
+
+class BS_NoseSneerLeft(Blendshape):
+    mediapipe_key = "noseSneerLeft"
+    side = "left"
+
+class BS_NoseSneerRight(Blendshape):
+    mediapipe_key = "noseSneerRight"
     side = "right"
