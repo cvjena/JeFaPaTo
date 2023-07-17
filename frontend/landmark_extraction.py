@@ -68,20 +68,28 @@ class BlendShapeFeatureGroupBox(QtWidgets.QGroupBox):
         self.layout_right.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
         self.layout_whole.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
 
-        ## add a text at the top of each layout to indicate the side
-        
-        self.layout_left.addWidget(QtWidgets.QLabel("Left"))
-        self.layout_right.addWidget(QtWidgets.QLabel("Right"))
-        self.layout_whole.addWidget(QtWidgets.QLabel("Whole"))
+        self.group_left = QtWidgets.QGroupBox("Left")
+        self.group_left.setCheckable(True)
+        self.group_left.setLayout(self.layout_left)
+        self.group_left.toggled.connect(self.on_toggle)
+        self.group_right = QtWidgets.QGroupBox("Right")
+        self.group_right.setCheckable(True)
+        self.group_right.setLayout(self.layout_right)
+        self.group_right.toggled.connect(self.on_toggle)
+        self.group_whole = QtWidgets.QGroupBox("Whole")
+        self.group_whole.setCheckable(True)
+        self.group_whole.setLayout(self.layout_whole)
+        self.group_whole.toggled.connect(self.on_toggle)
 
+        ## add a text at the top of each layout to indicate the side
         self.setLayout(QtWidgets.QVBoxLayout())
 
         temp_widget = QtWidgets.QWidget()
         temp_layout = QtWidgets.QHBoxLayout()
         temp_widget.setLayout(temp_layout)
-        temp_layout.addLayout(self.layout_whole, stretch=1)
-        temp_layout.addLayout(self.layout_left, stretch=1)
-        temp_layout.addLayout(self.layout_right, stretch=1)
+        temp_layout.addWidget(self.group_whole, stretch=1)
+        temp_layout.addWidget(self.group_right, stretch=1)
+        temp_layout.addWidget(self.group_left, stretch=1)
 
         self.layout().addWidget(temp_widget)
 
@@ -102,6 +110,12 @@ class BlendShapeFeatureGroupBox(QtWidgets.QGroupBox):
                 callback(checkbox.feature_class.__name__, checkbox)
             else:
                 checkbox.clicked.connect(callback)
+                checkbox.toggled.connect(callback)
+
+    def on_toggle(self, on: bool):
+        for box in self.sender().findChildren(QtWidgets.QCheckBox):
+            box.setChecked(on)
+            box.setEnabled(True)
 
 class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
     updated = QtCore.Signal(int)
