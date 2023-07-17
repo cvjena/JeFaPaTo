@@ -11,7 +11,10 @@ from jefapato.facial_features.features.blendshape_feature import (
     BS_BrowInnerUp,
     BS_BrowOuterUpLeft, BS_BrowOuterUpRight,
     BS_CheekPuff, BS_CheekSquintLeft, BS_CheekSquintRight,
-
+    BS_EyeBlinkLeft, BS_EyeBlinkRight,
+    BS_EyeLookDownLeft, BS_EyeLookDownRight,
+    BS_EyeLookInLeft, BS_EyeLookInRight,
+    BS_EyeLookOutLeft, BS_EyeLookOutRight,
 )
 
 
@@ -21,5 +24,9 @@ BLENDSHAPES: list[type[Blendshape]] = [
     BS_BrowInnerUp,
     BS_BrowOuterUpLeft, BS_BrowOuterUpRight,
     BS_CheekPuff, BS_CheekSquintLeft, BS_CheekSquintRight,
+    BS_EyeBlinkLeft, BS_EyeBlinkRight,
+    BS_EyeLookDownLeft, BS_EyeLookDownRight,
+    BS_EyeLookInLeft, BS_EyeLookInRight,
+    BS_EyeLookOutLeft, BS_EyeLookOutRight,
 ]
 BLENDSHAPES.sort(key=lambda x: x.mediapipe_key)
