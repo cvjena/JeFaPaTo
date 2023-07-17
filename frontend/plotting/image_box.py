@@ -33,7 +33,17 @@ class FaceSelectBox(pg.ViewBox):
         self.addItem(self.frame)
         
         self.face_box: SimpleImage = face_box
-        self.roi: pg.ROI = pg.ROI(pos=(0, 0), movable=True, resizable=True, rotatable=False, removable=False, pen=PEN, handlePen=PEN_HANDLE, hoverPen=PEN_H, handleHoverPen=PEN_H)
+        self.roi: pg.ROI = pg.ROI(
+            pos=(0, 0), 
+            movable=True, 
+            resizable=True, 
+            rotatable=False, 
+            removable=False, 
+            pen=PEN, 
+            handlePen=PEN_HANDLE, 
+            hoverPen=PEN_H, 
+            handleHoverPen=PEN_H
+        )
         ## handles scaling horizontally around center
         self.addItem(self.roi)
         self.roi.sigRegionChanged.connect(self.__update)
