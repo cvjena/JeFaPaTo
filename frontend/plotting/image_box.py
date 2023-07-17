@@ -39,10 +39,19 @@ class FaceSelectBox(pg.ViewBox):
         self.roi.sigRegionChanged.connect(self.__update)
 
         self.image: np.ndarray | None = None
-        self.set_interactive(False)
 
         self.cb_auto_find = QCheckBox("Auto find face")
         self.cb_auto_find.setChecked(True)
+
+        self.__handles: dict[str, tuple[tuple[float, float], tuple[float, float]]] = {
+            "h1" : ((1.0, 0.5), (0.5, 0.5)),
+            "h2" : ((0.0, 0.5), (0.5, 0.5)),
+            "h3" : ((0.5, 0.0), (0.5, 1.0)),
+            "h4" : ((0.5, 1.0), (0.5, 0.0)),
+            "h5" : ((1.0, 1.0), (0.0, 0.0)),
+            "h6" : ((0.0, 0.0), (1.0, 1.0)),
+        }
+        self.set_interactive(False)
 
     def set_selection_image(self, image: np.ndarray) -> None:
         self.set_image(image)
@@ -76,28 +85,29 @@ class FaceSelectBox(pg.ViewBox):
         self.roi.translatable = state
         self.roi.resizable = state
 
-        if state:
-            self.roi.addScaleHandle([1, 0.5], [0.5, 0.5])
-            self.roi.addScaleHandle([0, 0.5], [0.5, 0.5])
+        for key in self.__handles.keys():
+            self.__remove_handle(key)
+            if state:
+                self.__add_handle(key)
 
-            ## handles scaling vertically from opposite edge
-            self.roi.addScaleHandle([0.5, 0], [0.5, 1])
-            self.roi.addScaleHandle([0.5, 1], [0.5, 0])
+    def __remove_handle(self, handle: str) -> None:
+        handle_attr = getattr(self, handle, None)
+        if handle_attr is None:
+            logger.warning("ROI Handle does not exists", handle=handle)
+            return
+        try:
+            self.roi.removeHandle(handle_attr)
+            delattr(self, handle)
+        except IndexError:
+            logger.error("ROI Handle is not attached to ROI", handle=handle)
+            pass
 
-            ## handles scaling both vertically and horizontally
-            self.roi.addScaleHandle([1, 1], [0, 0])
-            self.roi.addScaleHandle([0, 0], [1, 1])
+    def __add_handle(self, handle: str) -> None:
+        if handle in self.__handles.keys():
+            pos, center = self.__handles[handle]
+            setattr(self, handle, self.roi.addScaleHandle(pos, center))
         else:
-            try:
-                self.roi.removeHandle(5)
-                self.roi.removeHandle(4)
-                self.roi.removeHandle(3)
-                self.roi.removeHandle(2)
-                self.roi.removeHandle(1)
-                self.roi.removeHandle(0)
-            except IndexError:
-                pass
-
+            logger.error("Handle does not exists", handle=handle)
 
     def __fall_back_settings(self) -> tuple[tuple[int, int], tuple[int, int]]:
         assert self.image is not None, "Image must be set before fall back settings can be used"
