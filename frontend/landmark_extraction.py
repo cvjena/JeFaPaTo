@@ -217,7 +217,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.parent().statusBar().addWidget(self.la_input)
         self.parent().statusBar().addWidget(self.la_proce)
 
-        self.used_features_classes: list[Type[features.Feature]] = []
+        self.used_features_classes: list[Type[features.Feature]] = [features.BS_Valid]
 
         self.ea = facial_features.FaceAnalyzer()
         self.ea.register_hooks(self)
@@ -282,6 +282,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
             if c.isChecked():
                 self.used_features_classes.append(c.feature_class) 
 
+        self.used_features_classes.append(features.BS_Valid)
         logger.info("Set features", features=self.used_features_classes)
 
     def start(self) -> None:

@@ -49,7 +49,9 @@ __all__ = [
     "BS_MouthUpperUpLeft",
     "BS_MouthUpperUpRight",
     "BS_NoseSneerLeft",
-    "BS_NoseSneerRight"
+    "BS_NoseSneerRight",
+    "BS_Valid",
+    "BlendshapeValidData",
 ]
 
 from dataclasses import dataclass
@@ -61,9 +63,6 @@ class BlendshapeData(FeatureData):
     """A simple data class to combine the ear score results"""
 
     blendshape_value: float
-    blendshape_valid: bool
-    side: str
-
 
 class Blendshape(Feature):
     plot_info = {
@@ -80,11 +79,11 @@ class Blendshape(Feature):
         List[str]
             The header for the feature including the valid and all the landmarks
         """
-        return [f"{self.__class__.__name__}_value", f"{self.__class__.__name__}_valid"]
+        return [f"{self.__class__.__name__}_value"]
 
     def as_row(self, data: BlendshapeData) -> list[str]:
         """Return the data as a row as in the same order as the header"""
-        return [f"{data.blendshape_value: .8f}", str(data.blendshape_valid)]
+        return [f"{data.blendshape_value: .8f}"]
 
     def compute(self, features: dict[str, Any], valid: bool) -> BlendshapeData:
         """
@@ -100,18 +99,25 @@ class Blendshape(Feature):
         BlendshapeData
             The computed blendshape value
         """
-        if self.mediapipe_key == "NOT_SET":
-            return BlendshapeData(blendshape_value=0, blendshape_valid=False, side=self.side)
-        
-        if not valid:
-            return BlendshapeData(blendshape_value=0, blendshape_valid=False, side=self.side)
+        return BlendshapeData(blendshape_value=features[self.mediapipe_key] if valid else 0)
+    
+@dataclass
+class BlendshapeValidData(FeatureData):
+    """A simple data class to combine the ear score results"""
+    blendshape_valid: bool
 
-        # TODO check how to compute the valid state...
-        return BlendshapeData(
-            blendshape_value=features[self.mediapipe_key],
-            blendshape_valid=True,
-            side=self.side,
-        )
+class BS_Valid(Blendshape):
+    plot_info = {
+        "blendshape_valid": {"color": (0, 255, 0)},
+    }
+    def get_header(self) -> list[str]:
+        return [f"{self.__class__.__name__}"]
+    
+    def as_row(self, data: BlendshapeValidData) -> list[str]:
+        return [f"{data.blendshape_valid}"]
+    
+    def compute(self, _: dict[str, Any], valid: bool) -> BlendshapeValidData:
+        return BlendshapeValidData(blendshape_valid=valid)
 
 class BS_Neutral(Blendshape):
     """A class to represent the neutral expression"""

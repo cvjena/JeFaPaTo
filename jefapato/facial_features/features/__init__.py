@@ -1,4 +1,4 @@
-__all__ = ["Feature", "FeatureData", "EAR2D6", "EAR_Data", "EAR3D6", "Blendshape", "BlendshapeData", "BLENDSHAPES"]
+__all__ = ["Feature", "FeatureData", "EAR2D6", "EAR_Data", "EAR3D6", "Blendshape", "BlendshapeData", "BLENDSHAPES", "BS_Valid", "BlendshapeValidData"]
 
 
 from jefapato.facial_features.features.abstract_feature import Feature, FeatureData
@@ -34,7 +34,9 @@ from jefapato.facial_features.features.blendshape_feature import (
     BS_MouthSmileLeft, BS_MouthSmileRight,
     BS_MouthStretchLeft, BS_MouthStretchRight,
     BS_MouthUpperUpLeft, BS_MouthUpperUpRight,
-    BS_NoseSneerLeft, BS_NoseSneerRight
+    BS_NoseSneerLeft, BS_NoseSneerRight,
+    BS_Valid,
+    BlendshapeValidData,
 )
 
 
