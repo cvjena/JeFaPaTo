@@ -96,7 +96,9 @@ class MediapipeLandmarkExtractor(Extractor):
         # wait for the queue to be filled
         time.sleep(1)
 
+        empty_in_a_row = 0
         processed_p_sec = 0
+
         while True:
             if processed == self.data_amount:
                 break
@@ -117,10 +119,12 @@ class MediapipeLandmarkExtractor(Extractor):
 
             processed_p_sec += 1
             if self.data_queue.empty():
-                # TODO here we might have the edge case of processing being faster than the queue being filled
-                #      we should rather count how often we sleep after each other and then break if we sleep too often
-                logger.info("Extractor Thread", state="QUEUE EMPTY", data_amount=self.data_amount, processed=processed)
-                break
+                empty_in_a_row += 1
+                time.sleep(0.5)
+                if empty_in_a_row > 10:
+                    logger.info("Extractor Thread", state="Queue Emptpy", data_amount=self.data_amount, processed=processed)
+                    self.stopped = True
+                continue
 
             frame = self.data_queue.get().frame
             image = frame.copy()
