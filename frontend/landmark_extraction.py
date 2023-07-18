@@ -40,17 +40,16 @@ class FeatureGroupBox(QtWidgets.QGroupBox):
         self.callsbacks = callbacks or []
 
     def add_feature(self, feature_class: Type[features.Feature]):
-        # TODO rename cb to something more descriptive and not be confused with callback
-        cb = FeatureCheckBox(feature_class)
-        self.layout().addWidget(cb)
-        self.feature_checkboxes.append(cb)
+        check_box = FeatureCheckBox(feature_class)
+        self.layout().addWidget(check_box)
+        self.feature_checkboxes.append(check_box)
 
         for callback in self.callsbacks:
             # this is a hacky workaround but currently the only way to do it
             if callback.__name__ == "add_handler":
-                callback(cb.feature_class.__name__, cb)
+                callback(check_box.feature_class.__name__, check_box)
             else:
-                cb.clicked.connect(callback)
+                check_box.clicked.connect(callback)
 
 class BlendShapeFeatureGroupBox(QtWidgets.QGroupBox):
     def __init__(self, callbacks: list[Callable] | None = None, **kwargs):
