@@ -113,7 +113,8 @@ class BlendShapeFeatureGroupBox(QtWidgets.QGroupBox):
                 checkbox.toggled.connect(callback)
 
     def on_toggle(self, on: bool):
-        for box in self.sender().findChildren(QtWidgets.QCheckBox):
+        for box in self.sender().findChildren(QtWidgets.QCheckBox): # type: ignore
+            box = box # type: FeatureCheckBox
             box.setChecked(on)
             box.setEnabled(True)
 
