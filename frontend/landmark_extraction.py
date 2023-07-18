@@ -3,19 +3,18 @@ __all__ = ["LandmarkExtraction"]
 import csv
 import datetime
 from pathlib import Path
-from typing import Any, Type, Callable
+from typing import Any, Callable, Type
 
 import numpy as np
 import pyqtgraph as pg
 import qtawesome as qta
 import structlog
-from qtpy import QtCore, QtGui, QtWidgets
 from PyQt6.QtCore import pyqtSignal
-
-from jefapato import config, facial_features
-from jefapato.facial_features import features
+from qtpy import QtCore, QtGui, QtWidgets
 
 from frontend import plotting
+from jefapato import config, facial_features
+from jefapato.facial_features import features
 
 logger = structlog.get_logger()
 
@@ -121,12 +120,13 @@ class BlendShapeFeatureGroupBox(QtWidgets.QGroupBox):
 class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
     updated = pyqtSignal(int) 
 
-    def __init__(self, parent=None):
+    def __init__(self, parent):
         config.Config.__init__(self, prefix="landmarks")
         QtWidgets.QSplitter.__init__(self, parent=parent)
 
         self.setAcceptDrops(True)
 
+        self.main_window = parent # type: QtWidgets.QMainWindow
         self.video_resource: Path | int | None = None
 
         self.widget_face = plotting.SimpleImage(enableMouse=False)
@@ -172,7 +172,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.la_current_file.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
         self.la_current_file.setWordWrap(True)
 
-        self.pb_anal = self.parent().progress_bar
+        self.pb_anal = self.parent().progress_bar # type: ignore # TODO: fix this as JeFaPaTo cannot be imported from here...
         self.skip_frame = QtWidgets.QSpinBox()
 
         self.auto_save = QtWidgets.QCheckBox("Auto-Save")
@@ -215,8 +215,8 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.la_input.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
         self.la_proce.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
 
-        self.parent().statusBar().addWidget(self.la_input)
-        self.parent().statusBar().addWidget(self.la_proce)
+        self.main_window.statusBar().addWidget(self.la_input)
+        self.main_window.statusBar().addWidget(self.la_proce)
 
         self.used_features_classes: list[Type[features.Feature]] = [features.BS_Valid]
 
