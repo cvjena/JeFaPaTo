@@ -10,6 +10,7 @@ import pyqtgraph as pg
 import qtawesome as qta
 import structlog
 from qtpy import QtCore, QtGui, QtWidgets
+from PyQt6.QtCore import pyqtSignal
 
 from jefapato import config, facial_features
 from jefapato.facial_features import features
@@ -117,7 +118,7 @@ class BlendShapeFeatureGroupBox(QtWidgets.QGroupBox):
             box.setEnabled(True)
 
 class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
-    updated = QtCore.Signal(int)
+    updated = pyqtSignal(int) 
 
     def __init__(self, parent=None):
         config.Config.__init__(self, prefix="landmarks")
