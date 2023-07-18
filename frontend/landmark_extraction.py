@@ -139,9 +139,9 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.chunk_size = 1000
 
         self.vlayout_display = pg.GraphicsLayoutWidget()
-        self.vlayout_display.addItem(self.widget_frame, row=0, col=0)
-        self.vlayout_display.addItem(self.widget_face, row=0, col=1)
-        self.vlayout_display.addItem(self.widget_graph, row=1, col=0, colspan=2)
+        self.vlayout_display.addItem(self.widget_frame, row=0, col=0)               # type: ignore
+        self.vlayout_display.addItem(self.widget_face,  row=0, col=1)               # type: ignore
+        self.vlayout_display.addItem(self.widget_graph, row=1, col=0, colspan=2)    # type: ignore
         self.vlayout_display.ci.layout.setRowStretchFactor(0, 2)
         self.vlayout_display.ci.layout.setRowStretchFactor(1, 3)
 
