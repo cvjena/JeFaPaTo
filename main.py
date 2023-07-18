@@ -5,7 +5,9 @@ import time
 
 import git
 import structlog
-from qtpy import QtCore, QtGui, QtWidgets
+from qtpy import QtGui, QtWidgets
+from PyQt6.QtCore import Qt
+
 
 import frontend
 from frontend import start_up
@@ -13,6 +15,7 @@ from frontend import start_up
 logger = structlog.get_logger()
 
 
+# TODO move this to a separate file
 class JeFaPaTo(QtWidgets.QMainWindow):
     def __init__(self, args: argparse.Namespace):
         super().__init__()
@@ -58,12 +61,12 @@ class JeFaPaTo(QtWidgets.QMainWindow):
 class StartUpSplashScreen(QtWidgets.QSplashScreen):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint | QtCore.Qt.FramelessWindowHint)
+        self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.FramelessWindowHint)
         path = pathlib.Path(__file__).parent / "assets" / "icons" / "icon_color.svg"
         self.setPixmap(QtGui.QPixmap(path.as_posix()))
         self.setEnabled(False)
 
-    def showMessage(self, message, alignment=QtCore.Qt.AlignHCenter):
+    def showMessage(self, message, alignment=Qt.AlignmentFlag.AlignHCenter):
         super().showMessage(message, alignment)
         self.repaint()
 
