@@ -4,26 +4,25 @@ import queue
 import time
 from pathlib import Path
 
-import cv2
 import mediapipe as mp
 import numpy as np
 import structlog
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
-from qtpy.QtCore import QThread, Signal
+from PyQt6.QtCore import QThread, pyqtSignal
 
-from .queue_items import InputQueueItem, AnalyzeQueueItem
+from .queue_items import AnalyzeQueueItem, InputQueueItem
 
 logger = structlog.get_logger()
 
 
 class Extractor(QThread):
-    processingStarted = Signal()
-    processingUpdated = Signal(object)
-    processingPaused = Signal()
-    processingResumed = Signal()
-    processingFinished = Signal()
-    processedPercentage = Signal(int)
+    processingStarted = pyqtSignal()
+    processingUpdated = pyqtSignal(object)
+    processingPaused = pyqtSignal()
+    processingResumed = pyqtSignal()
+    processingFinished = pyqtSignal()
+    processedPercentage = pyqtSignal(int)
 
     def __init__(
         self, data_queue: queue.Queue[InputQueueItem], data_amount: int, sleep_duration: float = 0.1
