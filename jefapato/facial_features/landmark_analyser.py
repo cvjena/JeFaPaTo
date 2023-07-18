@@ -33,7 +33,7 @@ class FaceAnalyzer():
         self.data_amount: int = 0
 
         self.pm = pluggy.PluginManager("analyser")
-        self.pm.add_hookspecs(self.__class__)# TODO could be an issue!
+        self.pm.add_hookspecs(self.__class__)
         self.bbox_slice: tuple[int, int, int, int] | None = None
 
     def analysis_setup(self) -> bool:
