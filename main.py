@@ -116,7 +116,7 @@ def main(argv):
 
     ex.show()
     splash.finish(ex)
-    sys.exit(app.exec_())
+    sys.exit(app.exec_()) # type: ignore
 
 
 if __name__ == "__main__":
