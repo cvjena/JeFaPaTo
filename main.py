@@ -3,6 +3,7 @@ import pathlib
 import sys
 import time
 
+import git
 import structlog
 from qtpy import QtCore, QtGui, QtWidgets
 
@@ -24,8 +25,7 @@ class JeFaPaTo(QtWidgets.QMainWindow):
 
         self.progress_bar = QtWidgets.QProgressBar()
 
-        # TODO: move to start_up and somehow make it easiert to be loaded
-        self.VERSION = "2021.10.22"
+        self.VERSION = str(git.Repo(search_parent_directories=True).head.object.hexsha[:7]) # type: ignore
 
         start = time.time()
         self.tab_eye_blinking = frontend.LandmarkExtraction(self)
