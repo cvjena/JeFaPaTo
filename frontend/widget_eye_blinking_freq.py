@@ -108,7 +108,6 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.result_text: str = ""
 
         self.x_lim_max = 1000
-        self.x_lim_max_old = 1000
 
         self.ear_l = None
         self.ear_r = None
@@ -332,19 +331,10 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         logger.info("Compute graph x-axis")
         ds_factor = 1 if not self.get("vis_downsample") else DOWNSAMPLE_FACTOR
 
-        if self.x_lim_max_old != self.x_lim_max:
-            viewbox = self.graph.getViewBox()
-            assert viewbox is not None
-            x_range = viewbox.viewRange()[0]
-            
-            x_min = (x_range[0] / self.x_lim_max_old) * self.x_lim_max
-            x_max = (x_range[1] / self.x_lim_max_old) * self.x_lim_max
-            self.graph.setLimits(xMin=0, xMax=self.x_lim_max)
-            self.graph.setLimits(yMin=0, yMax=1)
-            self.graph.setXRange(x_min, x_max)
-        else:
-            self.graph.setLimits(xMin=0, xMax=self.x_lim_max)
-            self.graph.setLimits(yMin=0, yMax=1)
+        self.graph.setLimits(xMin=0, xMax=self.x_lim_max)
+        self.graph.setLimits(yMin=0, yMax=1)
+        self.graph.setXRange(0, self.x_lim_max)
+        self.graph.setYRange(0, 1)
 
         self.graph.getAxis("left").setLabel("EAR Score")
         x_axis = self.graph.getAxis("bottom")
