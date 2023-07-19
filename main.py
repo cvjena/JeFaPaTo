@@ -14,8 +14,6 @@ def main(argv):
     args = parser.parse_args(argv[1:])
 
     app = QApplication(argv)
-    app.setApplicationDisplayName("JeFaPaTo")
-    app.setApplicationName("JeFaPaTo")
     splash = frontend.StartUpSplashScreen()
     splash.startup(app)
 

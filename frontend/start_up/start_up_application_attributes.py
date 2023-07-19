@@ -10,5 +10,8 @@ def start_up_appliciation_attributes(splash_screen: QSplashScreen, app: QApplica
     if hasattr(Qt.ApplicationAttribute, "AA_UseHighDpiPixmaps"):
         app.setAttribute(Qt.ApplicationAttribute.AA_UseHighDpiPixmaps)
 
+    app.setApplicationDisplayName("JeFaPaTo")
+    app.setApplicationName("JeFaPaTo")
+
     splash_screen.showMessage("Application attributes set...")
     return StartUpState.SUCCESS
