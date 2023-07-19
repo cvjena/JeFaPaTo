@@ -1,5 +1,5 @@
+__all__ = ["StartUpState"]
 from enum import Enum
-
 
 class StartUpState(Enum):
     SUCCESS = 0
