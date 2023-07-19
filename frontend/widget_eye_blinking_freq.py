@@ -189,20 +189,22 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         # Create the specific widgets for the settings layout
         # algorithm specific settings
         self.btn_load = QtWidgets.QPushButton(qta.icon("ph.folder-open-light"), "Open CSV File")
-        self.btn_anal = QtWidgets.QPushButton(qta.icon("ph.chart-line-fill"), "Analyse")
-        self.btn_eprt = QtWidgets.QPushButton(qta.icon("ph.export-light"), "Export")
+        self.btn_anal = QtWidgets.QPushButton(qta.icon("ph.chart-line-fill"), "Extract Blinks")
+        self.btn_summ = QtWidgets.QPushButton(qta.icon("ph.info-light"), "Compute Summary")
+        self.btn_eprt = QtWidgets.QPushButton(qta.icon("ph.export-light"), "Save")
 
         self.la_current_file = QtWidgets.QLabel("File: No file loaded")
         self.la_current_file.setWordWrap(True)
 
         self.comb_ear_l = QtWidgets.QComboBox()
-        self.comb_ear_l.currentIndexChanged.connect(self.select_column_left)
         self.comb_ear_r = QtWidgets.QComboBox()
+        self.comb_ear_l.currentIndexChanged.connect(self.select_column_left)
         self.comb_ear_r.currentIndexChanged.connect(self.select_column_right)
 
         self.progress = self.parent().progress_bar
         self.btn_load.clicked.connect(self.load_dialog)
-        self.btn_anal.clicked.connect(self.analyse)
+        self.btn_anal.clicked.connect(self.extract_blinks)
+        self.btn_summ.clicked.connect(self.compute_summary)
         self.btn_eprt.clicked.connect(self.save_results)
 
         # algorithm settings box
@@ -313,12 +315,12 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         self.layout_settings.addWidget(self.box_settings)
         self.layout_settings.addWidget(self.btn_anal)
-        self.layout_settings.addWidget(self.btn_eprt)
+        self.layout_settings.addWidget(self.btn_summ)
         self.layout_settings.addWidget(QHLine())
+        self.layout_settings.addWidget(self.btn_eprt)
         self.layout_settings.addWidget(QHLine())
         self.layout_settings.addWidget(self.box_visuals)
 
-        
         spacer = QtWidgets.QWidget()
         spacer.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
         self.layout_settings.addWidget(spacer)
@@ -330,125 +332,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.disable_algorithm()
         self.disable_export()
 
-    def print_results(
-        self,
-        blinking_l: pd.DataFrame,
-        blinking_r: pd.DataFrame,
-        **kwargs,
-    ) -> None:
-        # compute the video time (depending on the fps) of the peaks in the data frames
-        # for 30 fps and the given fps in kwargs and added to the data frames
-        # the columns are called "time30" and timeFPS and the values are in the form
-        # MM:SS the time is computed from the frame of the data frame
-        blinking_l["time30"] = blinking_l["frame"] / 30
-        blinking_r["time30"] = blinking_r["frame"] / 30
-        blinking_l["timeFPS"] = blinking_l["frame"] / kwargs["fps"]
-        blinking_r["timeFPS"] = blinking_r["frame"] / kwargs["fps"]
-        blinking_l["time30"] = blinking_l["time30"].apply(sec_to_min)
-        blinking_r["time30"] = blinking_r["time30"].apply(sec_to_min)
-        blinking_l["timeFPS"] = blinking_l["timeFPS"].apply(sec_to_min)
-        blinking_r["timeFPS"] = blinking_r["timeFPS"].apply(sec_to_min)
-
-        self._reset_result_text()
-
-        self._add("===Video Info===")
-        self._add(f"File: {self.file.as_posix()}")
-        self._add(f"Runtime: {sec_to_min(len(self.ear_l) / kwargs['fps'])}")
-
-        for k, v in kwargs.items():
-            self._add(f"{k}: {v}")
-
-        bins = np.arange(
-            start=0,
-            stop=len(self.ear_l) + 2 * 60 * kwargs["fps"],
-            step=60 * kwargs["fps"],
-        )
-        hist_l, _ = np.histogram(blinking_l["frame"], bins=bins)
-        hist_r, _ = np.histogram(blinking_r["frame"], bins=bins)
-
-        self._add("===Blinking Info===")
-        self._add(f"Blinks Per Minute L: {hist_l.tolist()}")
-        self._add(f"Blinks Per Minute R: {hist_r.tolist()}")
-
-        self._add(f"Avg. Freq. L: {np.mean(hist_l): 6.3f}")
-        self._add(f"Avg. Freq. R: {np.mean(hist_r): 6.3f}")
-
-        self._add(f"Avg. Freq. [wo/ last minute] L: {np.mean(hist_l[:-1]): 6.3f}")
-        self._add(f"Avg. Freq. [wo/ last minute] R: {np.mean(hist_r[:-1]): 6.3f}")
-
-        _mean = np.mean(blinking_l["width"])
-        _std = np.std(blinking_l["width"])
-        self._add(f"Avg. Len. L: {_mean: 6.3f} +/- {_std: 6.3f} [frames]")
-        _mean /= kwargs["fps"]
-        _std /= kwargs["fps"]
-        self._add(f"Avg. Len. L: {_mean: 6.3f} +/- {_std: 6.3f} [s]")
-
-        _mean = np.mean(blinking_r["width"])
-        _std = np.std(blinking_r["width"])
-        self._add(f"Avg. Len. R: {_mean: 6.3f} +/- {_std: 6.3f} [frames]")
-        _mean /= kwargs["fps"]
-        _std /= kwargs["fps"]
-        self._add(f"Avg. Len. R: {_mean: 6.3f} +/- {_std: 6.3f} [s]")
-
-        self._add()
-
-        for index, (start, stop) in enumerate(zip(bins[:-2], bins[1:])):
-            df = blinking_l[(blinking_l["frame"] >= start) & (blinking_l["frame"] < stop)]
-            _mean = np.mean(df["width"])
-            _std = np.std(df["width"])
-            self._add(f"Minute {index:02d} L: {_mean: 6.3f} +/- {_std: 6.3f}[frames]")
-
-            _mean /= kwargs["fps"]
-            _std /= kwargs["fps"]
-            self._add(f"Minute {index:02d} R: {_mean: 6.3f} +/- {_std: 6.3f}[s]")
-
-        self._add()
-
-        for index, (start, stop) in enumerate(zip(bins[:-2], bins[1:])):
-            df = blinking_r[(blinking_r["frame"] >= start) & (blinking_r["frame"] < stop)]
-            _mean = np.mean(df["width"])
-            _std = np.std(df["width"])
-            self._add(f"Minute {index:02d} R: {_mean: 6.3f} +/- {_std: 6.3f}[frames]")
-
-            _mean /= kwargs["fps"]
-            _std /= kwargs["fps"]
-            self._add(f"Minute {index:02d} R: {_mean: 6.3f} +/- {_std: 6.3f}[s]")
-
-        self._add("")
-        self.progress.setValue(95)
-        self._add("===Detail Left Info===")
-        self._add(tabulate(blinking_l, headers="keys", tablefmt="github"))
-        self._add("")
-        self._add("===Detail Right Info===")
-        self._add(tabulate(blinking_r, headers="keys", tablefmt="github"))
-        self._set_result_text()
-
-        self.fill_tables(blinking_l, blinking_r)
-
-        self.blinking_l = blinking_l
-        self.blinking_r = blinking_r
-
-    def save_results(self) -> None:
-        if self.file is None:
-            return
-
-        file_info = self.file.parent / (self.file.stem + "_blinking_info.txt")
-        logger.info("Saving blinking results", file=file_info)
-        file_info.write_text(self.result_text)
-        self.blinking_l.to_excel(self.file.parent / (self.file.stem + "_blinking_l.xlsx"), sheet_name="blinking_l", index=False)
-        self.blinking_r.to_excel(self.file.parent / (self.file.stem + "_blinking_r.xlsx"), sheet_name="blinking_r", index=False)
-        logger.info("Saving blinking finished")
-
-    def _reset_result_text(self) -> None:
-        self.result_text = ""
-        self.te_results_g.setText("")
-
-    def _add(self, text: str = "") -> None:
-        self.result_text += text + "\n"
-
-    def _set_result_text(self) -> None:
-        self.te_results_g.setText(self.result_text)
-
+    # loading of the file
     def load_dialog(self) -> None:
         logger.info("Open file dialo for loading CSV file")
         file_path, _ = QtWidgets.QFileDialog.getOpenFileName(
@@ -559,7 +443,8 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
                 ]
             )
 
-    def analyse(self) -> None:
+    # extraction of the blinks
+    def extract_blinks(self) -> None:
         self.progress.setRange(0, 100)
 
         self.progress.setValue(0)
@@ -572,7 +457,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.tabulate_intervals()
         self.progress.setValue(100)
 
-        self.enable_export()
+        self.enable_export()        
 
     def compute_intervals(self) -> None:
         assert self.data_frame is not None, "Somehow the data frame is None"
@@ -657,6 +542,130 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.disable_algorithm()
         self.disable_export()
 
+    # summary of the results
+    def compute_summary(self) -> None:
+        pass
+
+    def print_results(
+        self,
+        blinking_l: pd.DataFrame,
+        blinking_r: pd.DataFrame,
+        **kwargs,
+    ) -> None:
+        # compute the video time (depending on the fps) of the peaks in the data frames
+        # for 30 fps and the given fps in kwargs and added to the data frames
+        # the columns are called "time30" and timeFPS and the values are in the form
+        # MM:SS the time is computed from the frame of the data frame
+        blinking_l["time30"] = blinking_l["frame"] / 30
+        blinking_r["time30"] = blinking_r["frame"] / 30
+        blinking_l["timeFPS"] = blinking_l["frame"] / kwargs["fps"]
+        blinking_r["timeFPS"] = blinking_r["frame"] / kwargs["fps"]
+        blinking_l["time30"] = blinking_l["time30"].apply(sec_to_min)
+        blinking_r["time30"] = blinking_r["time30"].apply(sec_to_min)
+        blinking_l["timeFPS"] = blinking_l["timeFPS"].apply(sec_to_min)
+        blinking_r["timeFPS"] = blinking_r["timeFPS"].apply(sec_to_min)
+
+        self._reset_result_text()
+
+        self._add("===Video Info===")
+        self._add(f"File: {self.file.as_posix()}")
+        self._add(f"Runtime: {sec_to_min(len(self.ear_l) / kwargs['fps'])}")
+
+        for k, v in kwargs.items():
+            self._add(f"{k}: {v}")
+
+        bins = np.arange(
+            start=0,
+            stop=len(self.ear_l) + 2 * 60 * kwargs["fps"],
+            step=60 * kwargs["fps"],
+        )
+        hist_l, _ = np.histogram(blinking_l["frame"], bins=bins)
+        hist_r, _ = np.histogram(blinking_r["frame"], bins=bins)
+
+        self._add("===Blinking Info===")
+        self._add(f"Blinks Per Minute L: {hist_l.tolist()}")
+        self._add(f"Blinks Per Minute R: {hist_r.tolist()}")
+
+        self._add(f"Avg. Freq. L: {np.mean(hist_l): 6.3f}")
+        self._add(f"Avg. Freq. R: {np.mean(hist_r): 6.3f}")
+
+        self._add(f"Avg. Freq. [wo/ last minute] L: {np.mean(hist_l[:-1]): 6.3f}")
+        self._add(f"Avg. Freq. [wo/ last minute] R: {np.mean(hist_r[:-1]): 6.3f}")
+
+        _mean = np.mean(blinking_l["width"])
+        _std = np.std(blinking_l["width"])
+        self._add(f"Avg. Len. L: {_mean: 6.3f} +/- {_std: 6.3f} [frames]")
+        _mean /= kwargs["fps"]
+        _std /= kwargs["fps"]
+        self._add(f"Avg. Len. L: {_mean: 6.3f} +/- {_std: 6.3f} [s]")
+
+        _mean = np.mean(blinking_r["width"])
+        _std = np.std(blinking_r["width"])
+        self._add(f"Avg. Len. R: {_mean: 6.3f} +/- {_std: 6.3f} [frames]")
+        _mean /= kwargs["fps"]
+        _std /= kwargs["fps"]
+        self._add(f"Avg. Len. R: {_mean: 6.3f} +/- {_std: 6.3f} [s]")
+
+        self._add()
+
+        for index, (start, stop) in enumerate(zip(bins[:-2], bins[1:])):
+            df = blinking_l[(blinking_l["frame"] >= start) & (blinking_l["frame"] < stop)]
+            _mean = np.mean(df["width"])
+            _std = np.std(df["width"])
+            self._add(f"Minute {index:02d} L: {_mean: 6.3f} +/- {_std: 6.3f}[frames]")
+
+            _mean /= kwargs["fps"]
+            _std /= kwargs["fps"]
+            self._add(f"Minute {index:02d} R: {_mean: 6.3f} +/- {_std: 6.3f}[s]")
+
+        self._add()
+
+        for index, (start, stop) in enumerate(zip(bins[:-2], bins[1:])):
+            df = blinking_r[(blinking_r["frame"] >= start) & (blinking_r["frame"] < stop)]
+            _mean = np.mean(df["width"])
+            _std = np.std(df["width"])
+            self._add(f"Minute {index:02d} R: {_mean: 6.3f} +/- {_std: 6.3f}[frames]")
+
+            _mean /= kwargs["fps"]
+            _std /= kwargs["fps"]
+            self._add(f"Minute {index:02d} R: {_mean: 6.3f} +/- {_std: 6.3f}[s]")
+
+        self._add("")
+        self.progress.setValue(95)
+        self._add("===Detail Left Info===")
+        self._add(tabulate(blinking_l, headers="keys", tablefmt="github"))
+        self._add("")
+        self._add("===Detail Right Info===")
+        self._add(tabulate(blinking_r, headers="keys", tablefmt="github"))
+        self._set_result_text()
+
+        self.fill_tables(blinking_l, blinking_r)
+
+        self.blinking_l = blinking_l
+        self.blinking_r = blinking_r
+
+    def _reset_result_text(self) -> None:
+        self.result_text = ""
+        self.te_results_g.setText("")
+
+    def _add(self, text: str = "") -> None:
+        self.result_text += text + "\n"
+
+    def _set_result_text(self) -> None:
+        self.te_results_g.setText(self.result_text)
+
+    # saving of the results
+    def save_results(self) -> None:
+        if self.file is None:
+            return
+
+        file_info = self.file.parent / (self.file.stem + "_blinking_info.txt")
+        logger.info("Saving blinking results", file=file_info)
+        file_info.write_text(self.result_text)
+        self.blinking_l.to_excel(self.file.parent / (self.file.stem + "_blinking_l.xlsx"), sheet_name="blinking_l", index=False)
+        self.blinking_r.to_excel(self.file.parent / (self.file.stem + "_blinking_r.xlsx"), sheet_name="blinking_r", index=False)
+        logger.info("Saving blinking finished")
+    
     ## general widget functions
     def shut_down(self) -> None:
         # this widget doesn't have any shut down requirements
@@ -703,7 +712,9 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.btn_anal.setEnabled(False)
 
     def enable_export(self) -> None:
-        self.btn_anal.setEnabled(True)
+        self.btn_eprt.setEnabled(True)
+        self.btn_summ.setEnabled(True)
 
     def disable_export(self) -> None:
         self.btn_eprt.setEnabled(False)
+        self.btn_summ.setEnabled(False)
