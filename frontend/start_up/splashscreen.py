@@ -24,6 +24,11 @@ class StartUpSplashScreen(QSplashScreen):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.FramelessWindowHint)
+
+        # show on screen 1
+        screen = QApplication.screens()[0]
+        self.setGeometry(screen.geometry())
+
         path = ASSETS_PATH / "icons" / "icon_color.svg"
         self.setPixmap(QtGui.QPixmap(path.as_posix()))
         self.setEnabled(False)
