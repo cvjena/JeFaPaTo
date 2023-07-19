@@ -122,6 +122,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.blinking_r: pd.DataFrame | None = None
 
         self.lines: list = []
+        self.file: Path | None = None
         self.data_frame: pd.DataFrame | None = None
         self.data_frame_columns: list[str] = []
 
@@ -297,7 +298,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.set_visuals.addRow(btn_reset_graph)
 
         self.format_export = QtWidgets.QComboBox()
-        self.format_export.addItems(["CSV", "Excel", "SPSS", "PSPP"])
+        self.format_export.addItems(["CSV", "Excel"])
         self.format_export.setCurrentIndex(0)
         self.add_handler("export_format", self.format_export, default="Excel")
 
@@ -365,6 +366,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         # load the file and parse it as data frame
         file_path = Path(file_path).resolve().absolute()
+        self.file = file_path
         self.la_current_file.setText(f"File: {file_path.as_posix()}")
         self.data_frame = pd.read_csv(file_path.as_posix(), sep=",")
         self.data_frame_columns = list(self.data_frame.columns)
@@ -663,14 +665,30 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
     # saving of the results
     def save_results(self) -> None:
-        if self.file is None:
+        if self.data_frame is None or self.file is None:
+            return
+        
+        if self.blinking_l is None or self.blinking_r is None:
+            logger.error("No blinking results to save", widget=self)
             return
 
-        file_info = self.file.parent / (self.file.stem + "_blinking_info.txt")
-        logger.info("Saving blinking results", file=file_info)
-        file_info.write_text(self.result_text)
-        self.blinking_l.to_excel(self.file.parent / (self.file.stem + "_blinking_l.xlsx"), sheet_name="blinking_l", index=False)
-        self.blinking_r.to_excel(self.file.parent / (self.file.stem + "_blinking_r.xlsx"), sheet_name="blinking_r", index=False)
+        # TODO add summary export        zs
+        # file_info = self.file.parent / (self.file.stem + "_blinking_info.txt")
+        # logger.info("Saving blinking results", file=file_info)
+        # file_info.write_text(self.result_text)
+        
+        if self.format_export.currentText() == "CSV":
+            self.blinking_l.to_csv(self.file.parent / (self.file.stem + "_blinking_l.csv"), index=False)
+            self.blinking_r.to_csv(self.file.parent / (self.file.stem + "_blinking_r.csv"), index=False)
+        elif self.format_export.currentText() == "Excel":
+            exel_file = self.file.parent / (self.file.stem + "_blinking.xlsx")
+            logger.info("Saving blinking results", file=exel_file)
+            with pd.ExcelWriter(exel_file) as writer:
+                self.blinking_l.to_excel(writer, sheet_name="Left")
+                self.blinking_r.to_excel(writer, sheet_name="Right")
+        else:
+            # raise NotImplementedError("Export format not implemented")
+            logger.error("Export format not implemented", widget=self)
         logger.info("Saving blinking finished")
     
     ## general widget functions
