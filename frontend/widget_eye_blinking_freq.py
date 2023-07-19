@@ -96,6 +96,11 @@ def _event_QGroupBox(self):
 def to_MM_SS(value):
     return f"{int(value / 60):02d}:{int(value % 60):02d}"
 
+def sec_to_min(seconds: float) -> str:
+    minutes = int(seconds / 60)
+    seconds = int(seconds % 60)
+    return f"{minutes:02d}:{seconds:02d}"
+
 class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
     updated = QtCore.Signal(int)
 
@@ -372,10 +377,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.print_results(self.blinking_l, self.blinking_r, **kwargs)
         self.progress.setValue(100)
 
-    def sec_to_min(self, seconds: float) -> str:
-        minutes = int(seconds / 60)
-        seconds = int(seconds % 60)
-        return f"{minutes:02d}:{seconds:02d}"
+
 
     def print_results(
         self,
@@ -391,16 +393,16 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         blinking_r["time30"] = blinking_r["frame"] / 30
         blinking_l["timeFPS"] = blinking_l["frame"] / kwargs["fps"]
         blinking_r["timeFPS"] = blinking_r["frame"] / kwargs["fps"]
-        blinking_l["time30"] = blinking_l["time30"].apply(self.sec_to_min)
-        blinking_r["time30"] = blinking_r["time30"].apply(self.sec_to_min)
-        blinking_l["timeFPS"] = blinking_l["timeFPS"].apply(self.sec_to_min)
-        blinking_r["timeFPS"] = blinking_r["timeFPS"].apply(self.sec_to_min)
+        blinking_l["time30"] = blinking_l["time30"].apply(sec_to_min)
+        blinking_r["time30"] = blinking_r["time30"].apply(sec_to_min)
+        blinking_l["timeFPS"] = blinking_l["timeFPS"].apply(sec_to_min)
+        blinking_r["timeFPS"] = blinking_r["timeFPS"].apply(sec_to_min)
 
         self._reset_result_text()
 
         self._add("===Video Info===")
         self._add(f"File: {self.file.as_posix()}")
-        self._add(f"Runtime: {self.sec_to_min(len(self.ear_l) / kwargs['fps'])}")
+        self._add(f"Runtime: {sec_to_min(len(self.ear_l) / kwargs['fps'])}")
 
         for k, v in kwargs.items():
             self._add(f"{k}: {v}")
