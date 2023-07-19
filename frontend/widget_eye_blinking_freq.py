@@ -113,13 +113,12 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.raw_ear_l = None
         self.raw_ear_r = None
 
-
         self.blinking_l = pd.DataFrame()
         self.blinking_r = pd.DataFrame()
 
         self.lines: list = []
-        self.file_path: Path | None = None
-        self.file_columns: list[str] = []
+        self.data_frame: pd.DataFrame | None = None
+        self.data_frame_columns: list[str] = []
 
         # UI elements 
         self.add_hooks(QtWidgets.QGroupBox, (_get_QGroupBox, _set_QGroupBox, _event_QGroupBox))
@@ -194,11 +193,12 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.la_current_file = QtWidgets.QLabel("File: No file loaded")
 
         self.comb_ear_l = QtWidgets.QComboBox()
+        self.comb_ear_l.currentIndexChanged.connect(self.select_column_left)
         self.comb_ear_r = QtWidgets.QComboBox()
+        self.comb_ear_r.currentIndexChanged.connect(self.select_column_right)
 
         self.progress = self.parent().progress_bar
-
-        self.btn_load.clicked.connect(self._load_csv)
+        self.btn_load.clicked.connect(self.load_dialog)
         self.btn_anal.clicked.connect(self._analyse)
         self.btn_eprt.clicked.connect(self.save_results)
 
@@ -602,26 +602,27 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
     def _set_result_text(self) -> None:
         self.te_results_g.setText(self.result_text)
 
-    def _load_csv(self) -> None:
+    def load_dialog(self) -> None:
         logger.info("Open file dialo for loading CSV file")
-        fileName, _ = QtWidgets.QFileDialog.getOpenFileName(
+        file_path, _ = QtWidgets.QFileDialog.getOpenFileName(
             self,
             "Select csv file",
             ".",
             "Video Files (*.csv)",
-            options=QtWidgets.QFileDialog.DontUseNativeDialog,
+            options=QtWidgets.QFileDialog.Option.DontUseNativeDialog,
         )
 
-        if fileName != "":
-            logger.info("Try to load CSV file", file=fileName)
-            self.file = Path(fileName)
-            self._load_file(self.file)
-            logger.info("Loaded CSV file", file=fileName)
-        else:
+        if file_path == "":
             logger.info("No file selected")
+            return
+        
+        logger.info("File selected via dialog", file=file_path)
+        self.load_file(Path(file_path))
 
-    def _load_file(self, path: Path) -> None:
+    def load_file(self, file_path: Path) -> None:
         self.progress.setValue(0)
+        
+        # TODO move this into a separate function for clearing the data
         self.model_l.clear()
         self.model_r.clear()
         self.te_results_g.setText("")
@@ -632,70 +633,30 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.ear_l = None
         self.ear_r = None
 
-        self.raw_ear_r, self.raw_ear_l = self.__handle_legacy_files(path)
-        if self.raw_ear_r is None or self.raw_ear_l is None:
-            return
+        self.comb_ear_l.clear()
+        self.comb_ear_r.clear()
+        ############################################################
 
-        self.progress.setValue(40)
-        self.plot_data()
-        self.progress.setValue(100)
+        # load the file and parse it as data frame
+        self.data_frame = pd.read_csv(file_path.as_posix(), sep=",")
+        self.data_frame_columns = list(self.data_frame.columns)
+        self.data_frame_columns = list(filter(lambda x: x not in ["frame", "valid"], self.data_frame_columns))
 
-    def __handle_legacy_files(self, file: Path) -> tuple[np.ndarray, np.ndarray]:
-        logger.info("Check if file is legacy format", file=file.as_posix())
+        self.comb_ear_l.addItems(self.data_frame_columns)
+        self.comb_ear_r.addItems(self.data_frame_columns)
 
-        df = pd.read_csv(file.as_posix(), sep=";")
-        col_length = len(df.columns)
-        if col_length == 1:
-            logger.info("File is new format", file=file.as_posix())
-            # this means has a different separator like ","
-            # this should be the new format
-            df = pd.read_csv(file.as_posix(), sep=",")
-            if "dlib_ear_r" in df.columns:
-                return df["dlib_ear_r"].values, df["dlib_ear_l"].values
-            if "mediapipe_ear_r" in df.columns:
-                return df["mediapipe_ear_r"].values, df["mediapipe_ear_l"].values
+        self.enable_column_selection()
+        self.enable_algorithm()
 
-            logger.error("File does not contain any supported columns", file=file.as_posix())
-            return None, None
+    def select_column_left(self, index: int) -> None:
+        assert self.data_frame is not None
+        assert self.data_frame_columns is not None
+        self.raw_ear_l = self.data_frame[self.data_frame_columns[index]].values
 
-        # if this case is reached, we know that the back was dlib so the renaming
-        # with the prefix dlib is no problem at all
-        if col_length > 1:
-            cols = list(df.columns)
-            if "ear_score_right" in cols:
-                logger.info("File is legacy format [old]", file=file.as_posix())
-                df = df.rename(
-                    columns={
-                        "ear_score_right": "dlib_ear_r",
-                        "ear_score_left": "dlib_ear_l",
-                        "valid": "dlib_ear_valid",
-                    }
-                )
-                df.to_csv(file.as_posix(), sep=",", index=False)
-                return df["dlib_ear_r"].values, df["dlib_ear_l"].values
-            if "ear_score_rigth" in cols:
-                logger.info("File is legacy format [spell]", file=file.as_posix())
-                df = df.rename(
-                    columns={
-                        "ear_score_rigth": "dlib_ear_r",
-                        "ear_score_left": "dlib_ear_l",
-                        "valid": "valid_l",
-                    }
-                )
-                df.to_csv(file.as_posix(), sep=",", index=False)
-                return df["dlib_ear_r"].values, df["dlib_ear_l"].values
-
-            else:
-                logger.error(
-                    "File has not supported content",
-                    file=file.as_posix(),
-                    columns=cols,
-                )
-                logger.error("Please contact the developer")
-                return None, None
-
-        self.file = file
-        self._load_file(file)
+    def select_column_right(self, index: int) -> None:
+        assert self.data_frame is not None
+        assert self.data_frame_columns is not None
+        self.raw_ear_r = self.data_frame[self.data_frame_columns[index]].values
 
     def clear(self) -> None:
         self.plot_peaks_l.clear()
@@ -752,11 +713,11 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         file = files[0]
 
         file = Path(file)
-        if file.suffix.lower() not in [".csv"]:
-            logger.info("User dropped invalid file", widget=self)
+        if file.suffix.lower() == ".csv":
+            self.load_file(file)
             return
-        self.set_resource(Path(file))
-
+        
+        logger.info("User dropped invalid file", widget=self)
 
     def enable_column_selection(self) -> None:
         self.comb_ear_l.setEnabled(True)
