@@ -51,7 +51,6 @@ class FaceSelectBox(pg.ViewBox):
         self.image: np.ndarray | None = None
 
         self.cb_auto_find = QCheckBox("Auto find face")
-        self.cb_auto_find.setChecked(True)
 
         self.__handles: dict[str, tuple[tuple[float, float], tuple[float, float]]] = {
             "h1" : ((1.0, 0.5), (0.5, 0.5)),

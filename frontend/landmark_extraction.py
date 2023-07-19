@@ -176,13 +176,19 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.pb_anal = self.parent().progress_bar # type: ignore # TODO: fix this as JeFaPaTo cannot be imported from here...
         self.skip_frame = QtWidgets.QSpinBox()
 
+        # TODO combine add handler and default behaviour together :) 
         self.auto_save = QtWidgets.QCheckBox("Auto-Save")
-        self.auto_save.setChecked(True)
+        self.add_handler("auto_save", self.auto_save)
+        self.auto_save.setChecked(self.config.get("auto_save", True))
         self.auto_save.setToolTip("Save the extracted data automatically after the analysis is finished.")
 
         self.use_bbox = QtWidgets.QCheckBox("Use Bounding Box")
-        self.use_bbox.setChecked(True)
+        self.add_handler("use_bbox", self.use_bbox)
+        self.use_bbox.setChecked(self.config.get("use_bbox", True))
         self.use_bbox.setToolTip("Use the bounding box to extract the landmarks.")
+
+        self.add_handler("auto_find_face", self.widget_frame.cb_auto_find)
+        self.widget_frame.cb_auto_find.setChecked(self.config.get("auto_find_face", True))
 
         self.feature_group = FeatureGroupBox([self.set_features, self.add_handler])
         self.feature_group.add_feature(features.EAR2D6)
