@@ -6,7 +6,6 @@ import pyqtgraph as pg
 import qtawesome as qta
 import structlog
 from qtpy import QtCore, QtGui, QtWidgets
-from scipy import signal
 from tabulate import tabulate
 
 from jefapato.methods import blinking
@@ -216,13 +215,16 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         le_width_min = QtWidgets.QLineEdit()
         le_width_max = QtWidgets.QLineEdit()
 
-        self.add_handler("threshold_l", le_th_l)
-        self.add_handler("threshold_r", le_th_r)
-        self.add_handler("fps", le_fps)
-        self.add_handler("min_dist", le_distance)
-        self.add_handler("min_prominence", le_prominence)
-        self.add_handler("min_width", le_width_min)
-        self.add_handler("max_width", le_width_max)
+        MAPPER_FLOAT_STR = (lambda x: float(x), lambda x: str(x))
+        MAPPTER_INT_STR = (lambda x: int(x), lambda x: str(x))
+
+        self.add_handler("threshold_l", le_th_l, mapper=MAPPER_FLOAT_STR, default=0.16)
+        self.add_handler("threshold_r", le_th_r, mapper=MAPPER_FLOAT_STR, default=0.16)
+        self.add_handler("fps", le_fps, mapper=MAPPTER_INT_STR, default=240)
+        self.add_handler("min_dist", le_distance, mapper=MAPPTER_INT_STR, default=50)
+        self.add_handler("min_prominence", le_prominence, mapper=MAPPER_FLOAT_STR, default=0.1)
+        self.add_handler("min_width", le_width_min, mapper=MAPPTER_INT_STR, default=80)
+        self.add_handler("max_width", le_width_max, mapper=MAPPTER_INT_STR, default=500)
 
         le_fps.setValidator(QtGui.QIntValidator())
         le_width_min.setValidator(QtGui.QIntValidator())
@@ -244,8 +246,8 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         le_smooth_size = QtWidgets.QLineEdit()
         le_smooth_poly = QtWidgets.QLineEdit()
-        self.add_handler("smooth_size", le_smooth_size)
-        self.add_handler("smooth_poly", le_smooth_poly)
+        self.add_handler("smooth_size", le_smooth_size, mapper=MAPPTER_INT_STR, default=5)
+        self.add_handler("smooth_poly", le_smooth_poly, mapper=MAPPTER_INT_STR, default=91)
         le_smooth_size.setValidator(QtGui.QIntValidator())
         le_smooth_poly.setValidator(QtGui.QIntValidator())
 
@@ -665,13 +667,11 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         self.compute_graph_axis()
 
-
     def clear(self) -> None:
         self.plot_peaks_l.clear()
         self.plot_peaks_r.clear()
         for line in self.lines:
             line.clear()
-
 
     def shut_down(self) -> None:
         # this widget doesn't have any shut down requirements
