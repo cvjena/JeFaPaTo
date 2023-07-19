@@ -61,10 +61,12 @@ class FeatureGroupBox(QtWidgets.QGroupBox):
             box.setChecked(on)
             box.setEnabled(True)
 
+    def get_features(self) -> list[FeatureCheckBox]:
+        return [box for box in self.feature_checkboxes if box.isChecked()]
+
 class BlendShapeFeatureGroupBox(QtWidgets.QGroupBox):
     def __init__(self, callbacks: list[Callable] | None = None, **kwargs):
         super().__init__(**kwargs)
-        self.feature_checkboxes: list[FeatureCheckBox] = []
         self.callsbacks = callbacks or []
         self.setTitle("Blend Shape Features")
 
@@ -96,6 +98,10 @@ class BlendShapeFeatureGroupBox(QtWidgets.QGroupBox):
             self.features_right.add_feature(feature_class)
         else:
             self.features_whole.add_feature(feature_class)
+
+    def get_features(self) -> list[FeatureCheckBox]:
+        return self.features_left.get_features() + self.features_right.get_features() + self.features_whole.get_features()
+
 
 class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
     updated = pyqtSignal(int) 
@@ -254,13 +260,8 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
 
     def set_features(self) -> None:
         self.used_features_classes.clear()
-        for c in self.feature_group.feature_checkboxes:
-            if c.isChecked():
-                self.used_features_classes.append(c.feature_class)
-        for c in self.blends_shape_group.feature_checkboxes:
-            if c.isChecked():
-                self.used_features_classes.append(c.feature_class) 
-
+        self.used_features_classes.extend([f.feature_class for f in self.feature_group.get_features()])
+        self.used_features_classes.extend([f.feature_class for f in self.blends_shape_group.get_features()])
         self.used_features_classes.append(features.BS_Valid)
         # logger.info("Set features", features=self.used_features_classes)
 
