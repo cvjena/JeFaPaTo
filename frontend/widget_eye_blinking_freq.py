@@ -1,4 +1,4 @@
-import pathlib
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -14,6 +14,20 @@ from frontend import plotting, config
 logger = structlog.get_logger()
 
 DOWNSAMPLE_FACTOR = 8
+
+
+class QHLine(QtWidgets.QFrame):
+    def __init__(self):
+        super(QHLine, self).__init__()
+        self.setFrameShape(QtWidgets.QFrame.HLine)
+        self.setFrameShadow(QtWidgets.QFrame.Sunken)
+
+class QVLine(QtWidgets.QFrame):
+    def __init__(self):
+        super(QVLine, self).__init__()
+        self.setFrameShape(QtWidgets.QFrame.VLine)
+        self.setFrameShadow(QtWidgets.QFrame.Sunken)
+
 
 
 class CollapsibleBox(QtWidgets.QWidget):
@@ -88,8 +102,9 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         QtWidgets.QSplitter.__init__(self, parent=parent)
 
         self.add_hooks(QtWidgets.QGroupBox, (_get_QGroupBox, _set_QGroupBox, _event_QGroupBox))
-
         self.setOrientation(QtCore.Qt.Horizontal)
+
+        self.setAcceptDrops(True)
 
         logger.info("Initializing EyeBlinkingFreq widget")
 
@@ -104,7 +119,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         widget_content.setLayout(self.layout_content)
 
         widget_settings = QtWidgets.QWidget()
-        self.layout_settings = QtWidgets.QGridLayout()
+        self.layout_settings = QtWidgets.QVBoxLayout()
         widget_settings.setLayout(self.layout_settings)
 
         self.addWidget(widget_content)
@@ -155,6 +170,11 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.btn_load = QtWidgets.QPushButton(qta.icon("ph.folder-open-light"), "Open CSV File")
         self.btn_anal = QtWidgets.QPushButton(qta.icon("ph.chart-line-fill"), "Analyse")
         self.btn_eprt = QtWidgets.QPushButton(qta.icon("ph.export-light"), "Export")
+
+        self.la_current_file = QtWidgets.QLabel("File: No file loaded")
+
+        self.comb_ear_l = QtWidgets.QComboBox()
+        self.comb_ear_r = QtWidgets.QComboBox()
 
         self.progress = self.parent().progress_bar
 
@@ -258,14 +278,28 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.box_visuals.toggle_button.click()
 
         # add all things to the settings layout
-        self.layout_settings.addWidget(self.btn_load, 0, 0, 1, 2)
-        self.layout_settings.addWidget(self.btn_anal, 1, 0, 1, 1)
-        self.layout_settings.addWidget(self.btn_eprt, 1, 1, 1, 1)
-        self.layout_settings.addWidget(self.box_settings, 2, 0, 1, 2)
-        self.layout_settings.addWidget(self.box_visuals, 3, 0, 1, 2)
+        self.layout_settings.addWidget(self.btn_load)
+        self.layout_settings.addWidget(self.la_current_file)
+        self.layout_settings.addWidget(QHLine())
+        
+        self.layout_settings.addWidget(QtWidgets.QLabel("Left Eye"))
+        self.layout_settings.addWidget(self.comb_ear_l)
+        self.layout_settings.addWidget(QtWidgets.QLabel("Right Eye"))
+        self.layout_settings.addWidget(self.comb_ear_r)
+        self.layout_settings.addWidget(QHLine())
+
+        self.layout_settings.addWidget(self.box_settings)
+        self.layout_settings.addWidget(self.btn_anal)
+        self.layout_settings.addWidget(QHLine())
+
+        self.layout_settings.addWidget(self.box_visuals)
+        self.layout_settings.addWidget(QHLine())
+
+        self.layout_settings.addWidget(self.btn_eprt)
+        
         spacer = QtWidgets.QWidget()
         spacer.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
-        self.layout_settings.addWidget(spacer, self.layout_settings.rowCount(), 0)
+        self.layout_settings.addWidget(spacer)
 
         self.ear_l = None
         self.ear_r = None
@@ -574,13 +608,13 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         if fileName != "":
             logger.info("Try to load CSV file", file=fileName)
-            self.file = pathlib.Path(fileName)
+            self.file = Path(fileName)
             self._load_file(self.file)
             logger.info("Loaded CSV file", file=fileName)
         else:
             logger.info("No file selected")
 
-    def _load_file(self, path: pathlib.Path) -> None:
+    def _load_file(self, path: Path) -> None:
         self.progress.setValue(0)
         self.model_l.clear()
         self.model_r.clear()
@@ -600,7 +634,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.plot_data()
         self.progress.setValue(100)
 
-    def __handle_legacy_files(self, file: pathlib.Path) -> tuple[np.ndarray, np.ndarray]:
+    def __handle_legacy_files(self, file: Path) -> tuple[np.ndarray, np.ndarray]:
         logger.info("Check if file is legacy format", file=file.as_posix())
 
         df = pd.read_csv(file.as_posix(), sep=";")
@@ -694,3 +728,25 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
     def shut_down(self) -> None:
         # this widget doesn't have any shut down requirements
         self.save()
+
+    def dragEnterEvent(self, event: QtGui.QDropEvent):
+        logger.info("User started dragging event", widget=self)
+        if event.mimeData().hasUrls():
+            event.accept()
+            logger.info("User started dragging event with mime file", widget=self)
+        else:
+            event.ignore()
+            logger.info("User started dragging event with invalid mime file", widget=self)
+
+    def dropEvent(self, event: QtGui.QDropEvent):
+        files = [u.toLocalFile() for u in event.mimeData().urls()]
+
+        if len(files) > 1:
+            logger.info("User dropped multiple files", widget=self)
+        file = files[0]
+
+        file = Path(file)
+        if file.suffix.lower() not in [".csv"]:
+            logger.info("User dropped invalid file", widget=self)
+            return
+        self.set_resource(Path(file))
