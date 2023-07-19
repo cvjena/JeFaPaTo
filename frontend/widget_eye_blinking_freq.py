@@ -101,18 +101,36 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         config.Config.__init__(self, prefix="ear")
         QtWidgets.QSplitter.__init__(self, parent=parent)
 
-        self.add_hooks(QtWidgets.QGroupBox, (_get_QGroupBox, _set_QGroupBox, _event_QGroupBox))
-        self.setOrientation(QtCore.Qt.Horizontal)
-
-        self.setAcceptDrops(True)
-
         logger.info("Initializing EyeBlinkingFreq widget")
-
         self.result_text: str = ""
 
         self.x_lim_max = 1000
         self.x_lim_max_old = 1000
 
+        self.ear_l = None
+        self.ear_r = None
+
+        self.raw_ear_l = None
+        self.raw_ear_r = None
+
+        self.plot_ear_l = self.graph.add_curve({"color": "#00F", "width": 2})
+        self.plot_ear_r = self.graph.add_curve({"color": "#F00", "width": 2})
+
+        self.plot_peaks_l = self.graph.add_scatter()
+        self.plot_peaks_r = self.graph.add_scatter()
+
+        self.blinking_l = pd.DataFrame()
+        self.blinking_r = pd.DataFrame()
+
+        self.lines: list = []
+        self.file_path: Path | None = None
+        self.file_columns: list[str] = []
+
+        # UI elements 
+        self.add_hooks(QtWidgets.QGroupBox, (_get_QGroupBox, _set_QGroupBox, _event_QGroupBox))
+        self.setOrientation(QtCore.Qt.Horizontal)
+
+        self.setAcceptDrops(True)
         # Create the main layouts of the interface
         widget_content = QtWidgets.QWidget()
         self.layout_content = QtWidgets.QVBoxLayout()
@@ -300,24 +318,6 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         spacer = QtWidgets.QWidget()
         spacer.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
         self.layout_settings.addWidget(spacer)
-
-        self.ear_l = None
-        self.ear_r = None
-
-        self.raw_ear_l = None
-        self.raw_ear_r = None
-
-        self.plot_ear_l = self.graph.add_curve({"color": "#00F", "width": 2})
-        self.plot_ear_r = self.graph.add_curve({"color": "#F00", "width": 2})
-
-        self.plot_peaks_l = self.graph.add_scatter()
-        self.plot_peaks_r = self.graph.add_scatter()
-
-        self.blinking_l = pd.DataFrame()
-        self.blinking_r = pd.DataFrame()
-
-        self.lines = list()
-        self.file = None
 
         logger.info("Initialized EyeBlinkingFreq widget")
 
