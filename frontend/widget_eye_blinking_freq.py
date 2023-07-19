@@ -101,6 +101,9 @@ def sec_to_min(seconds: float) -> str:
     seconds = int(seconds % 60)
     return f"{minutes:02d}:{seconds:02d}"
 
+def to_qt_row(row: pd.Series) -> list:
+    return [QtGui.QStandardItem(str(row[c])) for c in row.index]
+
 class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
     updated = QtCore.Signal(int)
 
@@ -112,19 +115,21 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.result_text: str = ""
 
         self.x_lim_max = 1000
+        self.raw_ear_l: np.ndarray | None = None
+        self.raw_ear_r: np.ndarray | None = None
 
-        self.ear_l = None
-        self.ear_r = None
-
-        self.raw_ear_l = None
-        self.raw_ear_r = None
-
-        self.blinking_l = pd.DataFrame()
-        self.blinking_r = pd.DataFrame()
+        self.blinking_l: pd.DataFrame | None = None
+        self.blinking_r: pd.DataFrame | None = None
 
         self.lines: list = []
         self.data_frame: pd.DataFrame | None = None
         self.data_frame_columns: list[str] = []
+
+        self.graph = plotting.WidgetGraph(x_lim_max=self.x_lim_max)
+        self.plot_curve_ear_l = self.graph.add_curve({"color": "#00F", "width": 2}) # TODO add correct colors...
+        self.plot_curve_ear_r = self.graph.add_curve({"color": "#F00", "width": 2}) # TODO add correct colors...
+        self.plot_scatter_blinks_l = self.graph.add_scatter()
+        self.plot_scatter_blinks_r = self.graph.add_scatter()
 
         # UI elements 
         self.add_hooks(QtWidgets.QGroupBox, (_get_QGroupBox, _set_QGroupBox, _event_QGroupBox))
@@ -173,18 +178,9 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         # lower main content is a graph
         self.graph_layout = pg.GraphicsLayoutWidget()
-        self.graph = plotting.WidgetGraph(x_lim_max=self.x_lim_max)
-
         self.graph.getViewBox().enableAutoRange(enable=False)
         self.graph.setYRange(0, 1)
         self.graph_layout.addItem(self.graph)
-
-
-        self.plot_item_ear_l = self.graph.add_curve({"color": "#00F", "width": 2}) # TODO add correct colors...
-        self.plot_item_ear_r = self.graph.add_curve({"color": "#F00", "width": 2}) # TODO add correct colors...
-
-        self.plot_peaks_l = self.graph.add_scatter()
-        self.plot_peaks_r = self.graph.add_scatter()
 
         # Create the specific widgets for the settings layout
         self.layout_content.addWidget(self.tab_widget_results)
@@ -206,7 +202,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         self.progress = self.parent().progress_bar
         self.btn_load.clicked.connect(self.load_dialog)
-        self.btn_anal.clicked.connect(self._analyse)
+        self.btn_anal.clicked.connect(self.analyse)
         self.btn_eprt.clicked.connect(self.save_results)
 
         # algorithm settings box
@@ -252,8 +248,8 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         le_smooth_size = QtWidgets.QLineEdit()
         le_smooth_poly = QtWidgets.QLineEdit()
-        self.add_handler("smooth_size", le_smooth_size, mapper=MAPPTER_INT_STR, default=5)
-        self.add_handler("smooth_poly", le_smooth_poly, mapper=MAPPTER_INT_STR, default=91)
+        self.add_handler("smooth_size", le_smooth_size, mapper=MAPPTER_INT_STR, default=91)
+        self.add_handler("smooth_poly", le_smooth_poly, mapper=MAPPTER_INT_STR, default=5)
         le_smooth_size.setValidator(QtGui.QIntValidator())
         le_smooth_poly.setValidator(QtGui.QIntValidator())
 
@@ -282,7 +278,6 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.fps_box.setLayout(group_box_layout)
         group_box_layout.addWidget(self.radio_30)
         group_box_layout.addWidget(self.radio_240)
-
 
         self.add_handler("as_time", cb_as_time)
         self.add_handler("draw_width_height", cb_width_height)
@@ -334,50 +329,6 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.disable_column_selection()
         self.disable_algorithm()
         self.disable_export()
-
-    def _analyse(self) -> None:
-        self.progress.setRange(0, 100)
-        if self.file is None:
-            return
-        self.progress.setValue(0)
-
-        ear_l = self.raw_ear_l
-        ear_r = self.raw_ear_r
-
-        kwargs = {}
-        kwargs["threshold_l"] = float(self.get("threshold_l"))
-        kwargs["threshold_r"] = float(self.get("threshold_r"))
-        kwargs["fps"] = int(self.get("fps"))
-        kwargs["distance"] = float(self.get("min_dist"))
-        kwargs["prominence"] = float(self.get("min_prominence"))
-        kwargs["width_min"] = int(self.get("min_width"))
-        kwargs["width_max"] = int(self.get("max_width"))
-
-        self.progress.setValue(10)
-
-        kwargs["smooth"] = self.get("smooth")
-        smooth_size = int(self.get("smooth_size"))
-        kwargs["smooth_size"] = smooth_size if smooth_size % 2 == 1 else (smooth_size + 1)
-        kwargs["smooth_poly"] = int(self.get("smooth_poly"))
-
-        self.ear_l = ear_l if not kwargs["smooth"] else blinking.smooth(ear_l, **kwargs)
-        self.ear_r = ear_r if not kwargs["smooth"] else blinking.smooth(ear_r, **kwargs)
-
-        self.progress.setValue(40)
-
-        self.blinking_l = blinking.peaks(self.ear_l, threshold=kwargs["threshold_l"], **kwargs)
-        self.progress.setValue(50)
-        self.blinking_r = blinking.peaks(self.ear_r, threshold=kwargs["threshold_r"], **kwargs)
-        self.progress.setValue(60)
-
-        self.plot_data(self.ear_l, self.ear_r)
-
-        self.progress.setValue(80)
-
-        self.print_results(self.blinking_l, self.blinking_r, **kwargs)
-        self.progress.setValue(100)
-
-
 
     def print_results(
         self,
@@ -488,59 +439,6 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.blinking_r.to_excel(self.file.parent / (self.file.stem + "_blinking_r.xlsx"), sheet_name="blinking_r", index=False)
         logger.info("Saving blinking finished")
 
-    def fill_tables(self, blinking_l: pd.DataFrame, blinking_r: pd.DataFrame) -> None:
-        self.model_l.clear()
-        self.model_r.clear()
-        for _, row in blinking_l.iterrows():
-            self.model_l.appendRow(self.to_qt_row(row))
-
-        for _, row in blinking_r.iterrows():
-            self.model_r.appendRow(self.to_qt_row(row))
-
-        self.table_l.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
-        self.table_r.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
-
-        self.model_l.setHorizontalHeaderLabels(list(blinking_l.columns))
-        self.model_r.setHorizontalHeaderLabels(list(blinking_r.columns))
-
-    def to_qt_row(self, row: pd.Series) -> list:
-        return [QtGui.QStandardItem(str(row[c])) for c in row.index]
-
-    def _show_peaks(self, plot: pg.ScatterPlotItem, blink: pd.DataFrame, settings: dict) -> None:
-        if blink is None:
-            return
-
-        f = 1 if not self.get("vis_downsample") else DOWNSAMPLE_FACTOR
-
-        peaks = blink["frame"].values / f
-        score = blink["score"].values
-
-        pen = pg.mkPen(settings)
-        plot.setData(x=peaks, y=score, pen=pen)
-
-        if not self.get("draw_width_height"):
-            return
-
-        val = self.progress.value()
-
-        self.progress.setValue(0)
-        for i, row in blink.iterrows():
-            lh = self.graph.plot(
-                [row["ips_l"] / f, row["ips_r"] / f],
-                [row["height"], row["height"]],
-                pen=pen,
-            )
-            lv = self.graph.plot(
-                [row["frame"] / f, row["frame"] / f],
-                [row["score"], row["score"] + row["promi"]],
-                pen=pen,
-            )
-            self.lines.append(lh)
-            self.lines.append(lv)
-            self.progress.setValue(i / len(blink))
-
-        self.progress.setValue(val)
-
     def _reset_result_text(self) -> None:
         self.result_text = ""
         self.te_results_g.setText("")
@@ -570,20 +468,8 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
     def load_file(self, file_path: Path) -> None:
         self.progress.setValue(0)
-        
-        # TODO move this into a separate function for clearing the data
-        self.model_l.clear()
-        self.model_r.clear()
-        self.te_results_g.setText("")
-
-        self.blinking_l = None
-        self.blinking_r = None
-
-        self.ear_l = None
-        self.ear_r = None
-
-        self.comb_ear_l.clear()
-        self.comb_ear_r.clear()
+    
+        self.clear_on_new_file()
         ############################################################
 
         # load the file and parse it as data frame
@@ -601,9 +487,10 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.disable_export()
 
     def select_column_left(self, index: int) -> None:
-        assert self.data_frame is not None
-        assert self.data_frame_columns is not None
-        self.raw_ear_l = self.data_frame[self.data_frame_columns[index]].values
+        if self.data_frame is None or self.data_frame_columns is None:
+            return
+        
+        self.raw_ear_l = self.data_frame[self.data_frame_columns[index]].to_numpy()
 
         if len(self.raw_ear_l) > self.x_lim_max:
             self.x_lim_max = len(self.raw_ear_l)
@@ -612,9 +499,9 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.disable_export()
 
     def select_column_right(self, index: int) -> None:
-        assert self.data_frame is not None
-        assert self.data_frame_columns is not None
-        self.raw_ear_r = self.data_frame[self.data_frame_columns[index]].values
+        if self.data_frame is None or self.data_frame_columns is None:
+            return
+        self.raw_ear_r = self.data_frame[self.data_frame_columns[index]].to_numpy()
 
         if len(self.raw_ear_r) > self.x_lim_max:
             self.x_lim_max = len(self.raw_ear_r)
@@ -623,13 +510,13 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.disable_export()
 
     def update_plot_raw(self) -> None:
-        self.plot_item_ear_l.clear()
-        self.plot_item_ear_r.clear()
+        self.plot_curve_ear_l.clear()
+        self.plot_curve_ear_r.clear()
 
         if self.raw_ear_l is not None:
-            self.plot_item_ear_l.setData(self.raw_ear_l)
+            self.plot_curve_ear_l.setData(self.raw_ear_l)
         if self.raw_ear_r is not None:
-            self.plot_item_ear_r.setData(self.raw_ear_r)
+            self.plot_curve_ear_r.setData(self.raw_ear_r)
 
         self.compute_graph_axis()
 
@@ -672,12 +559,105 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
                 ]
             )
 
-    def clear(self) -> None:
-        self.plot_peaks_l.clear()
-        self.plot_peaks_r.clear()
-        for line in self.lines:
-            line.clear()
+    def analyse(self) -> None:
+        self.progress.setRange(0, 100)
 
+        self.progress.setValue(0)
+        self.compute_intervals()
+        self.progress.setValue(60)
+
+        self.plot_intervals()
+        self.progress.setValue(80)
+
+        self.tabulate_intervals()
+        self.progress.setValue(100)
+
+        self.enable_export()
+
+    def compute_intervals(self) -> None:
+        assert self.data_frame is not None, "Somehow the data frame is None"
+        assert self.data_frame_columns is not None, "Somehow the data frame columns are None"
+
+        assert self.raw_ear_r is not None, "Somehow the raw ear right is None"
+        assert self.raw_ear_l is not None, "Somehow the raw ear left is None"
+
+        kwargs = {}
+        kwargs["fps"] = self.get("fps")
+        kwargs["distance"] = self.get("min_dist")
+        kwargs["prominence"] = self.get("min_prominence")
+        kwargs["width_min"] = self.get("min_width")
+        kwargs["width_max"] = self.get("max_width")
+
+        do_smoothing: bool = self.get("smooth") or False
+        smooth_size: int = self.get("smooth_size") or 91
+        smooth_poly: int = self.get("smooth_poly") or 5
+        
+        ear_l = blinking.smooth(self.raw_ear_l, smooth_size, smooth_poly) if do_smoothing else self.raw_ear_l
+        ear_r = blinking.smooth(self.raw_ear_r, smooth_size, smooth_poly) if do_smoothing else self.raw_ear_r
+
+        self.progress.setValue(40)
+
+        threshold_l = self.get("threshold_l") or 0.16
+        threshold_r = self.get("threshold_r") or 0.16
+
+        self.blinking_l = blinking.peaks(ear_l, threshold=threshold_l, **kwargs)
+        self.blinking_r = blinking.peaks(ear_r, threshold=threshold_r, **kwargs)
+
+    def plot_intervals(self) -> None:
+        if self.blinking_l is None or self.blinking_r is None:
+            return
+        # TODO add some kind of settings for the colors
+        self.plot_scatter_blinks_l.clear()
+        self.plot_scatter_blinks_r.clear()
+
+        self.plot_scatter_blinks_l.setData(x=self.blinking_l["frame"].to_numpy(), y=self.blinking_l["score"].to_numpy(), pen={"color": "#00F", "width": 2})
+        self.plot_scatter_blinks_r.setData(x=self.blinking_r["frame"].to_numpy(), y=self.blinking_r["score"].to_numpy(), pen={"color": "#F00", "width": 2})
+
+    def tabulate_intervals(self) -> None:
+        if self.blinking_l is None or self.blinking_r is None:
+            return
+
+        self.model_l.clear()
+        self.model_r.clear()
+        for _, row in self.blinking_l.iterrows():
+            self.model_l.appendRow(to_qt_row(row))
+
+        for _, row in self.blinking_r.iterrows():
+            self.model_r.appendRow(to_qt_row(row))
+
+        self.table_l.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
+        self.table_r.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
+
+        self.model_l.setHorizontalHeaderLabels(list(self.blinking_l.columns))
+        self.model_r.setHorizontalHeaderLabels(list(self.blinking_r.columns))
+
+    def clear_on_new_file(self) -> None:
+        self.raw_ear_l = None
+        self.raw_ear_r = None
+        self.blinking_l = None
+        self.blinking_r = None
+        self.data_frame = None
+        self.data_frame_columns = []
+        self.x_lim_max = 1000
+
+        self.comb_ear_l.clear()
+        self.comb_ear_r.clear()
+
+        self.model_l.clear()
+        self.model_r.clear()
+
+        self.plot_curve_ear_l.clear()
+        self.plot_curve_ear_r.clear()
+        self.plot_scatter_blinks_l.clear()
+        self.plot_scatter_blinks_r.clear()
+
+        self.te_results_g.setText("")
+
+        self.disable_column_selection()
+        self.disable_algorithm()
+        self.disable_export()
+
+    ## general widget functions
     def shut_down(self) -> None:
         # this widget doesn't have any shut down requirements
         self.save()
@@ -704,7 +684,6 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
             return
         
         logger.info("User dropped invalid file", widget=self)
-
 
     ## enabling for logic flow
     def enable_column_selection(self) -> None:
