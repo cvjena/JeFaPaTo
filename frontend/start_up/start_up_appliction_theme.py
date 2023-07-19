@@ -1,22 +1,30 @@
-import pathlib
+from pathlib import Path
 
 import pyqtgraph as pg
 import qtawesome as qta
-from qtpy import QtGui, QtWidgets
+
+from PyQt6.QtGui import QIcon, QFont
+from PyQt6.QtWidgets import QSplashScreen, QApplication
 
 from .enum_state import StartUpState
 
 
-def start_up_appliciation_theme(splash_screen: QtWidgets.QSplashScreen, **kwargs) -> StartUpState:
+def start_up_appliciation_theme(splash_screen: QSplashScreen, app: QApplication, assets: Path) -> StartUpState:
     splash_screen.showMessage("Setting application theme...")
-    app: QtWidgets.QApplication = kwargs.get("app")
+    
+    # application theme
     # qta.dark(app)
     qta.light(app)
-    app.setWindowIcon(QtGui.QIcon((pathlib.Path(__file__).parent.parent.parent / "assets" / "icons" / "icon_color.svg").as_posix()))
+
+    # set window icon
+    icon_path = assets / "icons" / "icon_color.svg"
+    app.setWindowIcon(QIcon(icon_path.as_posix()))
+
+    # set default font
     splash_screen.showMessage("Load default font...")
-    font = QtGui.QFont()
+    font = QFont()
     font.setFamily(font.defaultFamily())
-    font.setWeight(QtGui.QFont.Weight.ExtraLight)
+    font.setWeight(QFont.Weight.ExtraLight)
     font.setPointSize(9)
     app.setFont(font)
 

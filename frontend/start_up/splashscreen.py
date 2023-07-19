@@ -15,6 +15,7 @@ from . import enum_state
 
 logger = structlog.get_logger()
 
+ASSETS_PATH = Path(__file__).parent.parent / "assets"
 
 class StartUpException(Exception):
     pass
@@ -23,10 +24,9 @@ class StartUpSplashScreen(QSplashScreen):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.FramelessWindowHint)
-        path = Path(__file__).parent / "assets" / "icons" / "icon_color.svg"
+        path = ASSETS_PATH / "icons" / "icon_color.svg"
         self.setPixmap(QtGui.QPixmap(path.as_posix()))
         self.setEnabled(False)
-
         self.start_up_tasks: list[typing.Callable] = []
 
         for files in Path(__file__).parent.glob("start_up_*.py"):
@@ -49,19 +49,13 @@ class StartUpSplashScreen(QSplashScreen):
                 if f_name.startswith("start_up_"):
                     sig = inspect.signature(f_value)
                     if "splash_screen" not in sig.parameters:
-                        raise StartUpException(
-                            f"{f_name} must have a parameter named 'splash_screen'"
-                        )
+                        raise StartUpException(f"{f_name} must have a parameter named 'splash_screen'")
+
                     if sig.parameters["splash_screen"].annotation != QSplashScreen:
-                        raise StartUpException(
-                            f"{f_name} must have a parameter named 'splash_screen'"
-                            " of type QtWidgets.QSplashScreen"
-                        )
+                        raise StartUpException(f"{f_name} must have a parameter named 'splash_screen' of type QtWidgets.QSplashScreen")
 
                     if typing.get_type_hints(f_value).get("return") != enum_state.StartUpState:
-                        raise StartUpException(
-                            f"{f_name} must have a return type of StartUpState"
-                        )
+                        raise StartUpException(f"{f_name} must have a return type of StartUpState")
 
                     self.start_up_tasks.append(f_value)
 
@@ -77,7 +71,7 @@ class StartUpSplashScreen(QSplashScreen):
         start = time.time()
         for task in self.start_up_tasks:
             logger.info("Start Up Registered Task", task=task.__name__)
-            ret = task(self, app=app)
+            ret = task(self, app=app, assets=ASSETS_PATH)
             if ret is enum_state.StartUpState.SUCCESS:
                 logger.info("Start Up Task Success", task=task.__name__)
                 continue
