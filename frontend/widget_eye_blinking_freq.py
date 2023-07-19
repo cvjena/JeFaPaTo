@@ -113,11 +113,6 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.raw_ear_l = None
         self.raw_ear_r = None
 
-        self.plot_ear_l = self.graph.add_curve({"color": "#00F", "width": 2})
-        self.plot_ear_r = self.graph.add_curve({"color": "#F00", "width": 2})
-
-        self.plot_peaks_l = self.graph.add_scatter()
-        self.plot_peaks_r = self.graph.add_scatter()
 
         self.blinking_l = pd.DataFrame()
         self.blinking_r = pd.DataFrame()
@@ -179,6 +174,13 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.graph.setYRange(0, 1)
         self.graph_layout.addItem(self.graph)
 
+
+        self.plot_ear_l = self.graph.add_curve({"color": "#00F", "width": 2})
+        self.plot_ear_r = self.graph.add_curve({"color": "#F00", "width": 2})
+
+        self.plot_peaks_l = self.graph.add_scatter()
+        self.plot_peaks_r = self.graph.add_scatter()
+
         # Create the specific widgets for the settings layout
         self.layout_content.addWidget(self.tab_widget_results)
         self.layout_content.addWidget(self.graph_layout)
@@ -202,7 +204,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         # algorithm settings box
         self.box_settings = CollapsibleBox("Algorithm Settings")
-        set_algo = QtWidgets.QFormLayout()
+        self.set_algo = QtWidgets.QFormLayout()
 
         le_th_l = QtWidgets.QLineEdit()
         le_th_r = QtWidgets.QLineEdit()
@@ -233,13 +235,13 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         le_width_min.setValidator(QtGui.QIntValidator())
         le_width_max.setValidator(QtGui.QIntValidator())
 
-        set_algo.addRow("Threshold Left", le_th_l)
-        set_algo.addRow("Threshold Right", le_th_r)
-        set_algo.addRow("FPS", le_fps)
-        set_algo.addRow("Min Distance", le_distance)
-        set_algo.addRow("Min Prominence", le_prominence)
-        set_algo.addRow("Min Width", le_width_min)
-        set_algo.addRow("Max Width", le_width_max)
+        self.set_algo.addRow("Threshold Left", le_th_l)
+        self.set_algo.addRow("Threshold Right", le_th_r)
+        self.set_algo.addRow("FPS", le_fps)
+        self.set_algo.addRow("Min Distance", le_distance)
+        self.set_algo.addRow("Min Prominence", le_prominence)
+        self.set_algo.addRow("Min Width", le_width_min)
+        self.set_algo.addRow("Max Width", le_width_max)
 
         box_smooth = QtWidgets.QGroupBox("Smoothing")
         box_smooth.setCheckable(True)
@@ -259,12 +261,12 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         box_smooth_layout.addRow("Polynomial Degree", le_smooth_poly)
         box_smooth_layout.addRow("Window Size", le_smooth_size)
 
-        set_algo.addRow(box_smooth)
+        self.set_algo.addRow(box_smooth)
 
         # Visual Settings #
 
         self.box_visuals = CollapsibleBox("Visual Settings")
-        set_visuals = QtWidgets.QFormLayout()
+        self.set_visuals = QtWidgets.QFormLayout()
 
         cb_as_time = QtWidgets.QCheckBox()
         cb_width_height = QtWidgets.QCheckBox()
@@ -284,14 +286,14 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         cb_width_height.clicked.connect(lambda _: self.plot_data())
         btn_reset_graph.clicked.connect(lambda: self.graph.setYRange(0, 1))
 
-        set_visuals.addRow("X-Axis As Time", cb_as_time)
-        set_visuals.addRow("Draw Width/Height", cb_width_height)
-        set_visuals.addRow("Simple Draw", cb_simple_draw)
-        set_visuals.addRow(btn_reset_graph)
+        self.set_visuals.addRow("X-Axis As Time", cb_as_time)
+        self.set_visuals.addRow("Draw Width/Height", cb_width_height)
+        self.set_visuals.addRow("Simple Draw", cb_simple_draw)
+        self.set_visuals.addRow(btn_reset_graph)
 
         # Layouting #
-        self.box_settings.setContentLayout(set_algo)
-        self.box_visuals.setContentLayout(set_visuals)
+        self.box_settings.setContentLayout(self.set_algo)
+        self.box_visuals.setContentLayout(self.set_visuals)
         self.box_settings.toggle_button.click()
         self.box_visuals.toggle_button.click()
 
@@ -320,8 +322,12 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.layout_settings.addWidget(spacer)
 
         logger.info("Initialized EyeBlinkingFreq widget")
-
         self.compute_graph_axis()
+
+        self.disable_column_selection()
+        self.disable_algorithm()
+        self.disable_visuals_export()
+
 
     def to_MM_SS(self, value):
         return f"{int(value / 60):02d}:{int(value % 60):02d}"
@@ -750,3 +756,26 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
             logger.info("User dropped invalid file", widget=self)
             return
         self.set_resource(Path(file))
+
+
+    def enable_column_selection(self) -> None:
+        self.comb_ear_l.setEnabled(True)
+        self.comb_ear_r.setEnabled(True)
+
+    def disable_column_selection(self) -> None:
+        self.comb_ear_l.setEnabled(False)
+        self.comb_ear_r.setEnabled(False)
+
+    def enable_algorithm(self) -> None:
+        pass
+
+    def disable_algorithm(self) -> None:
+        self.box_settings.setEnabled(False)
+        self.btn_anal.setEnabled(False)
+
+    def enable_visuals_export(self) -> None:
+        pass
+
+    def disable_visuals_export(self) -> None:
+        self.btn_eprt.setEnabled(False)
+        self.box_visuals.setEnabled(False)
