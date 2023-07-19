@@ -133,7 +133,6 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.ea.register_hooks(self)
 
         # UI elements
-
         self.setAcceptDrops(True)
         self.main_window = parent # type: QtWidgets.QMainWindow
 
@@ -185,11 +184,11 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.use_bbox.setChecked(True)
         self.use_bbox.setToolTip("Use the bounding box to extract the landmarks.")
 
-        self.feature_group = FeatureGroupBox([self.save_conf, self.set_features, self.add_handler])
+        self.feature_group = FeatureGroupBox([self.set_features, self.add_handler])
         self.feature_group.add_feature(features.EAR2D6)
         self.feature_group.add_feature(features.EAR3D6)
 
-        self.blends_shape_group = BlendShapeFeatureGroupBox(callbacks=[self.save_conf, self.set_features, self.add_handler])
+        self.blends_shape_group = BlendShapeFeatureGroupBox(callbacks=[self.set_features, self.add_handler])
         for blendshape in features.BLENDSHAPES:
             self.blends_shape_group.add_feature(blendshape)
 
@@ -439,6 +438,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
     def shut_down(self) -> None:
         logger.info("Shutdown", state="starting", widget=self)
         self.stop()
+        self.save()
         logger.info("Shutdown", state="finished", widget=self)
 
     def dragEnterEvent(self, event: QtGui.QDropEvent):

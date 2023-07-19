@@ -1,5 +1,4 @@
 import argparse
-import pathlib
 import sys
 
 import structlog
@@ -14,13 +13,6 @@ def main(argv):
     parser.add_argument("--start-tab", type=int, default=0)
     args = parser.parse_args(argv[1:])
 
-    # TODO this is temporary and check if it can be handled somewhere else
-    conf = pathlib.Path(__file__).parent / "__static__"
-    conf.mkdir(parents=True, exist_ok=True)
-    conf_f = conf / "conf.json"
-    if not conf_f.exists():
-        conf_f.touch(exist_ok=True)
-        conf_f.write_text("{}")
     app = QApplication(argv)
     app.setApplicationDisplayName("JeFaPaTo")
     app.setApplicationName("JeFaPaTo")
@@ -28,7 +20,6 @@ def main(argv):
     splash.startup(app)
 
     ex = frontend.JeFaPaTo(args)
-
     logger.info("Start JeFaPaTo", version=ex.VERSION)
 
     ex.show()

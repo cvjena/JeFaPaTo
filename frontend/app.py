@@ -9,14 +9,18 @@ import structlog
 from PyQt6 import QtGui
 from PyQt6.QtWidgets import QMainWindow, QTabWidget, QProgressBar
 
+from jefapato import config
+
 from .landmark_extraction import LandmarkExtraction
 from .widget_eye_blinking_freq import WidgetEyeBlinkingFreq
 
 logger = structlog.get_logger()
 
-class JeFaPaTo(QMainWindow):
-    def __init__(self, args: argparse.Namespace):
-        super().__init__()
+class JeFaPaTo(QMainWindow, config.Config):
+    def __init__(self, args: argparse.Namespace) -> None:
+        config.Config.__init__(self, "jefapato")
+        QMainWindow.__init__(self)
+        
         self.setWindowTitle("JeFaPaTo - Jena Facial Palsy Tool")
         self.showMaximized()
         self.setMinimumSize(800, 600)
@@ -52,5 +56,8 @@ class JeFaPaTo(QMainWindow):
 
         self.tab_eye_blinking.shut_down()
         self.tab_eye_blinking_freq.shut_down()
+        logger.info("Shut Down Processes in each Tab complete", widget=self)
+        logger.info("Save Config")
+        self.save()
         logger.info("Internal Shut Down complete", widget=self)
         super().closeEvent(event)

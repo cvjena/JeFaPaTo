@@ -183,14 +183,14 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.add_handler("min_width", le_width_min)
         self.add_handler("max_width", le_width_max)
 
-        le_th_l.textChanged.connect(self.save_conf)
-        le_th_r.textChanged.connect(self.save_conf)
-        le_fps.textChanged.connect(self.save_conf)
+        # le_th_l.textChanged.connect(self.save_conf)
+        # le_th_r.textChanged.connect(self.save_conf)
+        # le_fps.textChanged.connect(self.save_conf)
         le_fps.textChanged.connect(self.compute_graph_axis)
-        le_distance.textChanged.connect(self.save_conf)
-        le_prominence.textChanged.connect(self.save_conf)
-        le_width_min.textChanged.connect(self.save_conf)
-        le_width_max.textChanged.connect(self.save_conf)
+        # le_distance.textChanged.connect(self.save_conf)
+        # le_prominence.textChanged.connect(self.save_conf)
+        # le_width_min.textChanged.connect(self.save_conf)
+        # le_width_max.textChanged.connect(self.save_conf)
 
         le_fps.setValidator(QtGui.QIntValidator())
         le_width_min.setValidator(QtGui.QIntValidator())
@@ -216,8 +216,8 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.add_handler("smooth_poly", le_smooth_poly)
         le_smooth_size.setValidator(QtGui.QIntValidator())
         le_smooth_poly.setValidator(QtGui.QIntValidator())
-        le_smooth_poly.textChanged.connect(self.save_conf)
-        le_smooth_size.textChanged.connect(self.save_conf)
+        # le_smooth_poly.textChanged.connect(self.save_conf)
+        # le_smooth_size.textChanged.connect(self.save_conf)
 
         box_smooth_layout.addRow("Polynomial Degree", le_smooth_poly)
         box_smooth_layout.addRow("Window Size", le_smooth_size)
@@ -238,9 +238,9 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.add_handler("draw_width_height", cb_width_height)
         self.add_handler("vis_downsample", cb_simple_draw)
 
-        cb_width_height.clicked.connect(self.save_conf)
-        cb_as_time.clicked.connect(self.save_conf)
-        cb_simple_draw.clicked.connect(self.save_conf)
+        # cb_width_height.clicked.connect(self.save_conf)
+        # cb_as_time.clicked.connect(self.save_conf)
+        # cb_simple_draw.clicked.connect(self.save_conf)
 
         cb_as_time.clicked.connect(self.compute_graph_axis)
         cb_simple_draw.clicked.connect(lambda _: self.plot_data())
@@ -694,4 +694,4 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
     def shut_down(self) -> None:
         # this widget doesn't have any shut down requirements
-        return
+        self.save()
