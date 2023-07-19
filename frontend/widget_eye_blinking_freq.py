@@ -646,6 +646,10 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         assert self.data_frame is not None
         assert self.data_frame_columns is not None
         self.raw_ear_l = self.data_frame[self.data_frame_columns[index]].values
+
+        if len(self.raw_ear_l) > self.x_lim_max:
+            self.x_lim_max = len(self.raw_ear_l)
+
         self.update_plot_raw()
         self.disable_export()
 
@@ -653,6 +657,10 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         assert self.data_frame is not None
         assert self.data_frame_columns is not None
         self.raw_ear_r = self.data_frame[self.data_frame_columns[index]].values
+
+        if len(self.raw_ear_r) > self.x_lim_max:
+            self.x_lim_max = len(self.raw_ear_r)
+
         self.update_plot_raw()
         self.disable_export()
 
