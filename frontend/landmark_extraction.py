@@ -241,7 +241,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.set_features()
 
     def setup_graph(self) -> None:
-        logger.info("Setup graph for all features to plot", features=self.used_features_classes)
+        logger.info("Setup graph for all features to plot", features=len(self.used_features_classes))
         self.widget_graph.clear()
         self.update_count = 0
         for feature_name in self.plot_item:
@@ -281,7 +281,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
                 self.used_features_classes.append(c.feature_class) 
 
         self.used_features_classes.append(features.BS_Valid)
-        logger.info("Set features", features=self.used_features_classes)
+        # logger.info("Set features", features=self.used_features_classes)
 
     def start(self) -> None:
         # if self.video_resource is not None:
