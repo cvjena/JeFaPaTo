@@ -174,8 +174,8 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.graph_layout.addItem(self.graph)
 
 
-        self.plot_ear_l = self.graph.add_curve({"color": "#00F", "width": 2})
-        self.plot_ear_r = self.graph.add_curve({"color": "#F00", "width": 2})
+        self.plot_item_ear_l = self.graph.add_curve({"color": "#00F", "width": 2}) # TODO add correct colors...
+        self.plot_item_ear_r = self.graph.add_curve({"color": "#F00", "width": 2}) # TODO add correct colors...
 
         self.plot_peaks_l = self.graph.add_scatter()
         self.plot_peaks_r = self.graph.add_scatter()
@@ -255,8 +255,6 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.add_handler("smooth_poly", le_smooth_poly)
         le_smooth_size.setValidator(QtGui.QIntValidator())
         le_smooth_poly.setValidator(QtGui.QIntValidator())
-        # le_smooth_poly.textChanged.connect(self.save_conf)
-        # le_smooth_size.textChanged.connect(self.save_conf)
 
         box_smooth_layout.addRow("Polynomial Degree", le_smooth_poly)
         box_smooth_layout.addRow("Window Size", le_smooth_size)
@@ -264,7 +262,6 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.set_algo.addRow(box_smooth)
 
         # Visual Settings #
-
         self.box_visuals = CollapsibleBox("Visual Settings")
         self.set_visuals = QtWidgets.QFormLayout()
 
@@ -273,19 +270,25 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         cb_simple_draw = QtWidgets.QCheckBox()
         btn_reset_graph = QtWidgets.QPushButton(qta.icon("msc.refresh"), "Reset Graph Y Range")
 
+        self.fps_box = QtWidgets.QGroupBox()
+        self.radio_30 = QtWidgets.QRadioButton("30")
+        self.radio_240 = QtWidgets.QRadioButton("240")
+        self.radio_240.setChecked(True)
+        group_box_layout = QtWidgets.QHBoxLayout()
+        self.fps_box.setLayout(group_box_layout)
+        group_box_layout.addWidget(self.radio_30)
+        group_box_layout.addWidget(self.radio_240)
+
         self.add_handler("as_time", cb_as_time)
         self.add_handler("draw_width_height", cb_width_height)
         self.add_handler("vis_downsample", cb_simple_draw)
-
-        # cb_width_height.clicked.connect(self.save_conf)
-        # cb_as_time.clicked.connect(self.save_conf)
-        # cb_simple_draw.clicked.connect(self.save_conf)
 
         cb_as_time.clicked.connect(self.compute_graph_axis)
         cb_simple_draw.clicked.connect(lambda _: self.plot_data())
         cb_width_height.clicked.connect(lambda _: self.plot_data())
         btn_reset_graph.clicked.connect(lambda: self.graph.setYRange(0, 1))
 
+        self.set_visuals.addRow("FPS", self.fps_box)
         self.set_visuals.addRow("X-Axis As Time", cb_as_time)
         self.set_visuals.addRow("Draw Width/Height", cb_width_height)
         self.set_visuals.addRow("Simple Draw", cb_simple_draw)
@@ -310,12 +313,11 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         self.layout_settings.addWidget(self.box_settings)
         self.layout_settings.addWidget(self.btn_anal)
-        self.layout_settings.addWidget(QHLine())
-
-        self.layout_settings.addWidget(self.box_visuals)
-        self.layout_settings.addWidget(QHLine())
-
         self.layout_settings.addWidget(self.btn_eprt)
+        self.layout_settings.addWidget(QHLine())
+        self.layout_settings.addWidget(QHLine())
+        self.layout_settings.addWidget(self.box_visuals)
+
         
         spacer = QtWidgets.QWidget()
         spacer.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
@@ -326,7 +328,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         self.disable_column_selection()
         self.disable_algorithm()
-        self.disable_visuals_export()
+        self.disable_export()
 
 
     def to_MM_SS(self, value):
@@ -652,11 +654,25 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         assert self.data_frame is not None
         assert self.data_frame_columns is not None
         self.raw_ear_l = self.data_frame[self.data_frame_columns[index]].values
+        self.update_plot_raw()
+        self.disable_export()
 
     def select_column_right(self, index: int) -> None:
         assert self.data_frame is not None
         assert self.data_frame_columns is not None
         self.raw_ear_r = self.data_frame[self.data_frame_columns[index]].values
+        self.update_plot_raw()
+        self.disable_export()
+
+    def update_plot_raw(self) -> None:
+        self.plot_item_ear_l.clear()
+        self.plot_item_ear_r.clear()
+
+        self.plot_item_ear_l.setData(self.raw_ear_l)
+        self.plot_item_ear_r.setData(self.raw_ear_r)
+
+        self.compute_graph_axis()
+
 
     def clear(self) -> None:
         self.plot_peaks_l.clear()
@@ -664,33 +680,6 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         for line in self.lines:
             line.clear()
 
-    def plot_data(self, data_l: np.ndarray = None, data_r: np.ndarray = None) -> None:
-        self.clear()
-
-        data_l = data_l if data_l is not None else self.ear_l
-        data_r = data_r if data_r is not None else self.ear_r
-        data_l = data_l if data_l is not None else self.raw_ear_l
-        data_r = data_r if data_r is not None else self.raw_ear_r
-
-        if data_l is None or data_r is None:
-            return
-
-        if self.get("vis_downsample"):
-            data_l = signal.resample(data_l, int(len(data_l) / 8))
-            data_r = signal.resample(data_r, int(len(data_r) / 8))
-        self.x_lim_max_old = self.x_lim_max
-        self.x_lim_max = len(data_l)
-
-        self.plot_ear_l.setDownsampling(method="mean", auto=True)
-        self.plot_ear_r.setDownsampling(method="mean", auto=True)
-
-        self.plot_ear_l.setData(data_l)
-        self.plot_ear_r.setData(data_r)
-
-        self.compute_graph_axis()
-
-        self._show_peaks(self.plot_peaks_l, self.blinking_l, {"color": "#00F", "width": 2})
-        self._show_peaks(self.plot_peaks_r, self.blinking_r, {"color": "#F00", "width": 2})
 
     def shut_down(self) -> None:
         # this widget doesn't have any shut down requirements
@@ -728,15 +717,15 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.comb_ear_r.setEnabled(False)
 
     def enable_algorithm(self) -> None:
-        pass
+        self.box_settings.setEnabled(True)
+        self.btn_anal.setEnabled(True)
 
     def disable_algorithm(self) -> None:
         self.box_settings.setEnabled(False)
         self.btn_anal.setEnabled(False)
 
-    def enable_visuals_export(self) -> None:
-        pass
+    def enable_export(self) -> None:
+        self.btn_anal.setEnabled(True)
 
-    def disable_visuals_export(self) -> None:
+    def disable_export(self) -> None:
         self.btn_eprt.setEnabled(False)
-        self.box_visuals.setEnabled(False)
