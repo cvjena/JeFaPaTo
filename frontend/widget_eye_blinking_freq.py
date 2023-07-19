@@ -296,6 +296,11 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.set_visuals.addRow("Simple Draw", cb_simple_draw)
         self.set_visuals.addRow(btn_reset_graph)
 
+        self.format_export = QtWidgets.QComboBox()
+        self.format_export.addItems(["CSV", "Excel", "SPSS", "PSPP"])
+        self.format_export.setCurrentIndex(0)
+        self.add_handler("export_format", self.format_export, default="Excel")
+
         # Layouting #
         self.box_settings.setContentLayout(self.set_algo)
         self.box_visuals.setContentLayout(self.set_visuals)
@@ -317,6 +322,8 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.layout_settings.addWidget(self.btn_anal)
         self.layout_settings.addWidget(self.btn_summ)
         self.layout_settings.addWidget(QHLine())
+        self.layout_settings.addWidget(QtWidgets.QLabel("Export Format"))
+        self.layout_settings.addWidget(self.format_export)
         self.layout_settings.addWidget(self.btn_eprt)
         self.layout_settings.addWidget(QHLine())
         self.layout_settings.addWidget(self.box_visuals)
@@ -714,7 +721,9 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
     def enable_export(self) -> None:
         self.btn_eprt.setEnabled(True)
         self.btn_summ.setEnabled(True)
+        self.format_export.setEnabled(True)
 
     def disable_export(self) -> None:
         self.btn_eprt.setEnabled(False)
         self.btn_summ.setEnabled(False)
+        self.format_export.setEnabled(False)
