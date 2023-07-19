@@ -384,10 +384,6 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
             return
         
         self.raw_ear_l = self.data_frame[self.data_frame_columns[index]].to_numpy()
-
-        if len(self.raw_ear_l) > self.x_lim_max:
-            self.x_lim_max = len(self.raw_ear_l)
-
         self.update_plot_raw()
         self.disable_export()
 
@@ -395,9 +391,6 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         if self.data_frame is None or self.data_frame_columns is None:
             return
         self.raw_ear_r = self.data_frame[self.data_frame_columns[index]].to_numpy()
-
-        if len(self.raw_ear_r) > self.x_lim_max:
-            self.x_lim_max = len(self.raw_ear_r)
 
         self.update_plot_raw()
         self.disable_export()
@@ -416,6 +409,10 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
     def compute_graph_axis(self) -> None:
         logger.info("Compute graph x-axis")
         ds_factor = 1 if not self.get("vis_downsample") else DOWNSAMPLE_FACTOR
+
+        # compute the x_lim_max
+        if self.raw_ear_l is not None and self.raw_ear_r is not None:
+            self.x_lim_max = max(len(self.raw_ear_l), len(self.raw_ear_r))
 
         self.graph.setLimits(xMin=0, xMax=self.x_lim_max)
         self.graph.setLimits(yMin=0, yMax=1)
