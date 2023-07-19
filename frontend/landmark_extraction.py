@@ -124,19 +124,22 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         config.Config.__init__(self, prefix="landmarks")
         QtWidgets.QSplitter.__init__(self, parent=parent)
 
-        self.setAcceptDrops(True)
-
-        self.main_window = parent # type: QtWidgets.QMainWindow
+        self.used_features_classes: list[Type[features.Feature]] = [features.BS_Valid]
         self.video_resource: Path | int | None = None
+        self.plot_item = {}
+        self.plot_data = {}
+        self.chunk_size = 1000
+        self.ea = facial_features.FaceAnalyzer()
+        self.ea.register_hooks(self)
+
+        # UI elements
+
+        self.setAcceptDrops(True)
+        self.main_window = parent # type: QtWidgets.QMainWindow
 
         self.widget_face = plotting.SimpleImage(enableMouse=False)
         self.widget_frame = plotting.FaceSelectBox(face_box=self.widget_face, enableMouse=False)
         self.widget_graph = plotting.WidgetGraph(add_yruler=False)
-
-        self.plot_item = {}
-        self.plot_data = {}
-
-        self.chunk_size = 1000
 
         self.vlayout_display = pg.GraphicsLayoutWidget()
         self.vlayout_display.addItem(self.widget_frame, row=0, col=0)               # type: ignore
@@ -146,7 +149,6 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.vlayout_display.ci.layout.setRowStretchFactor(1, 3)
 
         self.widget_r = QtWidgets.QWidget()
-
         self.vlayout_rs = QtWidgets.QVBoxLayout()
         self.flayout_se = QtWidgets.QFormLayout()
 
@@ -217,11 +219,6 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
 
         self.main_window.statusBar().addWidget(self.la_input)
         self.main_window.statusBar().addWidget(self.la_proce)
-
-        self.used_features_classes: list[Type[features.Feature]] = [features.BS_Valid]
-
-        self.ea = facial_features.FaceAnalyzer()
-        self.ea.register_hooks(self)
 
         self.button_video_open.clicked.connect(self.load_video)
         self.button_webcam_open.clicked.connect(self.load_webcam)
