@@ -330,45 +330,6 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.disable_algorithm()
         self.disable_export()
 
-    def compute_graph_axis(self) -> None:
-        logger.info("Compute graph x-axis")
-        ds_factor = 1 if not self.get("vis_downsample") else DOWNSAMPLE_FACTOR
-
-        self.graph.setLimits(xMin=0, xMax=self.x_lim_max)
-        self.graph.setLimits(yMin=0, yMax=1)
-        self.graph.setXRange(0, self.x_lim_max)
-        self.graph.setYRange(0, 1)
-
-        self.graph.getAxis("left").setLabel("EAR Score")
-        x_axis = self.graph.getAxis("bottom")
-
-        if self.get("as_time"):
-            x_axis.setLabel("Time (MM:SS)")
-            fps = 30 if self.radio_30.isChecked() else 240 # TODO make more general in the future
-            x_ticks = np.arange(0, self.x_lim_max, fps)
-            x_ticks_lab = [str(to_MM_SS(x // fps)) for x in x_ticks]
-
-            # TODO add some miliseconds to the ticks
-            x_axis.setTicks(
-                [
-                    [(x, xl) for x, xl in zip(x_ticks[::60], x_ticks_lab[::60])],
-                    [(x, xl) for x, xl in zip(x_ticks[::10], x_ticks_lab[::10])],
-                    [(x, xl) for x, xl in zip(x_ticks, x_ticks_lab)],
-                ]
-            )
-
-        else:
-            x_axis.setLabel("Frames (#)")
-            x_ticks = np.arange(0, self.x_lim_max, 1)
-            x_ticks_lab = [str(x * ds_factor) for x in x_ticks]
-
-            x_axis.setTicks(
-                [
-                    [(x, xl) for x, xl in zip(x_ticks[::1000], x_ticks_lab[::1000])],
-                    [(x, xl) for x, xl in zip(x_ticks[::100], x_ticks_lab[::100])],
-                ]
-            )
-
     def _analyse(self) -> None:
         self.progress.setRange(0, 100)
         if self.file is None:
@@ -670,6 +631,45 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         self.compute_graph_axis()
 
+    def compute_graph_axis(self) -> None:
+        logger.info("Compute graph x-axis")
+        ds_factor = 1 if not self.get("vis_downsample") else DOWNSAMPLE_FACTOR
+
+        self.graph.setLimits(xMin=0, xMax=self.x_lim_max)
+        self.graph.setLimits(yMin=0, yMax=1)
+        self.graph.setXRange(0, self.x_lim_max)
+        self.graph.setYRange(0, 1)
+
+        self.graph.getAxis("left").setLabel("EAR Score")
+        x_axis = self.graph.getAxis("bottom")
+
+        if self.get("as_time"):
+            x_axis.setLabel("Time (MM:SS)")
+            fps = 30 if self.radio_30.isChecked() else 240 # TODO make more general in the future
+            x_ticks = np.arange(0, self.x_lim_max, fps)
+            x_ticks_lab = [str(to_MM_SS(x // fps)) for x in x_ticks]
+
+            # TODO add some miliseconds to the ticks
+            x_axis.setTicks(
+                [
+                    [(x, xl) for x, xl in zip(x_ticks[::60], x_ticks_lab[::60])],
+                    [(x, xl) for x, xl in zip(x_ticks[::10], x_ticks_lab[::10])],
+                    [(x, xl) for x, xl in zip(x_ticks, x_ticks_lab)],
+                ]
+            )
+
+        else:
+            x_axis.setLabel("Frames (#)")
+            x_ticks = np.arange(0, self.x_lim_max, 1)
+            x_ticks_lab = [str(x * ds_factor) for x in x_ticks]
+
+            x_axis.setTicks(
+                [
+                    [(x, xl) for x, xl in zip(x_ticks[::1000], x_ticks_lab[::1000])],
+                    [(x, xl) for x, xl in zip(x_ticks[::100], x_ticks_lab[::100])],
+                ]
+            )
+
     def clear(self) -> None:
         self.plot_peaks_l.clear()
         self.plot_peaks_r.clear()
@@ -703,6 +703,8 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         
         logger.info("User dropped invalid file", widget=self)
 
+
+    ## enabling for logic flow
     def enable_column_selection(self) -> None:
         self.comb_ear_l.setEnabled(True)
         self.comb_ear_r.setEnabled(True)
