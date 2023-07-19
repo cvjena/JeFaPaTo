@@ -12,8 +12,8 @@ import structlog
 from PyQt6.QtCore import pyqtSignal
 from qtpy import QtCore, QtGui, QtWidgets
 
-from frontend import plotting
-from jefapato import config, facial_features
+from frontend import plotting, config
+from jefapato import facial_features
 from jefapato.facial_features import features
 
 logger = structlog.get_logger()

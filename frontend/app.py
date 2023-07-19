@@ -9,8 +9,7 @@ import structlog
 from PyQt6 import QtGui
 from PyQt6.QtWidgets import QMainWindow, QTabWidget, QProgressBar
 
-from jefapato import config
-
+from frontend import config
 from .landmark_extraction import LandmarkExtraction
 from .widget_eye_blinking_freq import WidgetEyeBlinkingFreq
 

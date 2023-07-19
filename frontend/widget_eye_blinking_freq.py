@@ -9,9 +9,8 @@ from qtpy import QtCore, QtGui, QtWidgets
 from scipy import signal
 from tabulate import tabulate
 
-from jefapato import config
 from jefapato.methods import blinking
-from frontend import plotting
+from frontend import plotting, config
 logger = structlog.get_logger()
 
 DOWNSAMPLE_FACTOR = 8
