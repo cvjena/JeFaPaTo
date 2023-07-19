@@ -33,4 +33,12 @@ class Config(pyqtconfig.ConfigManager):
         if not filename.exists():
             json.dumps(filename.write_text("{}"), indent=4)
 
+        # check if the file is parseable
+        try:
+            json.loads(filename.read_text())
+        except json.JSONDecodeError:
+            logger.error("Config file is not parseable", path=filename)
+            # reset to empty file
+            json.dumps(filename.write_text("{}"), indent=4)
+
         super().__init__(*args, filename=filename, **kwargs)
