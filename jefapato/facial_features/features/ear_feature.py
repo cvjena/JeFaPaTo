@@ -45,8 +45,10 @@ class EAR_Data(FeatureData):
     lm_r: np.ndarray
 
 class EAR(Feature):
-    index_l = np.array([362, 385, 386, 263, 374, 380])
-    index_r = np.array([ 33, 159, 158, 133, 153, 145])
+    # index_l = np.array([362, 385, 386, 263, 374, 380])
+    # index_r = np.array([ 33, 159, 158, 133, 153, 145])
+    index_l = np.array([362, 385, 387, 263, 373, 380])
+    index_r = np.array([ 33, 160, 158, 133, 153, 144])
     def get_header(self) -> List[str]:
         """
         Returns
