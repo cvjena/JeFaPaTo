@@ -32,10 +32,14 @@ class FeatureCheckBox(QtWidgets.QCheckBox):
         self.setText(name)
 
 class FeatureGroupBox(QtWidgets.QGroupBox):
-    def __init__(self, callbacks: list[Callable] | None = None, **kwargs):
+    def __init__(self, title: str, callbacks: list[Callable] | None = None, **kwargs):
         super().__init__(**kwargs)
-        self.setTitle("Facial Features")
+        self.setTitle(title)
         self.setLayout(QtWidgets.QVBoxLayout())
+        self.layout().setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
+        self.setCheckable(True)
+        self.toggled.connect(self.on_toggle)
+
         self.feature_checkboxes: list[FeatureCheckBox] = []
         self.callsbacks = callbacks or []
 
@@ -51,6 +55,12 @@ class FeatureGroupBox(QtWidgets.QGroupBox):
             else:
                 check_box.clicked.connect(callback)
 
+    def on_toggle(self, on: bool):
+        for box in self.sender().findChildren(QtWidgets.QCheckBox): # type: ignore
+            box = box # type: FeatureCheckBox
+            box.setChecked(on)
+            box.setEnabled(True)
+
 class BlendShapeFeatureGroupBox(QtWidgets.QGroupBox):
     def __init__(self, callbacks: list[Callable] | None = None, **kwargs):
         super().__init__(**kwargs)
@@ -58,63 +68,34 @@ class BlendShapeFeatureGroupBox(QtWidgets.QGroupBox):
         self.callsbacks = callbacks or []
         self.setTitle("Blend Shape Features")
 
-        # have two vertical layouts, one for the left and one for the right
-        self.layout_left = QtWidgets.QVBoxLayout()
-        self.layout_right = QtWidgets.QVBoxLayout()
-        self.layout_whole = QtWidgets.QVBoxLayout()
+        self.features_left  = FeatureGroupBox(title="Left",  callbacks=callbacks)
+        self.features_right = FeatureGroupBox(title="Right", callbacks=callbacks)
+        self.features_whole = FeatureGroupBox(title="Whole", callbacks=callbacks)
 
-        self.layout_left.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
-        self.layout_right.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
-        self.layout_whole.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
-
-        self.group_left = QtWidgets.QGroupBox("Left")
-        self.group_left.setCheckable(True)
-        self.group_left.setLayout(self.layout_left)
-        self.group_left.toggled.connect(self.on_toggle)
-        self.group_right = QtWidgets.QGroupBox("Right")
-        self.group_right.setCheckable(True)
-        self.group_right.setLayout(self.layout_right)
-        self.group_right.toggled.connect(self.on_toggle)
-        self.group_whole = QtWidgets.QGroupBox("Whole")
-        self.group_whole.setCheckable(True)
-        self.group_whole.setLayout(self.layout_whole)
-        self.group_whole.toggled.connect(self.on_toggle)
-
-        ## add a text at the top of each layout to indicate the side
         self.setLayout(QtWidgets.QVBoxLayout())
+
+        scroll = QtWidgets.QScrollArea()
+        scroll.setWidgetResizable(True)
+        # dont maximize the scroll area
+        scroll.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding)
+        self.layout().addWidget(scroll)
 
         temp_widget = QtWidgets.QWidget()
         temp_layout = QtWidgets.QHBoxLayout()
         temp_widget.setLayout(temp_layout)
-        temp_layout.addWidget(self.group_whole, stretch=1)
-        temp_layout.addWidget(self.group_right, stretch=1)
-        temp_layout.addWidget(self.group_left, stretch=1)
+        temp_layout.addWidget(self.features_whole, stretch=1)
+        temp_layout.addWidget(self.features_right, stretch=1)
+        temp_layout.addWidget(self.features_left, stretch=1)
 
-        self.layout().addWidget(temp_widget)
+        scroll.setWidget(temp_widget)
 
     def add_feature(self, feature_class: Type[features.Blendshape]):
-        checkbox = FeatureCheckBox(feature_class)
-        self.feature_checkboxes.append(checkbox)
-
         if "Left" in feature_class.__name__:
-            self.layout_left.addWidget(checkbox)
+            self.features_left.add_feature(feature_class)
         elif "Right" in feature_class.__name__:
-            self.layout_right.addWidget(checkbox)
+            self.features_right.add_feature(feature_class)
         else:
-            self.layout_whole.addWidget(checkbox)
-
-        for callback in self.callsbacks:
-            # this is a hacky workaround but currently the only way to do it
-            if callback.__name__ == "add_handler":
-                callback(checkbox.feature_class.__name__, checkbox, default=False)
-            else:
-                checkbox.toggled.connect(callback)
-
-    def on_toggle(self, on: bool):
-        for box in self.sender().findChildren(QtWidgets.QCheckBox): # type: ignore
-            box = box # type: FeatureCheckBox
-            box.setChecked(on)
-            box.setEnabled(True)
+            self.features_whole.add_feature(feature_class)
 
 class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
     updated = pyqtSignal(int) 
@@ -185,7 +166,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.add_handler("use_bbox", self.use_bbox, default=True)
         self.add_handler("auto_find_face", self.widget_frame.cb_auto_find, default=True)
 
-        self.feature_group = FeatureGroupBox([self.set_features, self.add_handler])
+        self.feature_group = FeatureGroupBox("Facial Features", [self.set_features, self.add_handler])
         self.feature_group.add_feature(features.EAR2D6)
         self.feature_group.add_feature(features.EAR3D6)
 
