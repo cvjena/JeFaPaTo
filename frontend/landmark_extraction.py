@@ -108,7 +108,6 @@ class BlendShapeFeatureGroupBox(QtWidgets.QGroupBox):
             if callback.__name__ == "add_handler":
                 callback(checkbox.feature_class.__name__, checkbox, default=False)
             else:
-                checkbox.clicked.connect(callback)
                 checkbox.toggled.connect(callback)
 
     def on_toggle(self, on: bool):
