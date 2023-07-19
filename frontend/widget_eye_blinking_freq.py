@@ -192,6 +192,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.btn_eprt = QtWidgets.QPushButton(qta.icon("ph.export-light"), "Export")
 
         self.la_current_file = QtWidgets.QLabel("File: No file loaded")
+        self.la_current_file.setWordWrap(True)
 
         self.comb_ear_l = QtWidgets.QComboBox()
         self.comb_ear_l.currentIndexChanged.connect(self.select_column_left)
@@ -623,6 +624,8 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         ############################################################
 
         # load the file and parse it as data frame
+        file_path = Path(file_path).resolve().absolute()
+        self.la_current_file.setText(f"File: {file_path.as_posix()}")
         self.data_frame = pd.read_csv(file_path.as_posix(), sep=",")
         self.data_frame_columns = list(self.data_frame.columns)
         self.data_frame_columns = list(filter(lambda x: x not in ["frame", "valid"], self.data_frame_columns))
