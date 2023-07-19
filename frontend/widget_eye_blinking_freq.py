@@ -94,6 +94,9 @@ def _event_QGroupBox(self):
     return self.clicked
 
 
+def to_MM_SS(value):
+    return f"{int(value / 60):02d}:{int(value % 60):02d}"
+
 class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
     updated = QtCore.Signal(int)
 
@@ -222,15 +225,6 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.add_handler("min_width", le_width_min)
         self.add_handler("max_width", le_width_max)
 
-        # le_th_l.textChanged.connect(self.save_conf)
-        # le_th_r.textChanged.connect(self.save_conf)
-        # le_fps.textChanged.connect(self.save_conf)
-        le_fps.textChanged.connect(self.compute_graph_axis)
-        # le_distance.textChanged.connect(self.save_conf)
-        # le_prominence.textChanged.connect(self.save_conf)
-        # le_width_min.textChanged.connect(self.save_conf)
-        # le_width_max.textChanged.connect(self.save_conf)
-
         le_fps.setValidator(QtGui.QIntValidator())
         le_width_min.setValidator(QtGui.QIntValidator())
         le_width_max.setValidator(QtGui.QIntValidator())
@@ -274,10 +268,14 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.radio_30 = QtWidgets.QRadioButton("30")
         self.radio_240 = QtWidgets.QRadioButton("240")
         self.radio_240.setChecked(True)
+        
+        self.radio_30.toggled.connect(self.compute_graph_axis)
+
         group_box_layout = QtWidgets.QHBoxLayout()
         self.fps_box.setLayout(group_box_layout)
         group_box_layout.addWidget(self.radio_30)
         group_box_layout.addWidget(self.radio_240)
+
 
         self.add_handler("as_time", cb_as_time)
         self.add_handler("draw_width_height", cb_width_height)
@@ -330,16 +328,15 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.disable_algorithm()
         self.disable_export()
 
-
-    def to_MM_SS(self, value):
-        return f"{int(value / 60):02d}:{int(value % 60):02d}"
-
     def compute_graph_axis(self) -> None:
         logger.info("Compute graph x-axis")
         ds_factor = 1 if not self.get("vis_downsample") else DOWNSAMPLE_FACTOR
 
         if self.x_lim_max_old != self.x_lim_max:
-            x_range = self.graph.getViewBox().viewRange()[0]
+            viewbox = self.graph.getViewBox()
+            assert viewbox is not None
+            x_range = viewbox.viewRange()[0]
+            
             x_min = (x_range[0] / self.x_lim_max_old) * self.x_lim_max
             x_max = (x_range[1] / self.x_lim_max_old) * self.x_lim_max
             self.graph.setLimits(xMin=0, xMax=self.x_lim_max)
@@ -354,14 +351,9 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         if self.get("as_time"):
             x_axis.setLabel("Time (MM:SS)")
-            try:
-                # this exception occurs when the user enters nothing or a non-number
-                fps = int(int(self.config.get("fps")) / ds_factor)
-            except ValueError:
-                fps = int(30 / ds_factor)
-
+            fps = 30 if self.radio_30.isChecked() else 240 # TODO make more general in the future
             x_ticks = np.arange(0, self.x_lim_max, fps)
-            x_ticks_lab = [str(self.to_MM_SS(x // fps)) for x in x_ticks]
+            x_ticks_lab = [str(to_MM_SS(x // fps)) for x in x_ticks]
 
             # TODO add some miliseconds to the ticks
             x_axis.setTicks(
@@ -381,7 +373,6 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
                 [
                     [(x, xl) for x, xl in zip(x_ticks[::1000], x_ticks_lab[::1000])],
                     [(x, xl) for x, xl in zip(x_ticks[::100], x_ticks_lab[::100])],
-                    [(x, xl) for x, xl in zip(x_ticks[::10], x_ticks_lab[:10])],
                 ]
             )
 
@@ -649,6 +640,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         self.enable_column_selection()
         self.enable_algorithm()
+        self.disable_export()
 
     def select_column_left(self, index: int) -> None:
         assert self.data_frame is not None
@@ -668,8 +660,10 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.plot_item_ear_l.clear()
         self.plot_item_ear_r.clear()
 
-        self.plot_item_ear_l.setData(self.raw_ear_l)
-        self.plot_item_ear_r.setData(self.raw_ear_r)
+        if self.raw_ear_l is not None:
+            self.plot_item_ear_l.setData(self.raw_ear_l)
+        if self.raw_ear_r is not None:
+            self.plot_item_ear_r.setData(self.raw_ear_r)
 
         self.compute_graph_axis()
 
