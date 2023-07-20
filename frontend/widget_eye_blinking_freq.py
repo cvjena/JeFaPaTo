@@ -37,6 +37,8 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.x_lim_max = 1000
         self.raw_ear_l: np.ndarray | None = None
         self.raw_ear_r: np.ndarray | None = None
+        self.ear_l: np.ndarray | None = None
+        self.ear_r: np.ndarray | None = None
 
         self.blinking_l: pd.DataFrame | None = None
         self.blinking_r: pd.DataFrame | None = None
@@ -407,20 +409,26 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         smooth_size: int = self.get("smooth_size") or 91
         smooth_poly: int = self.get("smooth_poly") or 5
         
-        ear_l = blinking.smooth(self.raw_ear_l, smooth_size, smooth_poly) if do_smoothing else self.raw_ear_l
-        ear_r = blinking.smooth(self.raw_ear_r, smooth_size, smooth_poly) if do_smoothing else self.raw_ear_r
+        self.ear_l = blinking.smooth(self.raw_ear_l, smooth_size, smooth_poly) if do_smoothing else self.raw_ear_l
+        self.ear_r = blinking.smooth(self.raw_ear_r, smooth_size, smooth_poly) if do_smoothing else self.raw_ear_r
 
         self.progress.setValue(40)
 
         threshold_l = self.get("threshold_l") or 0.16
         threshold_r = self.get("threshold_r") or 0.16
 
-        self.blinking_l = blinking.peaks(ear_l, threshold=threshold_l, **kwargs)
-        self.blinking_r = blinking.peaks(ear_r, threshold=threshold_r, **kwargs)
+        self.blinking_l = blinking.peaks(self.ear_l, threshold=threshold_l, **kwargs)
+        self.blinking_r = blinking.peaks(self.ear_r, threshold=threshold_r, **kwargs)
 
     def plot_intervals(self) -> None:
         if self.blinking_l is None or self.blinking_r is None:
             return
+        
+        self.plot_curve_ear_l.clear()
+        self.plot_curve_ear_r.clear()
+        self.plot_curve_ear_l.setData(self.ear_l)
+        self.plot_curve_ear_r.setData(self.ear_r)
+
         # TODO add some kind of settings for the colors
         self.plot_scatter_blinks_l.clear()
         self.plot_scatter_blinks_r.clear()
