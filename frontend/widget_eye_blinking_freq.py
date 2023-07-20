@@ -6,7 +6,6 @@ import pyqtgraph as pg
 import qtawesome as qta
 import structlog
 from qtpy import QtCore, QtGui, QtWidgets
-from tabulate import tabulate
 
 from PyQt6.QtCore import pyqtSignal
 
@@ -37,12 +36,9 @@ def sec_to_min(seconds: float) -> str:
     seconds = int(seconds % 60)
     return f"{minutes:02d}:{seconds:02d}"
 
-def to_qt_row(row: pd.Series) -> list:
-    return [QtGui.QStandardItem(str(row[c])) for c in row.index]
 
 class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
     updated = pyqtSignal(int)
-
     def __init__(self, parent):
         config.Config.__init__(self, prefix="ear")
         QtWidgets.QSplitter.__init__(self, parent=parent)
@@ -93,25 +89,16 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         # upper main content is a tab widget with the tables and text information
         # first tabe is the tables with the results
-        self.splitter_table = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal, parent=self)
-        self.model_l = QtGui.QStandardItemModel(self)
-        self.model_r = QtGui.QStandardItemModel(self)
 
-        self.table_l = QtWidgets.QTableView()
-        self.table_l.setModel(self.model_l)
-        self.table_r = QtWidgets.QTableView()
-        self.table_r.setModel(self.model_r)
-
-        self.splitter_table.addWidget(self.table_l)
-        self.splitter_table.addWidget(self.table_r)
+        self.blinking_table = jwidgets.JBlinkingTable()
 
         # second tab is the text information
         self.te_results_g = QtWidgets.QTextEdit()
         self.te_results_g.setFontFamily("mono")
         self.te_results_g.setLineWrapMode(QtWidgets.QTextEdit.LineWrapMode.NoWrap)
 
-        self.tab_widget_results.addTab(self.splitter_table, "Table Results")
-        self.tab_widget_results.addTab(self.te_results_g, "Analysis Results")
+        self.tab_widget_results.addTab(self.blinking_table, "Blinking Table")
+        self.tab_widget_results.addTab(self.te_results_g,   "Summary")
 
         # lower main content is a graph
         self.graph_layout = pg.GraphicsLayoutWidget()
@@ -398,7 +385,11 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.plot_intervals()
         self.progress.setValue(80)
 
-        self.tabulate_intervals()
+        if self.blinking_l is None or self.blinking_r is None:
+            logger.error("Somehow the blinking data frames are None")
+            return
+
+        self.blinking_table.set_data(self.blinking_l, self.blinking_r)
         self.progress.setValue(100)
 
         self.enable_export()        
@@ -442,24 +433,6 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.plot_scatter_blinks_l.setData(x=self.blinking_l["frame"].to_numpy(), y=self.blinking_l["score"].to_numpy(), pen={"color": "#00F", "width": 2})
         self.plot_scatter_blinks_r.setData(x=self.blinking_r["frame"].to_numpy(), y=self.blinking_r["score"].to_numpy(), pen={"color": "#F00", "width": 2})
 
-    def tabulate_intervals(self) -> None:
-        if self.blinking_l is None or self.blinking_r is None:
-            return
-
-        self.model_l.clear()
-        self.model_r.clear()
-        for _, row in self.blinking_l.iterrows():
-            self.model_l.appendRow(to_qt_row(row))
-
-        for _, row in self.blinking_r.iterrows():
-            self.model_r.appendRow(to_qt_row(row))
-
-        self.table_l.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
-        self.table_r.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
-
-        self.model_l.setHorizontalHeaderLabels(list(self.blinking_l.columns))
-        self.model_r.setHorizontalHeaderLabels(list(self.blinking_r.columns))
-
     def clear_on_new_file(self) -> None:
         self.raw_ear_l = None
         self.raw_ear_r = None
@@ -472,8 +445,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.comb_ear_l.clear()
         self.comb_ear_r.clear()
 
-        self.model_l.clear()
-        self.model_r.clear()
+        self.blinking_table.reset()
 
         self.plot_curve_ear_l.clear()
         self.plot_curve_ear_r.clear()
