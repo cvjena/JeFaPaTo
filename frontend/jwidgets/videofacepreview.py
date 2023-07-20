@@ -21,6 +21,9 @@ class FaceVideoContainer:
         self.resource: cv2.VideoCapture | None = None # TODO decord as alternative useful?
         self.frame_count: int | None = None
 
+        ccc_file =  Path(__file__).parent / "models" / "haarcascade_frontalface_default.xml"
+        self.face_finder = cv2.CascadeClassifier(str(ccc_file))
+
     def load_file(self, file_path: Path) -> np.ndarray:
         assert file_path.exists()
         assert file_path.is_file()
@@ -44,7 +47,14 @@ class FaceVideoContainer:
             return np.zeros((300, 300, 3), dtype=np.uint8)
         
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        # TODO find the face bbox
+        frame_g = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+        faces = self.face_finder.detectMultiScale(frame_g, 1.1, 5)
+        if len(faces) == 0:
+            logger.warning("Could not find face", frame_number=frame_number, file_path=self.file_path)
+            return frame
+
+        x, y, w, h = faces[0]
+        frame = frame[y:y+h, x:x+w]
         return frame
 
 class JVideoFacePreview(QWidget):
