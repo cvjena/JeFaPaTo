@@ -9,24 +9,11 @@ from qtpy import QtCore, QtGui, QtWidgets
 from tabulate import tabulate
 
 from jefapato.methods import blinking
-from frontend import plotting, config
+from frontend import plotting, config, jwidgets
+
 logger = structlog.get_logger()
 
 DOWNSAMPLE_FACTOR = 8
-
-
-class QHLine(QtWidgets.QFrame):
-    def __init__(self):
-        super(QHLine, self).__init__()
-        self.setFrameShape(QtWidgets.QFrame.HLine)
-        self.setFrameShadow(QtWidgets.QFrame.Sunken)
-
-class QVLine(QtWidgets.QFrame):
-    def __init__(self):
-        super(QVLine, self).__init__()
-        self.setFrameShape(QtWidgets.QFrame.VLine)
-        self.setFrameShadow(QtWidgets.QFrame.Sunken)
-
 
 
 class CollapsibleBox(QtWidgets.QWidget):
@@ -311,22 +298,22 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         # add all things to the settings layout
         self.layout_settings.addWidget(self.btn_load)
         self.layout_settings.addWidget(self.la_current_file)
-        self.layout_settings.addWidget(QHLine())
+        self.layout_settings.addWidget(jwidgets.JHLine())
         
         self.layout_settings.addWidget(QtWidgets.QLabel("Left Eye"))
         self.layout_settings.addWidget(self.comb_ear_l)
         self.layout_settings.addWidget(QtWidgets.QLabel("Right Eye"))
         self.layout_settings.addWidget(self.comb_ear_r)
-        self.layout_settings.addWidget(QHLine())
+        self.layout_settings.addWidget(jwidgets.JHLine())
 
         self.layout_settings.addWidget(self.box_settings)
         self.layout_settings.addWidget(self.btn_anal)
         self.layout_settings.addWidget(self.btn_summ)
-        self.layout_settings.addWidget(QHLine())
+        self.layout_settings.addWidget(jwidgets.JHLine())
         self.layout_settings.addWidget(QtWidgets.QLabel("Export Format"))
         self.layout_settings.addWidget(self.format_export)
         self.layout_settings.addWidget(self.btn_eprt)
-        self.layout_settings.addWidget(QHLine())
+        self.layout_settings.addWidget(jwidgets.JHLine())
         self.layout_settings.addWidget(self.box_visuals)
 
         spacer = QtWidgets.QWidget()
