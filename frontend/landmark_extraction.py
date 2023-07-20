@@ -12,7 +12,7 @@ import structlog
 from PyQt6.QtCore import pyqtSignal
 from qtpy import QtCore, QtGui, QtWidgets
 
-from frontend import plotting, config
+from frontend import config, jwidgets, plotting
 from jefapato import facial_features
 from jefapato.facial_features import features
 
@@ -124,7 +124,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
 
         self.widget_face = plotting.SimpleImage(enableMouse=False)
         self.widget_frame = plotting.FaceSelectBox(face_box=self.widget_face, enableMouse=False)
-        self.widget_graph = plotting.WidgetGraph(add_yruler=False)
+        self.widget_graph = jwidgets.WidgetGraph(add_yruler=False)
 
         self.vlayout_display = pg.GraphicsLayoutWidget()
         self.vlayout_display.addItem(self.widget_frame, row=0, col=0)               # type: ignore

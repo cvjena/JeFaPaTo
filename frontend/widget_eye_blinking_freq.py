@@ -10,7 +10,7 @@ from qtpy import QtCore, QtGui, QtWidgets
 from PyQt6.QtCore import pyqtSignal
 
 from jefapato.methods import blinking
-from frontend import plotting, config, jwidgets
+from frontend import config, jwidgets
 
 logger = structlog.get_logger()
 
@@ -46,7 +46,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.data_frame: pd.DataFrame | None = None
         self.data_frame_columns: list[str] = []
 
-        self.graph = plotting.WidgetGraph(x_lim_max=self.x_lim_max)
+        self.graph = jwidgets.WidgetGraph(x_lim_max=self.x_lim_max)
         self.plot_curve_ear_l = self.graph.add_curve({"color": "#00F", "width": 2}) # TODO add correct colors...
         self.plot_curve_ear_r = self.graph.add_curve({"color": "#F00", "width": 2}) # TODO add correct colors...
         self.plot_scatter_blinks_l = self.graph.add_scatter()
