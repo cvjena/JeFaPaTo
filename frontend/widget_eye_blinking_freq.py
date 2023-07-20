@@ -8,16 +8,14 @@ import structlog
 from qtpy import QtCore, QtGui, QtWidgets
 from tabulate import tabulate
 
+from PyQt6.QtCore import pyqtSignal
+
 from jefapato.methods import blinking
 from frontend import plotting, config, jwidgets
 
 logger = structlog.get_logger()
 
 DOWNSAMPLE_FACTOR = 8
-
-
-
-
 
 def _get_QGroupBox(self):
     return self.isChecked()
@@ -43,9 +41,9 @@ def to_qt_row(row: pd.Series) -> list:
     return [QtGui.QStandardItem(str(row[c])) for c in row.index]
 
 class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
-    updated = QtCore.Signal(int)
+    updated = pyqtSignal(int)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent):
         config.Config.__init__(self, prefix="ear")
         QtWidgets.QSplitter.__init__(self, parent=parent)
 
@@ -72,7 +70,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         # UI elements 
         self.add_hooks(QtWidgets.QGroupBox, (_get_QGroupBox, _set_QGroupBox, _event_QGroupBox))
-        self.setOrientation(QtCore.Qt.Horizontal)
+        self.setOrientation(QtCore.Qt.Orientation.Horizontal)
 
         self.setAcceptDrops(True)
         # Create the main layouts of the interface
@@ -95,7 +93,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         # upper main content is a tab widget with the tables and text information
         # first tabe is the tables with the results
-        self.splitter_table = QtWidgets.QSplitter(QtCore.Qt.Horizontal, parent=self)
+        self.splitter_table = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal, parent=self)
         self.model_l = QtGui.QStandardItemModel(self)
         self.model_r = QtGui.QStandardItemModel(self)
 
@@ -117,7 +115,9 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         # lower main content is a graph
         self.graph_layout = pg.GraphicsLayoutWidget()
-        self.graph.getViewBox().enableAutoRange(enable=False)
+        vb = self.graph.getViewBox()
+        assert vb is not None, "Somehow the viewbox is None"
+        vb.enableAutoRange(enable=False)
         self.graph.setYRange(0, 1)
         self.graph_layout.addItem(self.graph)
 
@@ -140,7 +140,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.comb_ear_l.currentIndexChanged.connect(self.select_column_left)
         self.comb_ear_r.currentIndexChanged.connect(self.select_column_right)
 
-        self.progress = self.parent().progress_bar
+        self.progress = self.parent().progress_bar # type: ignore 
         self.btn_load.clicked.connect(self.load_dialog)
         self.btn_anal.clicked.connect(self.extract_blinks)
         self.btn_summ.clicked.connect(self.compute_summary)
@@ -268,7 +268,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.layout_settings.addWidget(self.box_visuals)
 
         spacer = QtWidgets.QWidget()
-        spacer.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
+        spacer.setSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Expanding)
         self.layout_settings.addWidget(spacer)
 
         logger.info("Initialized EyeBlinkingFreq widget")
@@ -490,112 +490,112 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
     def compute_summary(self) -> None:
         pass
 
-    def print_results(
-        self,
-        blinking_l: pd.DataFrame,
-        blinking_r: pd.DataFrame,
-        **kwargs,
-    ) -> None:
-        # compute the video time (depending on the fps) of the peaks in the data frames
-        # for 30 fps and the given fps in kwargs and added to the data frames
-        # the columns are called "time30" and timeFPS and the values are in the form
-        # MM:SS the time is computed from the frame of the data frame
-        blinking_l["time30"] = blinking_l["frame"] / 30
-        blinking_r["time30"] = blinking_r["frame"] / 30
-        blinking_l["timeFPS"] = blinking_l["frame"] / kwargs["fps"]
-        blinking_r["timeFPS"] = blinking_r["frame"] / kwargs["fps"]
-        blinking_l["time30"] = blinking_l["time30"].apply(sec_to_min)
-        blinking_r["time30"] = blinking_r["time30"].apply(sec_to_min)
-        blinking_l["timeFPS"] = blinking_l["timeFPS"].apply(sec_to_min)
-        blinking_r["timeFPS"] = blinking_r["timeFPS"].apply(sec_to_min)
+    # def print_results(
+    #     self,
+    #     blinking_l: pd.DataFrame,
+    #     blinking_r: pd.DataFrame,
+    #     **kwargs,
+    # ) -> None:
+    #     # compute the video time (depending on the fps) of the peaks in the data frames
+    #     # for 30 fps and the given fps in kwargs and added to the data frames
+    #     # the columns are called "time30" and timeFPS and the values are in the form
+    #     # MM:SS the time is computed from the frame of the data frame
+    #     blinking_l["time30"] = blinking_l["frame"] / 30
+    #     blinking_r["time30"] = blinking_r["frame"] / 30
+    #     blinking_l["timeFPS"] = blinking_l["frame"] / kwargs["fps"]
+    #     blinking_r["timeFPS"] = blinking_r["frame"] / kwargs["fps"]
+    #     blinking_l["time30"] = blinking_l["time30"].apply(sec_to_min)
+    #     blinking_r["time30"] = blinking_r["time30"].apply(sec_to_min)
+    #     blinking_l["timeFPS"] = blinking_l["timeFPS"].apply(sec_to_min)
+    #     blinking_r["timeFPS"] = blinking_r["timeFPS"].apply(sec_to_min)
 
-        self._reset_result_text()
+    #     self._reset_result_text()
 
-        self._add("===Video Info===")
-        self._add(f"File: {self.file.as_posix()}")
-        self._add(f"Runtime: {sec_to_min(len(self.ear_l) / kwargs['fps'])}")
+    #     self._add("===Video Info===")
+    #     self._add(f"File: {self.file.as_posix()}")
+    #     self._add(f"Runtime: {sec_to_min(len(self.ear_l) / kwargs['fps'])}")
 
-        for k, v in kwargs.items():
-            self._add(f"{k}: {v}")
+    #     for k, v in kwargs.items():
+    #         self._add(f"{k}: {v}")
 
-        bins = np.arange(
-            start=0,
-            stop=len(self.ear_l) + 2 * 60 * kwargs["fps"],
-            step=60 * kwargs["fps"],
-        )
-        hist_l, _ = np.histogram(blinking_l["frame"], bins=bins)
-        hist_r, _ = np.histogram(blinking_r["frame"], bins=bins)
+    #     bins = np.arange(
+    #         start=0,
+    #         stop=len(self.ear_l) + 2 * 60 * kwargs["fps"],
+    #         step=60 * kwargs["fps"],
+    #     )
+    #     hist_l, _ = np.histogram(blinking_l["frame"], bins=bins)
+    #     hist_r, _ = np.histogram(blinking_r["frame"], bins=bins)
 
-        self._add("===Blinking Info===")
-        self._add(f"Blinks Per Minute L: {hist_l.tolist()}")
-        self._add(f"Blinks Per Minute R: {hist_r.tolist()}")
+    #     self._add("===Blinking Info===")
+    #     self._add(f"Blinks Per Minute L: {hist_l.tolist()}")
+    #     self._add(f"Blinks Per Minute R: {hist_r.tolist()}")
 
-        self._add(f"Avg. Freq. L: {np.mean(hist_l): 6.3f}")
-        self._add(f"Avg. Freq. R: {np.mean(hist_r): 6.3f}")
+    #     self._add(f"Avg. Freq. L: {np.mean(hist_l): 6.3f}")
+    #     self._add(f"Avg. Freq. R: {np.mean(hist_r): 6.3f}")
 
-        self._add(f"Avg. Freq. [wo/ last minute] L: {np.mean(hist_l[:-1]): 6.3f}")
-        self._add(f"Avg. Freq. [wo/ last minute] R: {np.mean(hist_r[:-1]): 6.3f}")
+    #     self._add(f"Avg. Freq. [wo/ last minute] L: {np.mean(hist_l[:-1]): 6.3f}")
+    #     self._add(f"Avg. Freq. [wo/ last minute] R: {np.mean(hist_r[:-1]): 6.3f}")
 
-        _mean = np.mean(blinking_l["width"])
-        _std = np.std(blinking_l["width"])
-        self._add(f"Avg. Len. L: {_mean: 6.3f} +/- {_std: 6.3f} [frames]")
-        _mean /= kwargs["fps"]
-        _std /= kwargs["fps"]
-        self._add(f"Avg. Len. L: {_mean: 6.3f} +/- {_std: 6.3f} [s]")
+    #     _mean = np.mean(blinking_l["width"])
+    #     _std = np.std(blinking_l["width"])
+    #     self._add(f"Avg. Len. L: {_mean: 6.3f} +/- {_std: 6.3f} [frames]")
+    #     _mean /= kwargs["fps"]
+    #     _std /= kwargs["fps"]
+    #     self._add(f"Avg. Len. L: {_mean: 6.3f} +/- {_std: 6.3f} [s]")
 
-        _mean = np.mean(blinking_r["width"])
-        _std = np.std(blinking_r["width"])
-        self._add(f"Avg. Len. R: {_mean: 6.3f} +/- {_std: 6.3f} [frames]")
-        _mean /= kwargs["fps"]
-        _std /= kwargs["fps"]
-        self._add(f"Avg. Len. R: {_mean: 6.3f} +/- {_std: 6.3f} [s]")
+    #     _mean = np.mean(blinking_r["width"])
+    #     _std = np.std(blinking_r["width"])
+    #     self._add(f"Avg. Len. R: {_mean: 6.3f} +/- {_std: 6.3f} [frames]")
+    #     _mean /= kwargs["fps"]
+    #     _std /= kwargs["fps"]
+    #     self._add(f"Avg. Len. R: {_mean: 6.3f} +/- {_std: 6.3f} [s]")
 
-        self._add()
+    #     self._add()
 
-        for index, (start, stop) in enumerate(zip(bins[:-2], bins[1:])):
-            df = blinking_l[(blinking_l["frame"] >= start) & (blinking_l["frame"] < stop)]
-            _mean = np.mean(df["width"])
-            _std = np.std(df["width"])
-            self._add(f"Minute {index:02d} L: {_mean: 6.3f} +/- {_std: 6.3f}[frames]")
+    #     for index, (start, stop) in enumerate(zip(bins[:-2], bins[1:])):
+    #         df = blinking_l[(blinking_l["frame"] >= start) & (blinking_l["frame"] < stop)]
+    #         _mean = np.mean(df["width"])
+    #         _std = np.std(df["width"])
+    #         self._add(f"Minute {index:02d} L: {_mean: 6.3f} +/- {_std: 6.3f}[frames]")
 
-            _mean /= kwargs["fps"]
-            _std /= kwargs["fps"]
-            self._add(f"Minute {index:02d} R: {_mean: 6.3f} +/- {_std: 6.3f}[s]")
+    #         _mean /= kwargs["fps"]
+    #         _std /= kwargs["fps"]
+    #         self._add(f"Minute {index:02d} R: {_mean: 6.3f} +/- {_std: 6.3f}[s]")
 
-        self._add()
+    #     self._add()
 
-        for index, (start, stop) in enumerate(zip(bins[:-2], bins[1:])):
-            df = blinking_r[(blinking_r["frame"] >= start) & (blinking_r["frame"] < stop)]
-            _mean = np.mean(df["width"])
-            _std = np.std(df["width"])
-            self._add(f"Minute {index:02d} R: {_mean: 6.3f} +/- {_std: 6.3f}[frames]")
+    #     for index, (start, stop) in enumerate(zip(bins[:-2], bins[1:])):
+    #         df = blinking_r[(blinking_r["frame"] >= start) & (blinking_r["frame"] < stop)]
+    #         _mean = np.mean(df["width"])
+    #         _std = np.std(df["width"])
+    #         self._add(f"Minute {index:02d} R: {_mean: 6.3f} +/- {_std: 6.3f}[frames]")
 
-            _mean /= kwargs["fps"]
-            _std /= kwargs["fps"]
-            self._add(f"Minute {index:02d} R: {_mean: 6.3f} +/- {_std: 6.3f}[s]")
+    #         _mean /= kwargs["fps"]
+    #         _std /= kwargs["fps"]
+    #         self._add(f"Minute {index:02d} R: {_mean: 6.3f} +/- {_std: 6.3f}[s]")
 
-        self._add("")
-        self.progress.setValue(95)
-        self._add("===Detail Left Info===")
-        self._add(tabulate(blinking_l, headers="keys", tablefmt="github"))
-        self._add("")
-        self._add("===Detail Right Info===")
-        self._add(tabulate(blinking_r, headers="keys", tablefmt="github"))
-        self._set_result_text()
+    #     self._add("")
+    #     self.progress.setValue(95)
+    #     self._add("===Detail Left Info===")
+    #     self._add(tabulate(blinking_l, headers="keys", tablefmt="github"))
+    #     self._add("")
+    #     self._add("===Detail Right Info===")
+    #     self._add(tabulate(blinking_r, headers="keys", tablefmt="github"))
+    #     self._set_result_text()
 
-        self.fill_tables(blinking_l, blinking_r)
+    #     self.fill_tables(blinking_l, blinking_r)
 
-        self.blinking_l = blinking_l
-        self.blinking_r = blinking_r
+    #     self.blinking_l = blinking_l
+    #     self.blinking_r = blinking_r
 
-    def _reset_result_text(self) -> None:
-        self.result_text = ""
-        self.te_results_g.setText("")
+    # def _reset_result_text(self) -> None:
+    #     self.result_text = ""
+    #     self.te_results_g.setText("")
 
-    def _add(self, text: str = "") -> None:
-        self.result_text += text + "\n"
+    # def _add(self, text: str = "") -> None:
+    #     self.result_text += text + "\n"
 
-    def _set_result_text(self) -> None:
+    # def _set_result_text(self) -> None:
         self.te_results_g.setText(self.result_text)
 
     # saving of the results
