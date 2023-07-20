@@ -78,7 +78,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         # first tabe is the tables with the results
 
         self.blinking_table = jwidgets.JBlinkingTable()
-        self.blinking_table.selection_changed.connect(self.highlight_plot)
+        self.blinking_table.selection_changed.connect(self.highlight_blink)
 
         # second tab is the text information
         self.te_results_g = QtWidgets.QTextEdit()
@@ -453,15 +453,16 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.disable_algorithm()
         self.disable_export()
 
-    def highlight_plot(self, index: int) -> None:
+    def highlight_blink(self, index: int) -> None:
         if self.blinking_l is None or self.blinking_r is None:
             return
         
         # TODO we already assume that blinking left and right are synced
-        frame_loc = self.blinking_l["frame"].iloc[index]
+        frame_idx = self.blinking_l["frame"].iloc[index]
         # get fps
         fps = 30 if self.radio_30.isChecked() else 240 # TODO make more general in the future
-        self.graph.setXRange(frame_loc - fps, frame_loc + fps)
+        self.graph.setXRange(frame_idx - fps, frame_idx + fps)
+        self.face_preview.set_frame(frame_idx)
 
     # summary of the results
     def compute_summary(self) -> None:

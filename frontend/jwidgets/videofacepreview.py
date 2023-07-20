@@ -29,6 +29,10 @@ class FaceVideoContainer:
         self.frame_count = int(self.resource.get(cv2.CAP_PROP_FRAME_COUNT))
         
         return self.get_frame(0)
+    
+    def in_range(self, frame_number: int) -> bool:
+        assert self.frame_count is not None
+        return frame_number >= 0 and frame_number < self.frame_count
 
     def get_frame(self, frame_number: int) -> np.ndarray:
         assert self.resource is not None
@@ -87,7 +91,14 @@ class JVideoFacePreview(QWidget):
         self.face_widget.set_image(frame)
 
     def set_frame(self, frame_idx: int) -> None:
-        raise NotImplementedError()
+        assert self.face_container is not None
+
+        if not self.face_container.in_range(frame_idx):
+            logger.error("Invalid frame index", frame_idx=frame_idx, frame_count=self.face_container.frame_count)
+            return
+
+        frame = self.face_container.get_frame(frame_idx)
+        self.face_widget.set_image(frame)
 
     def dragEnterEvent(self, event: QDropEvent):
         logger.info("User started dragging event", widget=self)
