@@ -75,7 +75,6 @@ class JVideoFacePreview(QWidget):
         self.glayout.addItem(self.face_widget)
 
         self.face_container = FaceVideoContainer()
-        # self.layout().addWidget(self.glayout)
 
     def load_file(self, file_path: Path):
         # first do the relayouting
