@@ -16,8 +16,6 @@ logger = structlog.get_logger()
 
 DOWNSAMPLE_FACTOR = 8
 
-
-
 def to_MM_SS(value):
     return f"{int(value / 60):02d}:{int(value % 60):02d}"
 
