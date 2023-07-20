@@ -215,6 +215,8 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.format_export.setCurrentIndex(0)
         self.add_handler("export_format", self.format_export, default="Excel")
 
+        self.face_preview = jwidgets.JVideoFacePreview()
+
         # Layouting #
         self.box_settings.setContentLayout(self.set_algo)
         self.box_visuals.setContentLayout(self.set_visuals)
@@ -240,7 +242,12 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.layout_settings.addWidget(self.format_export)
         self.layout_settings.addWidget(self.btn_eprt)
         self.layout_settings.addWidget(jwidgets.JHLine())
+
         self.layout_settings.addWidget(self.box_visuals)
+        self.layout_settings.addWidget(jwidgets.JHLine())
+
+        self.layout_settings.addWidget(QtWidgets.QLabel("Face Preview (Drag & Drop Video File)"))
+        self.layout_settings.addWidget(self.face_preview)
 
         spacer = QtWidgets.QWidget()
         spacer.setSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Expanding)
