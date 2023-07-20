@@ -1,15 +1,14 @@
 __all__ = ["JGraph"]
 
-from typing import Any, Dict, List
+from typing import Any
 
 import pyqtgraph as pg
-from qtpy import QtCore
-
+from PyQt6.QtCore import pyqtSignal
 
 class JGraph(pg.PlotItem):
-    signal_x_ruler_changed = QtCore.Signal(float)
-    signal_y_ruler_changed = QtCore.Signal(float)
-    signal_graph_clicked = QtCore.Signal(float)
+    signal_x_ruler_changed = pyqtSignal(float)
+    signal_y_ruler_changed = pyqtSignal(float)
+    signal_graph_clicked   = pyqtSignal(float)
 
     def __init__(self, parent=None, background="default", x_lim_max=1000, **kargs):
         super().__init__(parent=parent, background=background, **kargs)
@@ -19,8 +18,8 @@ class JGraph(pg.PlotItem):
         self.setXRange(0, x_lim_max)
         self.setYRange(0, 1)
 
-        self.curves: List[pg.PlotDataItem] = list()
-        self.scatters: List[pg.ScatterPlotItem] = list()
+        self.curves: list[pg.PlotDataItem] = []
+        self.scatters: list[pg.ScatterPlotItem] = []
 
     def add_curve(self, *args, **kwargs) -> pg.PlotDataItem:
         curve: pg.PlotDataItem = self.plot(*args, **kwargs)
@@ -33,7 +32,8 @@ class JGraph(pg.PlotItem):
         self.removeItem(curve)
         self.curves.remove(curve)
 
-    def add_scatter(self, settings: Dict[str, Any] = None) -> pg.ScatterPlotItem:
+    # TODO check if setting is needed
+    def add_scatter(self, settings: dict[str, Any] | None = None) -> pg.ScatterPlotItem:
         scatter: pg.ScatterPlotItem = pg.ScatterPlotItem()
         self.addItem(scatter)
         self.scatters.append(scatter)
