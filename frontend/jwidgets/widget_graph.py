@@ -1,4 +1,4 @@
-__all__ = ["WidgetGraph"]
+__all__ = ["JGraph"]
 
 from typing import Any, Dict, List
 
@@ -6,7 +6,7 @@ import pyqtgraph as pg
 from qtpy import QtCore
 
 
-class WidgetGraph(pg.PlotItem):
+class JGraph(pg.PlotItem):
     signal_x_ruler_changed = QtCore.Signal(float)
     signal_y_ruler_changed = QtCore.Signal(float)
     signal_graph_clicked = QtCore.Signal(float)

@@ -124,7 +124,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
 
         self.widget_face = plotting.SimpleImage(enableMouse=False)
         self.widget_frame = plotting.FaceSelectBox(face_box=self.widget_face, enableMouse=False)
-        self.widget_graph = jwidgets.WidgetGraph(add_yruler=False)
+        self.widget_graph = jwidgets.JGraph(add_yruler=False)
 
         self.vlayout_display = pg.GraphicsLayoutWidget()
         self.vlayout_display.addItem(self.widget_frame, row=0, col=0)               # type: ignore
