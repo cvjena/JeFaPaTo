@@ -1,14 +1,14 @@
 __all__ = ["JVideoFacePreview"]
 
 from pathlib import Path
-from PyQt6 import QtCore
+
 import cv2
 import numpy as np
-
-import qtawesome as qta
 import pyqtgraph as pg
+import qtawesome as qta
+from PyQt6 import QtCore
 from PyQt6.QtGui import QDropEvent
-from PyQt6.QtWidgets import QVBoxLayout, QWidget, QLabel
+from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 from structlog import get_logger
 
 from frontend.plotting.image_box import SimpleImage
