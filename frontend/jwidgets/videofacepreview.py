@@ -56,6 +56,10 @@ class FaceVideoContainer:
         x, y, w, h = faces[0]
         frame = frame[y:y+h, x:x+w]
         return frame
+    
+    def is_loaded(self) -> bool:
+        return self.resource is not None
+
 
 class JVideoFacePreview(QWidget):
     """
@@ -101,6 +105,9 @@ class JVideoFacePreview(QWidget):
 
     def set_frame(self, frame_idx: int) -> None:
         assert self.face_container is not None
+        if not self.face_container.is_loaded():
+            logger.warning("Face container is not loaded", widget=self)
+            return
 
         if not self.face_container.in_range(frame_idx):
             logger.error("Invalid frame index", frame_idx=frame_idx, frame_count=self.face_container.frame_count)
