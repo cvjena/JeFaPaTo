@@ -123,7 +123,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.main_window = parent # type: QtWidgets.QMainWindow
 
         self.widget_face = jwidgets.JImageBox(enableMouse=False)
-        self.widget_frame = plotting.FaceSelectBox(face_box=self.widget_face, enableMouse=False)
+        self.widget_frame = plotting.JVideoFaceSelection(face_box=self.widget_face, enableMouse=False)
         self.widget_graph = jwidgets.JGraph(add_yruler=False)
 
         self.vlayout_display = pg.GraphicsLayoutWidget()

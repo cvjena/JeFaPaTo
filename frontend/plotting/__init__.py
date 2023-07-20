@@ -1,3 +1,3 @@
-__all__ = ["FaceSelectBox"]
+__all__ = ["JVideoFaceSelection"]
 
-from frontend.plotting.image_box import FaceSelectBox
+from frontend.plotting.image_box import JVideoFaceSelection

@@ -1,4 +1,4 @@
-__all__ = ["FaceSelectBox"]
+__all__ = ["JVideoFaceSelection"]
 
 from pathlib import Path
 
@@ -18,7 +18,7 @@ PEN = pg.mkPen(color="g", width=3, style=Qt.PenStyle.DashLine, join=Qt.PenJoinSt
 PEN_H = pg.mkPen(color="r", width=3,  style=Qt.PenStyle.DashLine, join=Qt.PenJoinStyle.RoundJoin, cap=Qt.PenCapStyle.RoundCap)
 PEN_HANDLE = pg.mkPen(color="k", width=8, style=Qt.PenStyle.SolidLine, join=Qt.PenJoinStyle.RoundJoin, cap=Qt.PenCapStyle.RoundCap)
 
-class FaceSelectBox(pg.ViewBox):
+class JVideoFaceSelection(pg.ViewBox):
     def __init__(self, face_box: JImageBox, **kwargs):
         super().__init__(invertY=True, lockAspect=True, **kwargs)
         self.frame = pg.ImageItem()
