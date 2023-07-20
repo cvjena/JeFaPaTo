@@ -1,3 +1,3 @@
-__all__ = ["FaceSelectBox", "SimpleImage"]
+__all__ = ["FaceSelectBox"]
 
-from frontend.plotting.image_box import FaceSelectBox, SimpleImage
+from frontend.plotting.image_box import FaceSelectBox

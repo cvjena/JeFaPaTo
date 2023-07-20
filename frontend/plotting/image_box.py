@@ -1,4 +1,4 @@
-__all__ = ["FaceSelectBox", "SimpleImage"]
+__all__ = ["FaceSelectBox"]
 
 from pathlib import Path
 
@@ -9,6 +9,8 @@ import structlog
 from qtpy.QtWidgets import QCheckBox
 from qtpy.QtCore import Qt, QRectF
 
+from frontend.jwidgets.imagebox import JImageBox 
+
 logger = structlog.get_logger(__name__)
 
 
@@ -16,23 +18,13 @@ PEN = pg.mkPen(color="g", width=3, style=Qt.PenStyle.DashLine, join=Qt.PenJoinSt
 PEN_H = pg.mkPen(color="r", width=3,  style=Qt.PenStyle.DashLine, join=Qt.PenJoinStyle.RoundJoin, cap=Qt.PenCapStyle.RoundCap)
 PEN_HANDLE = pg.mkPen(color="k", width=8, style=Qt.PenStyle.SolidLine, join=Qt.PenJoinStyle.RoundJoin, cap=Qt.PenCapStyle.RoundCap)
 
-class SimpleImage(pg.ViewBox):
-    def __init__(self, **kwargs):
-        super().__init__(invertY=True, lockAspect=True, **kwargs)
-        self.frame = pg.ImageItem()
-        self.addItem(self.frame)
-
-    def set_image(self, image: np.ndarray) -> None:
-        self.frame.setImage(image)
-
-
 class FaceSelectBox(pg.ViewBox):
-    def __init__(self, face_box: SimpleImage, **kwargs):
+    def __init__(self, face_box: JImageBox, **kwargs):
         super().__init__(invertY=True, lockAspect=True, **kwargs)
         self.frame = pg.ImageItem()
         self.addItem(self.frame)
         
-        self.face_box: SimpleImage = face_box
+        self.face_box: JImageBox = face_box
         self.roi: pg.ROI = pg.ROI(
             pos=(0, 0), 
             movable=True, 

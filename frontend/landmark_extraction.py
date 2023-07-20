@@ -122,7 +122,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.setAcceptDrops(True)
         self.main_window = parent # type: QtWidgets.QMainWindow
 
-        self.widget_face = plotting.SimpleImage(enableMouse=False)
+        self.widget_face = jwidgets.JImageBox(enableMouse=False)
         self.widget_frame = plotting.FaceSelectBox(face_box=self.widget_face, enableMouse=False)
         self.widget_graph = jwidgets.JGraph(add_yruler=False)
 

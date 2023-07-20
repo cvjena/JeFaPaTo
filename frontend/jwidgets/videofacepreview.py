@@ -11,7 +11,7 @@ from PyQt6.QtGui import QDropEvent
 from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 from structlog import get_logger
 
-from frontend.plotting.image_box import SimpleImage
+from frontend.jwidgets.imagebox import JImageBox 
 
 logger = get_logger()
 
@@ -85,7 +85,7 @@ class JVideoFacePreview(QWidget):
         self.layout().addWidget(self.label)        
 
         self.glayout = pg.GraphicsLayoutWidget()
-        self.face_widget = SimpleImage(enableMouse=False, enableMenu=False)
+        self.face_widget = JImageBox(enableMouse=False, enableMenu=False)
         self.glayout.addItem(self.face_widget)
 
         self.face_container = FaceVideoContainer()
