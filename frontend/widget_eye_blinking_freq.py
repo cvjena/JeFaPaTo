@@ -16,16 +16,6 @@ logger = structlog.get_logger()
 
 DOWNSAMPLE_FACTOR = 8
 
-def _get_QGroupBox(self):
-    return self.isChecked()
-
-
-def _set_QGroupBox(self, val):
-    self.setChecked(val)
-
-
-def _event_QGroupBox(self):
-    return self.clicked
 
 
 def to_MM_SS(value):
@@ -65,7 +55,6 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.plot_scatter_blinks_r = self.graph.add_scatter()
 
         # UI elements 
-        self.add_hooks(QtWidgets.QGroupBox, (_get_QGroupBox, _set_QGroupBox, _event_QGroupBox))
         self.setOrientation(QtCore.Qt.Orientation.Horizontal)
 
         self.setAcceptDrops(True)

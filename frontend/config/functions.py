@@ -6,6 +6,9 @@ from pathlib import Path
 import pyqtconfig
 import structlog
 
+from PyQt6.QtWidgets import QGroupBox
+
+
 logger = structlog.get_logger()
 
 def load_config_folder() -> Path: 
@@ -22,6 +25,16 @@ def load_config_folder() -> Path:
         base_path.mkdir(parents=True, exist_ok=True)
 
     return base_path
+
+def _get_QGroupBox(self):
+    return self.isChecked()
+
+def _set_QGroupBox(self, val):
+    self.setChecked(val)
+
+
+def _event_QGroupBox(self):
+    return self.clicked
 
 
 class Config(pyqtconfig.ConfigManager):
@@ -42,3 +55,6 @@ class Config(pyqtconfig.ConfigManager):
             json.dumps(filename.write_text("{}"), indent=4)
 
         super().__init__(*args, filename=filename, **kwargs)
+
+        self.add_hooks(QGroupBox, (_get_QGroupBox, _set_QGroupBox, _event_QGroupBox))
+
