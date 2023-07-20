@@ -9,7 +9,7 @@ from qtpy import QtCore, QtGui, QtWidgets
 
 from PyQt6.QtCore import pyqtSignal
 
-from jefapato.methods import blinking
+from jefapato import blinking
 from frontend import config, jwidgets
 
 logger = structlog.get_logger()

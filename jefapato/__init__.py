@@ -1,7 +1,6 @@
 __all__ = [
-    "methods",
+    "blinking",
     "facial_features",
 ]
 
-from jefapato import facial_features
-from jefapato import methods
+from jefapato import blinking, facial_features
