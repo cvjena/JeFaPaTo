@@ -25,6 +25,7 @@ def sec_to_min(seconds: float) -> str:
     return f"{minutes:02d}:{seconds:02d}"
 
 
+# TODO just make this a normal widget and not a splitter
 class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
     updated = pyqtSignal(int)
     def __init__(self, parent):
@@ -64,12 +65,19 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.layout_content = QtWidgets.QVBoxLayout()
         widget_content.setLayout(self.layout_content)
 
+        scroll_area = QtWidgets.QScrollArea()
+        scroll_area.setFixedWidth(400)
+        scroll_area.setMinimumHeight(200)
+        scroll_area.setWidgetResizable(True)
+
         widget_settings = QtWidgets.QWidget()
         self.layout_settings = QtWidgets.QVBoxLayout()
         widget_settings.setLayout(self.layout_settings)
 
+        scroll_area.setWidget(widget_settings)
+
         self.addWidget(widget_content)
-        self.addWidget(widget_settings)
+        self.addWidget(scroll_area)
 
         self.setStretchFactor(0, 6)
         self.setStretchFactor(1, 4)
@@ -125,7 +133,9 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.btn_eprt.clicked.connect(self.save_results)
 
         # algorithm settings box
-        self.box_settings = jwidgets.JCollapsibleBox("Algorithm Settings")
+        self.box_settings = QtWidgets.QGroupBox("Algorithm Settings")
+        # dont make the groupbox changeable in height
+        self.box_settings.setMinimumHeight(200)
         self.set_algo = QtWidgets.QFormLayout()
 
         le_th_l = QtWidgets.QLineEdit()
@@ -178,7 +188,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.set_algo.addRow(box_smooth)
 
         # Visual Settings #
-        self.box_visuals = jwidgets.JCollapsibleBox("Visual Settings")
+        self.box_visuals = QtWidgets.QGroupBox("Visual Settings")
         self.set_visuals = QtWidgets.QFormLayout()
 
         cb_as_time = QtWidgets.QCheckBox()
@@ -221,10 +231,8 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.face_preview = jwidgets.JVideoFacePreview()
 
         # Layouting #
-        self.box_settings.setContentLayout(self.set_algo)
-        self.box_visuals.setContentLayout(self.set_visuals)
-        self.box_settings.toggle_button.click()
-        self.box_visuals.toggle_button.click()
+        self.box_settings.setLayout(self.set_algo)
+        self.box_visuals.setLayout(self.set_visuals)
 
         # add all things to the settings layout
         self.layout_settings.addWidget(self.btn_load)
@@ -253,7 +261,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.layout_settings.addWidget(self.face_preview)
 
         spacer = QtWidgets.QWidget()
-        spacer.setSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Expanding)
+        spacer.setSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding)
         self.layout_settings.addWidget(spacer)
 
         logger.info("Initialized EyeBlinkingFreq widget")
