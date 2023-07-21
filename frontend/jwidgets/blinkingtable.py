@@ -57,11 +57,13 @@ class JBlinkingTable(QSplitter):
         self.model_left_eye.clear()
         self.model_right_eye.clear()
 
-    def set_data(self, data_left: pd.DataFrame, data_right: pd.DataFrame):
-        assert data_left is not None and isinstance(data_left, pd.DataFrame)
-        assert data_right is not None and isinstance(data_right, pd.DataFrame)
+    def set_data(self, blinking_matched: pd.DataFrame):
+        assert blinking_matched is not None and isinstance(blinking_matched, pd.DataFrame)
 
         self.reset()
+
+        data_left = blinking_matched["left"]
+        data_right = blinking_matched["right"]
 
         for _, row in data_left.iterrows():
             self.model_left_eye.appendRow(to_qt_row(row))

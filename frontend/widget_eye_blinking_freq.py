@@ -42,6 +42,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         self.blinking_l: pd.DataFrame | None = None
         self.blinking_r: pd.DataFrame | None = None
+        self.blinking_matched: pd.DataFrame | None = None
 
         self.lines: list = []
         self.file: Path | None = None
@@ -386,7 +387,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
             logger.error("Somehow the blinking data frames are None")
             return
 
-        self.blinking_table.set_data(self.blinking_l, self.blinking_r)
+        self.blinking_table.set_data(self.blinking_matched)
         self.progress.setValue(100)
 
         self.enable_export()        
@@ -419,6 +420,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         self.blinking_l = blinking.peaks(self.ear_l, threshold=threshold_l, **kwargs)
         self.blinking_r = blinking.peaks(self.ear_r, threshold=threshold_r, **kwargs)
+        self.blinking_matched = blinking.match(self.blinking_l, self.blinking_r, tolerance=80)
 
     def plot_intervals(self) -> None:
         if self.blinking_l is None or self.blinking_r is None:
@@ -464,9 +466,20 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
     def highlight_blink(self, index: int) -> None:
         if self.blinking_l is None or self.blinking_r is None:
             return
-        
+        if self.blinking_matched is None:
+            return
+
         # TODO we already assume that blinking left and right are synced
-        frame_idx = self.blinking_l["frame"].iloc[index]
+        frame_left  = self.blinking_matched["left"]["frame_og"].iloc[index]
+        frame_right = self.blinking_matched["right"]["frame_og"].iloc[index]
+        if np.isnan(frame_left) and np.isnan(frame_right):
+            return
+        if np.isnan(frame_left):
+            frame_idx = frame_right
+        elif np.isnan(frame_right):
+            frame_idx = frame_left
+        else:
+            frame_idx = min(frame_left, frame_right)
         # get fps
         fps = 30 if self.radio_30.isChecked() else 240 # TODO make more general in the future
         self.graph.setXRange(frame_idx - fps, frame_idx + fps)

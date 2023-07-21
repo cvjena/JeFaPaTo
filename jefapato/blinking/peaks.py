@@ -51,4 +51,4 @@ def peaks(time_series: np.ndarray, threshold: float, **kwargs) -> pd.DataFrame:
         blinkings["width"].append(widt)
         blinkings["height"].append(whei)
 
-    return  pd.DataFrame(blinkings, columns=blinkings.keys(), index=blinkings["index"]).reset_index(drop=True)
+    return  pd.DataFrame(blinkings, columns=list(blinkings.keys()), index=blinkings["index"]).reset_index(drop=True)
