@@ -386,6 +386,9 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         if self.blinking_l is None or self.blinking_r is None:
             logger.error("Somehow the blinking data frames are None")
             return
+        if self.blinking_matched is None:
+            logger.error("Somehow the matched blinking data frame is None")
+            return
 
         self.blinking_table.set_data(self.blinking_matched)
         self.progress.setValue(100)
