@@ -89,6 +89,7 @@ class JVideoFacePreview(QWidget):
         self.glayout.addItem(self.face_widget)
 
         self.face_container = FaceVideoContainer()
+        self.warn_face_container_not_loaded = False
 
     def load_file(self, file_path: Path):
         # first do the relayouting
@@ -106,7 +107,9 @@ class JVideoFacePreview(QWidget):
     def set_frame(self, frame_idx: int) -> None:
         assert self.face_container is not None
         if not self.face_container.is_loaded():
-            logger.warning("Face container is not loaded", widget=self)
+            if not self.warn_face_container_not_loaded:
+                self.warn_face_container_not_loaded = True
+                logger.warning("Face container is not loaded", widget=self)
             return
 
         if not self.face_container.in_range(frame_idx):
