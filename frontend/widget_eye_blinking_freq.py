@@ -633,7 +633,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         if self.format_export.currentText() == "CSV":
             # self.blinking_l.to_csv(self.file.parent / (self.file.stem + "_blinking_l.csv"), index=False)
             # self.blinking_r.to_csv(self.file.parent / (self.file.stem + "_blinking_r.csv"), index=False)
-            self.blinking_matched.to_csv(self.file.parent / (self.file.stem + "_blinking.csv"), index=False)
+            self.blinking_matched.to_csv(self.file.parent / (self.file.stem + "_blinking.csv"), index=False, na_rep="NaN")
         elif self.format_export.currentText() == "Excel":
             exel_file = self.file.parent / (self.file.stem + "_blinking.xlsx")
             logger.info("Saving blinking results", file=exel_file)
