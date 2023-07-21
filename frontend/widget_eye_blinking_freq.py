@@ -616,6 +616,14 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         if self.blinking_l is None or self.blinking_r is None:
             logger.error("No blinking results to save", widget=self)
             return
+        
+        if self.blinking_matched is None:
+            logger.error("No matched blinking results to save", widget=self)
+            return
+        
+        # if self.blinking_l is None or self.blinking_r is None:
+        #     logger.error("No blinking results to save", widget=self)
+        #     return
 
         # TODO add summary export        zs
         # file_info = self.file.parent / (self.file.stem + "_blinking_info.txt")
@@ -623,12 +631,14 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         # file_info.write_text(self.result_text)
         
         if self.format_export.currentText() == "CSV":
-            self.blinking_l.to_csv(self.file.parent / (self.file.stem + "_blinking_l.csv"), index=False)
-            self.blinking_r.to_csv(self.file.parent / (self.file.stem + "_blinking_r.csv"), index=False)
+            # self.blinking_l.to_csv(self.file.parent / (self.file.stem + "_blinking_l.csv"), index=False)
+            # self.blinking_r.to_csv(self.file.parent / (self.file.stem + "_blinking_r.csv"), index=False)
+            self.blinking_matched.to_csv(self.file.parent / (self.file.stem + "_blinking.csv"), index=False)
         elif self.format_export.currentText() == "Excel":
             exel_file = self.file.parent / (self.file.stem + "_blinking.xlsx")
             logger.info("Saving blinking results", file=exel_file)
             with pd.ExcelWriter(exel_file) as writer:
+                self.blinking_matched.to_excel(writer, sheet_name="Matched")
                 self.blinking_l.to_excel(writer, sheet_name="Left")
                 self.blinking_r.to_excel(writer, sheet_name="Right")
         else:
