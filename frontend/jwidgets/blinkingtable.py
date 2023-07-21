@@ -10,6 +10,12 @@ def to_qt_row(row: pd.Series) -> list:
     return [QStandardItem(str(row[c])) for c in row.index]
 
 
+# TODO make table nicer.
+#   - add better headers? perhaps alreayd in the dataframe?
+#   - remove the splitter
+#   - make the table stretch to the full width
+#   - add another 3rd table with checkboxes for the user to select which rows to keep
+
 class JBlinkingTable(QSplitter):
     selection_changed = pyqtSignal(int)
 
