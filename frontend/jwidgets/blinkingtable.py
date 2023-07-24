@@ -91,6 +91,17 @@ class JBlinkingTable(QWidget):
         self.model_left_eye.clear()
         self.model_right_eye.clear()
 
+    def get_annotations(self) -> pd.DataFrame:
+        texts = []
+        for i in range(self.model_blinking_type.rowCount()):
+            model_idx = self.model_blinking_type.index(i, 0)
+            widget: QComboBox = self.table_blinking_type.indexWidget(model_idx) # type: ignore
+            texts.append(widget.currentText())
+        
+        annotations = pd.DataFrame()
+        annotations["EyelidClosureType"] = texts
+
+        return annotations
 
     def set_data(self, blinking_matched: pd.DataFrame):
         assert blinking_matched is not None and isinstance(blinking_matched, pd.DataFrame)
@@ -107,6 +118,7 @@ class JBlinkingTable(QWidget):
             self.model_right_eye.appendRow(to_qt_row(row))
             self.model_blinking_type.appendRow(QStandardItem(""))
 
+        # TODO perhaps we can atleast estimate which kind of blinking it is?
         for i in range(len(data_left)):
             self.table_blinking_type.setIndexWidget(self.model_blinking_type.index(i, 0), create_blinking_combobox())
 

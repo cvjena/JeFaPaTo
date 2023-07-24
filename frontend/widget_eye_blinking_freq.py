@@ -629,10 +629,13 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         # file_info = self.file.parent / (self.file.stem + "_blinking_info.txt")
         # logger.info("Saving blinking results", file=file_info)
         # file_info.write_text(self.result_text)
-        
+
+        # get the annotations from the table
+        annotations = self.blinking_table.get_annotations()
+        # add the annotations to the data frame
+        self.blinking_matched["annotation"] = annotations
+
         if self.format_export.currentText() == "CSV":
-            # self.blinking_l.to_csv(self.file.parent / (self.file.stem + "_blinking_l.csv"), index=False)
-            # self.blinking_r.to_csv(self.file.parent / (self.file.stem + "_blinking_r.csv"), index=False)
             self.blinking_matched.to_csv(self.file.parent / (self.file.stem + "_blinking.csv"), index=False, na_rep="NaN")
         elif self.format_export.currentText() == "Excel":
             exel_file = self.file.parent / (self.file.stem + "_blinking.xlsx")
