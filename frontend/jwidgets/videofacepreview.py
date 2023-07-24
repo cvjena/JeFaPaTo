@@ -72,7 +72,8 @@ class JVideoFacePreview(QWidget):
         super().__init__(*args, **kwargs)
         self.setLayout(QVBoxLayout())
         self.setAcceptDrops(True)
-        self.setMinimumSize(300, 300)
+        self.setFixedSize(300, 300)
+        self.layout().setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
 
         # draw round corners
         self.setStyleSheet("border-radius: 10px; border: 1px solid gray;")

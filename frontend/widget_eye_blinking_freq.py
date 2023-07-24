@@ -257,8 +257,8 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.layout_settings.addWidget(self.box_visuals)
         self.layout_settings.addWidget(jwidgets.JHLine())
 
-        self.layout_settings.addWidget(QtWidgets.QLabel("Face Preview (Drag & Drop Video File)"))
-        self.layout_settings.addWidget(self.face_preview)
+        self.layout_settings.addWidget(QtWidgets.QLabel("Face Preview (Drag & Drop Video File)"), alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.layout_settings.addWidget(self.face_preview, alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
 
         spacer = QtWidgets.QWidget()
         spacer.setSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding)
