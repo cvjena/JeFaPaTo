@@ -279,7 +279,6 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
             "Select csv file",
             ".",
             "Video Files (*.csv)",
-            options=QtWidgets.QFileDialog.Option.DontUseNativeDialog,
         )
 
         if file_path == "":
