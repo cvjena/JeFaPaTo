@@ -31,10 +31,6 @@ def create_blinking_combobox() -> QComboBox:
 
 # TODO make table nicer.
 #   - add better headers? perhaps alreayd in the dataframe?
-#   - remove the splitter
-#   - make the table stretch to the full width
-#   - add another 3rd table with checkboxes for the user to select which rows to keep
-
 class JBlinkingTable(QWidget):
     selection_changed = pyqtSignal(int)
 
