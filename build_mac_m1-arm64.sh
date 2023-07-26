@@ -24,17 +24,16 @@ python setup.py py2app
 
 # create a dmg file, requires create-dmg from brew to be installed
 
-# rm JeFaPaTo.dmg
-
-# create-dmg \
-#     --volname JeFaPaTo \
-#     --volicon frontend/assets/icons/icon.icns \
-#     --window-pos 200 120 \
-#     --window-size 800 400 \
-#     --icon-size 100 \
-#     --icon "JeFaPaTo.app" 200 190 \
-#     --hide-extension "JeFaPaTo.app" \
-#     --app-drop-link 600 185 \
-#     --no-internet-enable \
-#     "JeFaPaTo.dmg" \
-#     dist
+rm JeFaPaTo.dmg
+create-dmg \
+    --volname JeFaPaTo \
+    --volicon frontend/assets/icons/icon.icns \
+    --window-pos 200 120 \
+    --window-size 800 400 \
+    --icon-size 100 \
+    --icon "JeFaPaTo.app" 200 190 \
+    --hide-extension "JeFaPaTo.app" \
+    --app-drop-link 600 185 \
+    --no-internet-enable \
+    "JeFaPaTo.dmg" \
+    dist

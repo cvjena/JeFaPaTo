@@ -70,3 +70,4 @@ MANIFEST
 .conda*/
 temp/
 venv*
+*.dmg

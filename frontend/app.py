@@ -3,7 +3,6 @@ __all__ = ["JeFaPaTo"]
 import argparse
 import time
 
-import git
 import structlog
 
 from PyQt6 import QtGui
@@ -29,7 +28,7 @@ class JeFaPaTo(QMainWindow, config.Config):
 
         self.progress_bar = QProgressBar()
 
-        self.VERSION = str(git.Repo(search_parent_directories=True).head.object.hexsha[:7]) # type: ignore
+        self.VERSION = "1.0.0" 
 
         start = time.time()
         self.tab_eye_blinking = LandmarkExtraction(self)
