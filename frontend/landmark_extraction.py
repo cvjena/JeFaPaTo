@@ -369,7 +369,10 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
 
     def load_webcam(self):
         logger.info("Open Webcam", widget=self)
+        self.widget_frame.cb_auto_find.setChecked(False)
+        self.use_bbox.setChecked(False)
         self.set_resource(-1)
+        self.start()
 
     def set_resource(self, resource: Path | int) -> None:
         self.video_resource = resource

@@ -119,11 +119,12 @@ class MediapipeLandmarkExtractor(Extractor):
             processed_p_sec += 1
             if self.data_queue.empty():
                 empty_in_a_row += 1
-                time.sleep(0.5)
-                if empty_in_a_row > 10:
+                time.sleep(0.08)
+                if empty_in_a_row > 20:
                     logger.info("Extractor Thread", state="Queue Emptpy", data_amount=self.data_amount, processed=processed)
                     self.stopped = True
                 continue
+            empty_in_a_row = 0
 
             frame = self.data_queue.get().frame
             image = frame.copy()
