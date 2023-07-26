@@ -5,3 +5,4 @@ isort
 pylint
 pre-commit
 plotly
+nuitka
