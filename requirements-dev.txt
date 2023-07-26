@@ -6,3 +6,4 @@ pylint
 pre-commit
 plotly
 nuitka
+py2app ; sys_platform == 'darwin' 

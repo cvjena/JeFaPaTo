@@ -6,3 +6,9 @@ line-length = 160
 
 [tool.pyright]
 pythonPlatform = "All"
+
+[tool.py2app.bundle.main]
+name = "JeFaPaTo"
+script = "main.py"
+build-type = "standalone"
+arch = "arm64"

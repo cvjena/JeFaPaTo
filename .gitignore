@@ -68,5 +68,5 @@ MANIFEST
 # Per-project virtualenvs
 .venv*/
 .conda*/
-
 temp/
+venv*
