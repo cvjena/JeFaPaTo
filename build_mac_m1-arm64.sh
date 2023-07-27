@@ -19,8 +19,9 @@ else
     python -m pip install -r requirements.txt
 fi
 
-rm -rf build dist
-python setup.py py2app
+rm -rf build
+rm -rf dist
+python setup.py py2app --arch=arm64
 
 # create a dmg file, requires create-dmg from brew to be installed
 

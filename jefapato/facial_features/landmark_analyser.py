@@ -200,7 +200,8 @@ class FaceAnalyzer():
 
         success, image = self.resource_interface.read()
         if not success:
-            raise RuntimeError("Could not read from webcam.")
+            logger.error("Could not read from webcam.")
+            return False, None
         return success, cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
     def release_resource(self):

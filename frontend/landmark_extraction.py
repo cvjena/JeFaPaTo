@@ -371,8 +371,9 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         logger.info("Open Webcam", widget=self)
         self.widget_frame.cb_auto_find.setChecked(False)
         self.use_bbox.setChecked(False)
-        self.set_resource(-1)
-        self.start()
+
+        if self.set_resource(-1):
+            self.start()
 
     def set_resource(self, resource: Path | int) -> None:
         self.video_resource = resource
@@ -386,6 +387,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         success, frame = self.ea.prepare_video_resource(self.video_resource)
         if success:
             self.widget_frame.set_selection_image(frame)
+        return success
 
 
     def save_results(self) -> None:

@@ -19,13 +19,11 @@ OPTIONS = {
         'CFBundleIdentifier': "com.cvgj.osx.jefapato",
         'CFBundleVersion': "0.1.0",
         'CFBundleShortVersionString': "0.1.0",
-        'NSHumanReadableCopyright': u"Copyright © 2023, Tim Büchner, All Rights Reserved"
+        'NSHumanReadableCopyright': u"Copyright © 2023, Tim Büchner, All Rights Reserved",
+        'NSCameraUsageDescription': u'JeFaPaTo needs access to your camera to record videos.',
+        'LSPrefersPPC': True,
     },
     "alias": False,
-    "arch": "arm64",
-    "frameworks": [
-        '/Users/buechner/miniconda3/envs/jefapato/lib/libffi.8.dylib'
-    ],
 }
 
 setup(
