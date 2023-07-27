@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# TODO
+# - make more general
+# - add version numbers
+# - switch to universal2 (check which modules are the issues)
+
 # check if brew is installed
 # if not abort
 if brew -v > /dev/null; then
