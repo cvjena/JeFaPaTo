@@ -21,7 +21,7 @@ OPTIONS = {
         'CFBundleShortVersionString': "0.1.0",
         'NSHumanReadableCopyright': u"Copyright © 2023, Tim Büchner, All Rights Reserved",
         'NSCameraUsageDescription': u'JeFaPaTo needs access to your camera to record videos.',
-        'LSPrefersPPC': True,
+        'LSPrefersPPC': False,
     },
     "alias": False,
 }

@@ -56,7 +56,7 @@ if [[ $(uname -m) == "arm64" ]]; then
     fi
     rm -rf build
     rm -rf dist
-    python setup.py py2app --arch=arm64
+    python setup.py py2app --arch=universal2
     # create a dmg file, requires create-dmg from brew to be installed
     rm JeFaPaTo_M1-arm64.dmg 
     create-dmg \
