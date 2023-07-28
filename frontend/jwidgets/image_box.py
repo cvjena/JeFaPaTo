@@ -9,7 +9,7 @@ import pyqtgraph as pg
 import structlog
 from qtpy.QtWidgets import QCheckBox, QWidget, QVBoxLayout, QLabel
 from qtpy.QtCore import Qt, QRectF
-from PyQt6 import QtCore
+from PyQt6 import QtCore, QtGui
 
 from frontend.jwidgets.imagebox import JImageBox 
 
@@ -44,7 +44,6 @@ class JVideoFaceSelection(QWidget):
         self.roi.sigRegionChanged.connect(self.__update)
 
         self.image: np.ndarray | None = None
-
         self.cb_auto_find = QCheckBox("Auto find face")
 
         self.__handles: dict[str, tuple[tuple[float, float], tuple[float, float]]] = {
@@ -57,6 +56,8 @@ class JVideoFaceSelection(QWidget):
         }
         self.set_interactive(False)
         self.graphics_layout_widget = pg.GraphicsLayoutWidget()
+        # set the margins to 10px
+        self.graphics_layout_widget.ci.setSpacing(10)
         self.graphics_layout_widget.addItem(self.selection_box)
         self.graphics_layout_widget.addItem(self.face_box)
         
@@ -171,3 +172,8 @@ class JVideoFaceSelection(QWidget):
         w += w // 2
         h += h // 2
         return (x, y), (w, h)
+    
+    def paintEvent(self, a0: QtGui.QPaintEvent) -> None:
+        painter = QtGui.QPainter(self)
+        painter.drawRoundedRect(0, 0, self.width()-1, self.height()-1, 10, 10)
+        super().paintEvent(a0)
