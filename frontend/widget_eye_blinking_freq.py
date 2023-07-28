@@ -2,7 +2,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import pyqtgraph as pg
 import qtawesome as qta
 import structlog
 from qtpy import QtCore, QtGui, QtWidgets
@@ -100,16 +99,14 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.tab_widget_results.addTab(self.te_results_g,   "Summary")
 
         # lower main content is a graph
-        self.graph_layout = pg.GraphicsLayoutWidget()
         vb = self.graph.getViewBox()
         assert vb is not None, "Somehow the viewbox is None"
         vb.enableAutoRange(enable=False)
         self.graph.setYRange(0, 1)
-        self.graph_layout.addItem(self.graph)
 
         # Create the specific widgets for the settings layout
         self.layout_content.addWidget(self.tab_widget_results)
-        self.layout_content.addWidget(self.graph_layout)
+        self.layout_content.addWidget(self.graph)
 
         # Create the specific widgets for the settings layout
         # algorithm specific settings

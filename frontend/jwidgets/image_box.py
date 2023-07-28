@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 import pyqtgraph as pg
 import structlog
-from qtpy.QtWidgets import QCheckBox
+from qtpy.QtWidgets import QCheckBox, QWidget, QHBoxLayout
 from qtpy.QtCore import Qt, QRectF
 
 from frontend.jwidgets.imagebox import JImageBox 
@@ -17,13 +17,15 @@ PEN = pg.mkPen(color="g", width=3, style=Qt.PenStyle.DashLine, join=Qt.PenJoinSt
 PEN_H = pg.mkPen(color="r", width=3,  style=Qt.PenStyle.DashLine, join=Qt.PenJoinStyle.RoundJoin, cap=Qt.PenCapStyle.RoundCap)
 PEN_HANDLE = pg.mkPen(color="k", width=8, style=Qt.PenStyle.SolidLine, join=Qt.PenJoinStyle.RoundJoin, cap=Qt.PenCapStyle.RoundCap)
 
-class JVideoFaceSelection(pg.ViewBox):
-    def __init__(self, face_box: JImageBox, **kwargs):
-        super().__init__(invertY=True, lockAspect=True, **kwargs)
+class JVideoFaceSelection(QWidget):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.selection_box: pg.ViewBox = pg.ViewBox(invertY=True, lockAspect=True, enableMenu=False, enableMouse=False)
         self.frame = pg.ImageItem()
-        self.addItem(self.frame)
-        
-        self.face_box: JImageBox = face_box
+        self.selection_box.addItem(self.frame)
+    
+        self.face_box: JImageBox = JImageBox(enableMouse=False, enableMenu=False)
         self.roi: pg.ROI = pg.ROI(
             pos=(0, 0), 
             movable=True, 
@@ -36,7 +38,7 @@ class JVideoFaceSelection(pg.ViewBox):
             handleHoverPen=PEN_H
         )
         ## handles scaling horizontally around center
-        self.addItem(self.roi)
+        self.selection_box.addItem(self.roi)
         self.roi.sigRegionChanged.connect(self.__update)
 
         self.image: np.ndarray | None = None
@@ -52,6 +54,11 @@ class JVideoFaceSelection(pg.ViewBox):
             "h6" : ((0.0, 0.0), (1.0, 1.0)),
         }
         self.set_interactive(False)
+        self.setLayout(QHBoxLayout())
+        graphics_layout_widget = pg.GraphicsLayoutWidget()
+        graphics_layout_widget.addItem(self.selection_box)
+        graphics_layout_widget.addItem(self.face_box)
+        self.layout().addWidget(graphics_layout_widget)        
 
     def set_selection_image(self, image: np.ndarray) -> None:
         self.set_image(image)

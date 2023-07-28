@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Any, Callable, Type
 
 import numpy as np
-import pyqtgraph as pg
 import qtawesome as qta
 import structlog
 from PyQt6.QtCore import pyqtSignal
@@ -122,25 +121,23 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.setAcceptDrops(True)
         self.main_window = parent # type: QtWidgets.QMainWindow
 
-        self.widget_face = jwidgets.JImageBox(enableMouse=False)
-        self.widget_frame = jwidgets.JVideoFaceSelection(face_box=self.widget_face, enableMouse=False)
+        self.widget_frame = jwidgets.JVideoFaceSelection()
         self.widget_graph = jwidgets.JGraph(add_yruler=False)
 
-        self.vlayout_display = pg.GraphicsLayoutWidget()
-        self.vlayout_display.addItem(self.widget_frame, row=0, col=0)               # type: ignore
-        self.vlayout_display.addItem(self.widget_face,  row=0, col=1)               # type: ignore
-        self.vlayout_display.addItem(self.widget_graph, row=1, col=0, colspan=2)    # type: ignore
-        self.vlayout_display.ci.layout.setRowStretchFactor(0, 2)
-        self.vlayout_display.ci.layout.setRowStretchFactor(1, 3)
-
-        self.widget_r = QtWidgets.QWidget()
+        layout_activity = QtWidgets.QVBoxLayout()
+        layout_activity.addWidget(self.widget_frame)
+        layout_activity.addWidget(self.widget_graph)
+        
+        widget_l = QtWidgets.QWidget()
+        widget_r = QtWidgets.QWidget()
         self.vlayout_rs = QtWidgets.QVBoxLayout()
         self.flayout_se = QtWidgets.QFormLayout()
 
-        self.widget_r.setLayout(self.vlayout_rs)
+        widget_l.setLayout(layout_activity)
+        widget_r.setLayout(self.vlayout_rs)
 
-        self.addWidget(self.vlayout_display)
-        self.addWidget(self.widget_r)
+        self.addWidget(widget_l)
+        self.addWidget(widget_r)
 
         self.cb_anal = QtWidgets.QCheckBox()
         self.button_video_open = QtWidgets.QPushButton(qta.icon("ph.video-camera-light"), "Open Video")
