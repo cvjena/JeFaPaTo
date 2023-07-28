@@ -372,8 +372,11 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.widget_frame.cb_auto_find.setChecked(False)
         self.use_bbox.setChecked(False)
 
+        old_resource = self.video_resource
         if self.set_resource(-1):
             self.start()
+        elif old_resource is not None:
+            self.set_resource(old_resource)
 
     def set_resource(self, resource: Path | int) -> None:
         self.video_resource = resource
