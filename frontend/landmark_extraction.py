@@ -175,6 +175,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.feature_group.add_feature(features.EAR2D6)
         self.feature_group.add_feature(features.EAR3D6)
         self.feature_group.add_feature(features.Landmarks478)
+        self.feature_group.add_feature(features.Landmarks68)
 
         self.blends_shape_group = BlendShapeFeatureGroupBox(callbacks=[self.set_features, self.add_handler])
         for blendshape in features.BLENDSHAPES:
