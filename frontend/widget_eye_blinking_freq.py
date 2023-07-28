@@ -341,8 +341,7 @@ class WidgetEyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         if self.raw_ear_l is not None and self.raw_ear_r is not None:
             self.x_lim_max = max(len(self.raw_ear_l), len(self.raw_ear_r))
 
-        self.graph.setLimits(xMin=0, xMax=self.x_lim_max)
-        self.graph.setLimits(yMin=0, yMax=1)
+        self.graph.setLimits(xMin=0, yMin=0, xMax=self.x_lim_max, yMax=1)
         self.graph.setXRange(0, self.x_lim_max)
         self.graph.setYRange(0, 1)
 
