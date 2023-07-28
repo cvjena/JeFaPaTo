@@ -125,8 +125,8 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.widget_graph = jwidgets.JGraph(add_yruler=False)
 
         layout_activity = QtWidgets.QVBoxLayout()
-        layout_activity.addWidget(self.widget_frame)
-        layout_activity.addWidget(self.widget_graph)
+        layout_activity.addWidget(self.widget_frame, stretch=1)
+        layout_activity.addWidget(self.widget_graph, stretch=1)
         
         widget_l = QtWidgets.QWidget()
         widget_r = QtWidgets.QWidget()

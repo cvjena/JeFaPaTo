@@ -3,11 +3,13 @@ __all__ = ["JVideoFaceSelection"]
 from pathlib import Path
 
 import cv2
+import qtawesome as qta
 import numpy as np
 import pyqtgraph as pg
 import structlog
-from qtpy.QtWidgets import QCheckBox, QWidget, QHBoxLayout
+from qtpy.QtWidgets import QCheckBox, QWidget, QVBoxLayout, QLabel
 from qtpy.QtCore import Qt, QRectF
+from PyQt6 import QtCore
 
 from frontend.jwidgets.imagebox import JImageBox 
 
@@ -54,13 +56,38 @@ class JVideoFaceSelection(QWidget):
             "h6" : ((0.0, 0.0), (1.0, 1.0)),
         }
         self.set_interactive(False)
-        self.setLayout(QHBoxLayout())
-        graphics_layout_widget = pg.GraphicsLayoutWidget()
-        graphics_layout_widget.addItem(self.selection_box)
-        graphics_layout_widget.addItem(self.face_box)
-        self.layout().addWidget(graphics_layout_widget)        
+        self.graphics_layout_widget = pg.GraphicsLayoutWidget()
+        self.graphics_layout_widget.addItem(self.selection_box)
+        self.graphics_layout_widget.addItem(self.face_box)
+        
+        self.setLayout(QVBoxLayout())
+        self.layout().setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        # self.layout().addWidget(graphics_layout_widget)        
+        
+        self.label = QLabel()
+        self.label.setPixmap(qta.icon("ri.drag-drop-line", color="gray").pixmap(100, 100))
+        self.label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+
+        self.label_text = QLabel("Drag and drop a video file here, or click the button, or start the Webcam")
+        self.label_text.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        
+        self.layout().addWidget(self.label)        
+        self.layout().addWidget(self.label_text)
 
     def set_selection_image(self, image: np.ndarray) -> None:
+        assert self.label is not None, "Label must be set before selection image can be set"
+        assert self.label_text is not None, "Label text must be set before selection image can be set"
+        # remove the label
+        self.layout().removeWidget(self.label)
+        self.layout().removeWidget(self.label_text)
+        self.label.deleteLater()
+        self.label_text.deleteLater()
+        self.label = None
+        self.label_text = None
+
+        # add the graphics layout widget
+        self.layout().addWidget(self.graphics_layout_widget)
+
         self.set_image(image)
         self.set_roi(*self.__auto_find())
         self.set_interactive(True)
