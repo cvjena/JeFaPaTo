@@ -34,7 +34,7 @@ class Landmarks478(Feature):
         """Draw the landmarks on the image"""
         color = (0, 0 , 0)
         for (x, y, *_) in data.landmarks:
-            cv2.circle(image, (x+x_offset, y+y_offset), 1, color, -1)
+            cv2.circle(image, (x+x_offset, y+y_offset), 2, color, -1)
         return image
 
 
@@ -74,7 +74,7 @@ class Landmarks68(Feature):
         """Draw the landmarks on the image"""
         color = (0, 0 , 0)
         for (x, y, *_) in data.landmarks:
-            cv2.circle(image, (x+x_offset, y+y_offset), 1, color, -1)
+            cv2.circle(image, (x+x_offset, y+y_offset), 2, color, -1)
         return image
     
     def compute(self, features: np.ndarray, valid: bool) -> LandmarksData:
