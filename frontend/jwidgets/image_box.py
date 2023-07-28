@@ -71,6 +71,7 @@ class JVideoFaceSelection(QWidget):
 
         self.label_text = QLabel("Drag and drop a video file here, or click the button, or start the Webcam")
         self.label_text.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.label_text.setStyleSheet("font-size: 15px;")
         
         self.layout().addWidget(self.label)        
         self.layout().addWidget(self.label_text)
