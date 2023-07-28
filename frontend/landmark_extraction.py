@@ -378,7 +378,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         elif old_resource is not None:
             self.set_resource(old_resource)
 
-    def set_resource(self, resource: Path | int) -> None:
+    def set_resource(self, resource: Path | int) -> bool:
         self.video_resource = resource
         self.button_start.setDisabled(False)
 
