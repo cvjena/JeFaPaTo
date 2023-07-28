@@ -123,6 +123,8 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
 
         self.widget_frame = jwidgets.JVideoFaceSelection()
         self.widget_graph = jwidgets.JGraph(add_yruler=False)
+        
+        self.widget_graph.setLimits(xMin=0, xMax=self.chunk_size, yMin=0, yMax=1)
 
         layout_activity = QtWidgets.QVBoxLayout()
         layout_activity.addWidget(self.widget_frame, stretch=1)
