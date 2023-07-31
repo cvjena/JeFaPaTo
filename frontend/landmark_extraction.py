@@ -132,6 +132,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         
         widget_l = QtWidgets.QWidget()
         widget_r = QtWidgets.QWidget()
+        widget_r.setFixedWidth(600)
         self.vlayout_rs = QtWidgets.QVBoxLayout()
         self.flayout_se = QtWidgets.QFormLayout()
 
