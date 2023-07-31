@@ -8,6 +8,7 @@ class JImageBox(pg.ViewBox):
         super().__init__(invertY=True, lockAspect=True, **kwargs)
         self.frame = pg.ImageItem()
         self.addItem(self.frame)
+        self.setBackgroundColor("w")
 
     def set_image(self, image: np.ndarray) -> None:
         self.frame.setImage(image)

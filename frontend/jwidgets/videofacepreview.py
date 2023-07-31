@@ -6,8 +6,7 @@ import cv2
 import numpy as np
 import pyqtgraph as pg
 import qtawesome as qta
-from PyQt6 import QtCore
-from PyQt6.QtGui import QDropEvent
+from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 from structlog import get_logger
 
@@ -54,6 +53,10 @@ class FaceVideoContainer:
             return frame
 
         x, y, w, h = faces[0]
+        # scale 0.25 in the y direction
+        y = max(0, y - int(h * 0.25))
+        h = int(h * 1.5)
+
         frame = frame[y:y+h, x:x+w]
         return frame
     
@@ -72,18 +75,23 @@ class JVideoFacePreview(QWidget):
         super().__init__(*args, **kwargs)
         self.setLayout(QVBoxLayout())
         self.setAcceptDrops(True)
-        self.setFixedSize(300, 300)
+        # expand the widget to the full size of the parent
+        self.setMinimumSize(320, 320)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Expanding)
         self.layout().setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-
-        # draw round corners
-        self.setStyleSheet("border-radius: 10px; border: 1px solid gray;")
 
         # create an empty label containing a video symbol
         # it contains a video symbol to indicate that here a video frame will be displayed
-        self.label = QLabel()
-        self.label.setPixmap(qta.icon("ri.drag-drop-line", color="gray").pixmap(100, 100))
-        self.label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.layout().addWidget(self.label)        
+        self.icon_dragdrop = QLabel()
+        self.icon_dragdrop.setPixmap(qta.icon("ri.drag-drop-line", color="gray").pixmap(100, 100))
+        self.icon_dragdrop.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        
+        self.text_dragdrop = QLabel("Drag & Drop\naccording video file here")
+        self.text_dragdrop.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.text_dragdrop.setStyleSheet("color: gray;")
+        
+        self.layout().addWidget(self.icon_dragdrop)        
+        self.layout().addWidget(self.text_dragdrop)
 
         self.glayout = pg.GraphicsLayoutWidget()
         self.face_widget = JImageBox(enableMouse=False, enableMenu=False)
@@ -94,11 +102,15 @@ class JVideoFacePreview(QWidget):
 
     def load_file(self, file_path: Path):
         # first do the relayouting
-        if self.label is not None:
+        if self.icon_dragdrop is not None and self.text_dragdrop is not None:
             # this can happen if the user drags & drops a file multiple times
-            self.layout().removeWidget(self.label)
-            self.label.deleteLater()
-            self.label = None
+            self.layout().removeWidget(self.icon_dragdrop)
+            self.icon_dragdrop.deleteLater()
+            self.icon_dragdrop = None
+            self.layout().removeWidget(self.text_dragdrop)
+            self.text_dragdrop.deleteLater()
+            self.text_dragdrop = None
+
             self.layout().addWidget(self.glayout)
 
         # then load the file
@@ -120,7 +132,7 @@ class JVideoFacePreview(QWidget):
         frame = self.face_container.get_frame(frame_idx)
         self.face_widget.set_image(frame)
 
-    def dragEnterEvent(self, event: QDropEvent):
+    def dragEnterEvent(self, event: QtGui.QDropEvent):
         logger.info("User started dragging event", widget=self)
         if event.mimeData().hasUrls():
             event.accept()
@@ -129,7 +141,7 @@ class JVideoFacePreview(QWidget):
             event.ignore()
             logger.info("User started dragging event with invalid mime file", widget=self)
 
-    def dropEvent(self, event: QDropEvent):
+    def dropEvent(self, event: QtGui.QDropEvent):
         files = [u.toLocalFile() for u in event.mimeData().urls()]
 
         if len(files) > 1:
@@ -142,3 +154,8 @@ class JVideoFacePreview(QWidget):
             return
         
         self.load_file(file)
+
+    def paintEvent(self, a0: QtGui.QPaintEvent) -> None:
+        painter = QtGui.QPainter(self)
+        painter.drawRoundedRect(0, 0, self.width()-1, self.height()-1, 10, 10)
+        super().paintEvent(a0)
