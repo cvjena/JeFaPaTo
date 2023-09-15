@@ -77,15 +77,16 @@ class JVideoFaceSelection(QWidget):
         self.layout().addWidget(self.label_text)
 
     def set_selection_image(self, image: np.ndarray) -> None:
-        assert self.label is not None, "Label must be set before selection image can be set"
-        assert self.label_text is not None, "Label text must be set before selection image can be set"
-        # remove the label
-        self.layout().removeWidget(self.label)
-        self.layout().removeWidget(self.label_text)
-        self.label.deleteLater()
-        self.label_text.deleteLater()
-        self.label = None
-        self.label_text = None
+        if self.image is None:
+            assert self.label is not None, "Label must be set before selection image can be set"
+            assert self.label_text is not None, "Label text must be set before selection image can be set"
+            # remove the label
+            self.layout().removeWidget(self.label)
+            self.layout().removeWidget(self.label_text)
+            self.label.deleteLater()
+            self.label_text.deleteLater()
+            self.label = None
+            self.label_text = None
 
         # add the graphics layout widget
         self.layout().addWidget(self.graphics_layout_widget)

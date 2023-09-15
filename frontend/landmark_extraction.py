@@ -391,6 +391,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
 
         success, frame = self.ea.prepare_video_resource(self.video_resource)
         if success:
+            logger.info("Image was set", parent=self)
             self.widget_frame.set_selection_image(frame)
         return success
 
