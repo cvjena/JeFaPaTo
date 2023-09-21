@@ -8,6 +8,7 @@ from typing import Any, Callable, Type
 import numpy as np
 import qtawesome as qta
 import structlog
+from plyer import notification
 from PyQt6.QtCore import pyqtSignal
 from qtpy import QtCore, QtGui, QtWidgets
 
@@ -322,6 +323,13 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.bt_pause_resume.setText("Pause")
         self.setAcceptDrops(True)
         self.widget_frame.set_interactive(True)
+        
+        notification.notify(
+            title="Analysis finished",
+            message="The analysis has finished and the next video can be analyzed.",
+            app_name="JeFaPaTo",
+            timeout = 10,
+        )
 
     @facial_features.FaceAnalyzer.hookimpl
     def updated_display(self, image: np.ndarray):
