@@ -52,7 +52,7 @@ class FaceAnalyzer():
         logger.info("Available memory", memory=available_memory)
         logger.info("Data loader queue space", space=items_to_place)
 
-        self.loader = VideoDataLoader(self.get_next_item, items_to_place)
+        self.loader = VideoDataLoader(self.get_next_item, data_amount=self.data_amount, queue_maxsize=items_to_place)
         self.extractor = MediapipeLandmarkExtractor(data_queue=self.loader.data_queue, data_amount=self.data_amount, bbox_slice=self.bbox_slice)
 
         self.extractor.processedPercentage.connect(lambda x: self.pm.hook.processed_percentage(percentage=x))
