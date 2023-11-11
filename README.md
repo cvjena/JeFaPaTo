@@ -1,123 +1,61 @@
-# JeFaPaTo
+<p align="center">
+  <img width="460" height="300" src="frontend/assets/icons/icon.svg">
+</p>
 
-*State: Alpha*
+# JeFaPaTo - A tool for the analysis of facial features
 
-JeFaPaTo is a tool created during the cooperation of the Computer Vision Group Jena (CVG) and the Ear-Nose-Throat Department (ENT) of the University Hospital Jena.
-It serves to quickly try out newly developed methods in our group to be tested by doctoral ENT candidates.
+Welcome to **JeFaPaTo**, the Jena Facial Palsy Tool! This powerful tool is designed to assist in various medical and psychological applications by providing accurate facial feature extraction and analysis. It combines the requirements of a medical environment with the possibilities of modern computer vision and machine learning.
 
-The tool is designed to be robust and fast, whereas these requirements depend on the developed method.
-Any new addition to the tool requires specific measures and rules.
-This approach ensures the correct execution inside the tool and suitable communication with the user.
-Thus, correct usage of software development, UI, and UX are keys in the continuous development of JeFaPaTo.
+Our goal is to allow medical professionals to use state-of-the-art technology without needing to write custom algorithms. We provide the libraries and an interface to the commonly used `mediapipe` library of Google, a powerful tool for facial landmark extraction, and now even offers the distinction into facial movements.
 
-Currently, JeFaPaTo supports the following methods, whereas we distinct between **extraction** and **analysis**.
+Additionally, our software can be extended to include new methods and algorithms. As initial motivation, we added the **EAR-Score**** (Eye-Aspect-Ratio) to detect blinking and eye closure. This feature is used to analyze the blinking behavior of patients with facial palsy.
 
-Extraction (of features):
+## Why use JeFaPaTo?
 
-- Facial Landmark Extraction  [mediapipe]
-  - EAR Feature [mediapipe]
+- **See what you get**: JeFaPaTo offers a real-time preview of the facial landmarks and blendshapes, allowing you to see the results of your analysis as they happen.
+- **Feature Extraction**: JeFaPaTo leverages the `mediapipe` library for detailed analysis and tracking of 468 facial landmarks and 52 blend shapes, ideal for medical and psychological experimentation.
+- **Easy Feature Selection**: JeFaPaTo allows you to easily select specific facial landmarks and blend shapes for analysis, enhancing flexibility and control in your research or medical investigation. Focus on what you need!
+- **Seamless Performance**: Optimized for standard CPUs, JeFaPaTo can process up to 60 FPS for smooth, real-time analysis, offering efficiency and eliminating hardware concerns.
+- **Automatic Blinking Detection**: JeFaPaTo's standout feature is its automatic blinking detection, using the Eye Aspect Ratio (EAR) score to simplify identifying blinking patterns for research or diagnosis analysis.
+- **Anywhere**: JeFaPaTo is a cross-platform tool that allows you to use it on Windows, Linux, and MacOS.
 
-Analysis (of features):
+## Get Started
 
-- Blinking analysis based on EAR Feature
+Ready to dive into the world of precise facial feature extraction and analysis? Give JeFaPaTo a try and experience the power of this tool for yourself! Download the latest version of JeFaPaTo for your operating system from the [releases page](todo) or the following links:
 
-## Implementation of a new method
+| Windows | Linux | MacOS |
+| :-----: | :---: | :---: |
 
-New ideas and methods come up most often in joined meetings between CVG and ENT.
-These ideas need to be strictly defined to allow flawless implementation and correct transfer of data *into* and *out of* any written tool.
-The ENT and CVG have a regular subgroup meeting to ensure a *Forschungsdatenmanagement Plan*.
-These rules should be kept in mind and followed while planning the implementation of a new method.
+## How to use JeFaPaTo
 
-There are two steps: *joined definitions* and *internal definitions*.
+1. Start JeFaPaTo
+2. Select the video file or drag and drop it into the indicated area
+3. The face should be found automatically; if not, adjust the bounding box
+4. Select the facial features you want to analyze in the sidebar
+5. Press the play button to start the analysis
 
-### Joined definitions
+## Citing JeFaPaTo
 
-- Data input format (commonly: 2D/3D images, 2D/3D videos, sound files, x-rays)
-  - this is most often the data we would receive from the ENT department
-  - we have to know which kind of data we can expect from them
-  - it has to be made sure if we have to extract features or only do an analysis
-  - more specific: file naming convention
-- Data output format (tables, graphs, images)
-  - we have to decide how the data looks like
-  - especially they should define how the data should look, and we build it like that
-  - often the naming and which data around the actual data should be specified
-  - for the naming of the files, we normally do:
-    - input_name\_YYYY-MM-DD_HH-SS\_extra_modifiers
+If you use JeFaPaTo in your research, please cite it as follows:
 
-### Internal definitions
+```bibtex
+unpublished yet
+```
 
-- this is about the specific internal methods we use
-- this can include which kind of backend generates the data
-- this should also be somehow be added to the output data to ensure the results can be understood
+And depending on the features you use, please also cite the following papers:
 
-### Development methods
+```bibtex
+mediapipe
+```
 
-This section summarizes the information about how to implement a new method inside the existing code structure of JeFaPaTo.
+## Contributing
 
-#### Module creation
+We are happy to receive contributions from the community. If you want to contribute, please read our [contribution guidelines](CONTRIBUTING.md) first.
 
-Todo
+## License
 
-#### Logging
+JeFaPaTo is licensed under the [MIT License](LICENSE).
 
-### UI
+## Acknowledgements
 
-This section specifies how a general UI should look in JeFaPaTo.
-Also, the naming of Buttons, Boxes, Labels, and more should be similar to ensure maintainability and a better experience for the user.
-Also, we define the colors used for plotting and inside the GUI.
-
-Todo
-
-### UX
-
-The rules for UX include how to notify the user if everything was ok, something failed, some computation failed.
-
-Todo
-
-## Open issues and ideas
-
-- License
-  - JeFaPaTo is currently not licensed, and we should add one
-  - GPL-v2/v3
-- Better looking assets
-- Start-up tasks
-  - Currently, JeFaPaTo downloads files at the beginning of the start-up if these do not exist
-  - We do not handle a missing internet connection
-  - There should be a simple way of introducing some automatic start-up checks to reduce the manual calling of the required functions
-- Implementation of other landmarking distance methods
-  - we have the outline of other ideas for landmarking distance measurements
-  - these are not implemented and should be more generalized to achieve a nice GUI and method
-  - this requires contact with the ENT
-- Tests
-  - We do not have any tests, and that should be avoidable
-- Add some more project management
-  - automatic documentation creation (sphinx?)
-  - automatic setup of the development environment of other users?
-  - install tox and create several commands like
-    - tox test
-    - tox export [Windows, Linux, MacOS]
-  - we should spend some time and create the building process so we don't have to give them the source code
-    - nuitka could be interesting, or
-    - pyinstaller
-  - we should slowly get rid of the installation of packages inside conda (apart from python). This change would improve the speed more and is more stable
-  - improve exportation to different systems (ships with python itself?)
-
-## Export and installation of JeFaPaTo
-
-Currently, we export the whole project for a specific OS and provide some start-up scripts for the user.
-This process is slow and easily disturbed.
-The users should be bothered with coding, changing files, or others.
-
-We use ```export.py``` to create a ZIP file for the project, then send it to the users.
-
-### Linux
-
-Todo
-
-### Windows
-
-Todo
-
-### MacOS
-
-Todo
+JeFaPaTo is based on the [mediapipe]() library by Google. We would like to thank the developers for their great work and the possibility to use their library. Additionally, we would like to thank the [OpenCV](https://opencv.org/) team for their great work and the possibility to use their library. Also, we thank our medical partners for their support and feedback.
