@@ -188,7 +188,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
 
         open_l = QtWidgets.QHBoxLayout()
         open_l.addWidget(self.button_video_open)
-        open_l.addWidget(self.button_webcam_open)
+        # open_l.addWidget(self.button_webcam_open)
         self.flayout_se.addRow(open_l)
         self.flayout_se.addRow(self.la_current_file)
         self.flayout_se.addRow(self.button_start)
