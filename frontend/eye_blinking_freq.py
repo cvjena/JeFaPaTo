@@ -439,7 +439,7 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         self.blinking_l = blinking.peaks(self.ear_l, threshold=threshold_l, **kwargs)
         self.blinking_r = blinking.peaks(self.ear_r, threshold=threshold_r, **kwargs)
-        self.blinking_matched = blinking.match(self.blinking_l, self.blinking_r, tolerance=80)
+        self.blinking_matched = blinking.match(self.blinking_l, self.blinking_r, tolerance=30)
 
     def plot_intervals(self) -> None:
         if self.blinking_l is None or self.blinking_r is None:

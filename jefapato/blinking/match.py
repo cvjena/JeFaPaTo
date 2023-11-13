@@ -6,7 +6,7 @@ import pandas as pd
 def match(
     blinking_left: pd.DataFrame, 
     blinking_right: pd.DataFrame,
-    tolerance: int = 80, # in frames
+    tolerance: int = 30, # in frames
 ) -> pd.DataFrame:
     """
     Matches the left and right blinking dataframes by the frame index inside the threshold.
