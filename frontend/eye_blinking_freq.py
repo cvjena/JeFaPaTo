@@ -5,6 +5,7 @@ import pandas as pd
 import qtawesome as qta
 import structlog
 import tabulate
+import pyqtgraph as pg
 from qtpy import QtCore, QtGui, QtWidgets
 
 from PyQt6.QtCore import pyqtSignal
@@ -95,19 +96,25 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.te_results_g = QtWidgets.QTextEdit()
         self.te_results_g.setFontFamily("mono")
         self.te_results_g.setLineWrapMode(QtWidgets.QTextEdit.LineWrapMode.NoWrap)
-
+        
+        self.summary_visual_widget = pg.GraphicsLayoutWidget()
+        self.summary_visual = pg.ViewBox(invertY=True, lockAspect=True, enableMenu=True, enableMouse=True)
+        self.summary_visual_image = pg.ImageItem()
+        self.summary_visual.addItem(self.summary_visual_image)
+        self.summary_visual_widget.addItem(self.summary_visual)
         self.tab_widget_results.addTab(self.blinking_table, "Blinking Table")
         self.tab_widget_results.addTab(self.te_results_g,   "Summary")
+        self.tab_widget_results.addTab(self.summary_visual_widget,  "Visual Summary")
 
-        # lower main content is a graph
+        # lower main content/ is a graph
         vb = self.graph.getViewBox()
         assert vb is not None, "Somehow the viewbox is None"
         vb.enableAutoRange(enable=False)
         self.graph.setYRange(0, 1)
 
         # Create the specific widgets for the settings layout
-        self.layout_content.addWidget(self.tab_widget_results)
-        self.layout_content.addWidget(self.graph)
+        self.layout_content.addWidget(self.tab_widget_results, stretch=1)
+        self.layout_content.addWidget(self.graph, stretch=1)
 
         # Create the specific widgets for the settings layout
         # algorithm specific settings
@@ -507,10 +514,16 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
     # summary of the results
     def compute_summary(self) -> None:
         fps = 30 if self.radio_30.isChecked() else 240 # TODO make more general in the future        
+        
         self.summary_df = blinking.summarize(self.blinking_matched, fps=fps)
         self.te_results_g.setText(tabulate.tabulate(self.summary_df, headers="keys", tablefmt="github"))
-        # auto select the summary tab
-        self.tab_widget_results.setCurrentIndex(1)
+        logger.info("Summary computed")
+        
+        image = blinking.visualize(self.blinking_matched, fps=fps)
+        self.summary_visual_image.setImage(image)
+        logger.info("Visual summary computed")
+        
+        self.tab_widget_results.setCurrentIndex(2)
 
     # saving of the results
     def save_results(self) -> None:

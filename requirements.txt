@@ -8,6 +8,7 @@ protobuf>=3.11,<4
 scipy~=1.8
 pandas~=1.4
 openpyxl
+matplotlib
 
 # gui libs
 qtpy~=2.0
