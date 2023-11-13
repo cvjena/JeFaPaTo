@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import qtawesome as qta
 import structlog
+import tabulate
 from qtpy import QtCore, QtGui, QtWidgets
 
 from PyQt6.QtCore import pyqtSignal
@@ -505,115 +506,11 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
     # summary of the results
     def compute_summary(self) -> None:
-        pass
-
-    # def print_results(
-    #     self,
-    #     blinking_l: pd.DataFrame,
-    #     blinking_r: pd.DataFrame,
-    #     **kwargs,
-    # ) -> None:
-    #     # compute the video time (depending on the fps) of the peaks in the data frames
-    #     # for 30 fps and the given fps in kwargs and added to the data frames
-    #     # the columns are called "time30" and timeFPS and the values are in the form
-    #     # MM:SS the time is computed from the frame of the data frame
-    #     blinking_l["time30"] = blinking_l["frame"] / 30
-    #     blinking_r["time30"] = blinking_r["frame"] / 30
-    #     blinking_l["timeFPS"] = blinking_l["frame"] / kwargs["fps"]
-    #     blinking_r["timeFPS"] = blinking_r["frame"] / kwargs["fps"]
-    #     blinking_l["time30"] = blinking_l["time30"].apply(sec_to_min)
-    #     blinking_r["time30"] = blinking_r["time30"].apply(sec_to_min)
-    #     blinking_l["timeFPS"] = blinking_l["timeFPS"].apply(sec_to_min)
-    #     blinking_r["timeFPS"] = blinking_r["timeFPS"].apply(sec_to_min)
-
-    #     self._reset_result_text()
-
-    #     self._add("===Video Info===")
-    #     self._add(f"File: {self.file.as_posix()}")
-    #     self._add(f"Runtime: {sec_to_min(len(self.ear_l) / kwargs['fps'])}")
-
-    #     for k, v in kwargs.items():
-    #         self._add(f"{k}: {v}")
-
-    #     bins = np.arange(
-    #         start=0,
-    #         stop=len(self.ear_l) + 2 * 60 * kwargs["fps"],
-    #         step=60 * kwargs["fps"],
-    #     )
-    #     hist_l, _ = np.histogram(blinking_l["frame"], bins=bins)
-    #     hist_r, _ = np.histogram(blinking_r["frame"], bins=bins)
-
-    #     self._add("===Blinking Info===")
-    #     self._add(f"Blinks Per Minute L: {hist_l.tolist()}")
-    #     self._add(f"Blinks Per Minute R: {hist_r.tolist()}")
-
-    #     self._add(f"Avg. Freq. L: {np.mean(hist_l): 6.3f}")
-    #     self._add(f"Avg. Freq. R: {np.mean(hist_r): 6.3f}")
-
-    #     self._add(f"Avg. Freq. [wo/ last minute] L: {np.mean(hist_l[:-1]): 6.3f}")
-    #     self._add(f"Avg. Freq. [wo/ last minute] R: {np.mean(hist_r[:-1]): 6.3f}")
-
-    #     _mean = np.mean(blinking_l["width"])
-    #     _std = np.std(blinking_l["width"])
-    #     self._add(f"Avg. Len. L: {_mean: 6.3f} +/- {_std: 6.3f} [frames]")
-    #     _mean /= kwargs["fps"]
-    #     _std /= kwargs["fps"]
-    #     self._add(f"Avg. Len. L: {_mean: 6.3f} +/- {_std: 6.3f} [s]")
-
-    #     _mean = np.mean(blinking_r["width"])
-    #     _std = np.std(blinking_r["width"])
-    #     self._add(f"Avg. Len. R: {_mean: 6.3f} +/- {_std: 6.3f} [frames]")
-    #     _mean /= kwargs["fps"]
-    #     _std /= kwargs["fps"]
-    #     self._add(f"Avg. Len. R: {_mean: 6.3f} +/- {_std: 6.3f} [s]")
-
-    #     self._add()
-
-    #     for index, (start, stop) in enumerate(zip(bins[:-2], bins[1:])):
-    #         df = blinking_l[(blinking_l["frame"] >= start) & (blinking_l["frame"] < stop)]
-    #         _mean = np.mean(df["width"])
-    #         _std = np.std(df["width"])
-    #         self._add(f"Minute {index:02d} L: {_mean: 6.3f} +/- {_std: 6.3f}[frames]")
-
-    #         _mean /= kwargs["fps"]
-    #         _std /= kwargs["fps"]
-    #         self._add(f"Minute {index:02d} R: {_mean: 6.3f} +/- {_std: 6.3f}[s]")
-
-    #     self._add()
-
-    #     for index, (start, stop) in enumerate(zip(bins[:-2], bins[1:])):
-    #         df = blinking_r[(blinking_r["frame"] >= start) & (blinking_r["frame"] < stop)]
-    #         _mean = np.mean(df["width"])
-    #         _std = np.std(df["width"])
-    #         self._add(f"Minute {index:02d} R: {_mean: 6.3f} +/- {_std: 6.3f}[frames]")
-
-    #         _mean /= kwargs["fps"]
-    #         _std /= kwargs["fps"]
-    #         self._add(f"Minute {index:02d} R: {_mean: 6.3f} +/- {_std: 6.3f}[s]")
-
-    #     self._add("")
-    #     self.progress.setValue(95)
-    #     self._add("===Detail Left Info===")
-    #     self._add(tabulate(blinking_l, headers="keys", tablefmt="github"))
-    #     self._add("")
-    #     self._add("===Detail Right Info===")
-    #     self._add(tabulate(blinking_r, headers="keys", tablefmt="github"))
-    #     self._set_result_text()
-
-    #     self.fill_tables(blinking_l, blinking_r)
-
-    #     self.blinking_l = blinking_l
-    #     self.blinking_r = blinking_r
-
-    # def _reset_result_text(self) -> None:
-    #     self.result_text = ""
-    #     self.te_results_g.setText("")
-
-    # def _add(self, text: str = "") -> None:
-    #     self.result_text += text + "\n"
-
-    # def _set_result_text(self) -> None:
-        self.te_results_g.setText(self.result_text)
+        fps = 30 if self.radio_30.isChecked() else 240 # TODO make more general in the future        
+        self.summary_df = blinking.summarize(self.blinking_matched, fps=fps)
+        self.te_results_g.setText(tabulate.tabulate(self.summary_df, headers="keys", tablefmt="github"))
+        # auto select the summary tab
+        self.tab_widget_results.setCurrentIndex(1)
 
     # saving of the results
     def save_results(self) -> None:
@@ -627,15 +524,6 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         if self.blinking_matched is None:
             logger.error("No matched blinking results to save", widget=self)
             return
-        
-        # if self.blinking_l is None or self.blinking_r is None:
-        #     logger.error("No blinking results to save", widget=self)
-        #     return
-
-        # TODO add summary export        zs
-        # file_info = self.file.parent / (self.file.stem + "_blinking_info.txt")
-        # logger.info("Saving blinking results", file=file_info)
-        # file_info.write_text(self.result_text)
 
         # get the annotations from the table
         annotations = self.blinking_table.get_annotations()
@@ -644,6 +532,10 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         if self.format_export.currentText() == "CSV":
             self.blinking_matched.to_csv(self.file.parent / (self.file.stem + "_blinking.csv"), index=False, na_rep="NaN")
+            
+            if self.summary_df is not None:
+                self.summary_dfl.to_csv(self.file.parent / (self.file.stem + "_summary.csv"), index=False, na_rep="NaN")
+            
         elif self.format_export.currentText() == "Excel":
             exel_file = self.file.parent / (self.file.stem + "_blinking.xlsx")
             logger.info("Saving blinking results", file=exel_file)
@@ -651,8 +543,11 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
                 # convert the single columns to integers
                 self.blinking_matched[("left",  "single")] = self.blinking_matched[("left",  "single")].astype(str)
                 self.blinking_matched[("right", "single")] = self.blinking_matched[("right", "single")].astype(str)
-                # reset the index
                 self.blinking_matched.to_excel(writer, sheet_name="Matched", na_rep="NaN")
+                
+                if self.summary_df is not None:
+                    self.summary_df.to_excel(writer, sheet_name="Summary", na_rep="NaN")
+                    
                 self.blinking_l.to_excel(writer, sheet_name="Left")
                 self.blinking_r.to_excel(writer, sheet_name="Right")
         else:
