@@ -40,7 +40,7 @@ def match(
         if np.isnan(row['single_left']):
             merged.at[index, ('single_right')] = True
         if np.isnan(row['single_right']):
-            merged.at[index, ('signle_left')] = True 
+            merged.at[index, ('single_left')] = True 
 
     # create a multiheader for left and right
     old_header = blinking_left.columns.delete(0)
