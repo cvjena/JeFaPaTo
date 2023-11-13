@@ -26,6 +26,8 @@ Ready to dive into the world of precise facial feature extraction and analysis? 
 | Windows | Linux | MacOS |
 | :-----: | :---: | :---: |
 
+If you want to install JeFaPaTo from source, please follow the instructions in the [installation guide](INSTALL.md).
+
 ## How to use JeFaPaTo
 
 1. Start JeFaPaTo
