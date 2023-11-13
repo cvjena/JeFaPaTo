@@ -304,6 +304,16 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.enable_column_selection()
         self.enable_algorithm()
         self.disable_export()
+        
+        # compute the possible options for the columns
+        # make all columns to lower case and find the one ending in ear_l and ear_r
+        cols_lower = [x.lower() for x in self.data_frame_columns]
+        idx_l = [i for i, x in enumerate(cols_lower) if x.endswith("_l")]
+        if len(idx_l) > 0:
+            self.comb_ear_l.setCurrentIndex(idx_l[0])
+        idx_r = [i for i, x in enumerate(cols_lower) if x.endswith("_r")]
+        if len(idx_r) > 0:  
+            self.comb_ear_r.setCurrentIndex(idx_r[0])
 
     def select_column_left(self, index: int) -> None:
         if self.data_frame is None or self.data_frame_columns is None:
