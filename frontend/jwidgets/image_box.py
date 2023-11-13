@@ -173,6 +173,13 @@ class JVideoFaceSelection(QWidget):
         y -= h // 4
         w += w // 2
         h += h // 2
+        
+        # make sure the box is not out of bounds
+        x = 0 if x < 0 else x
+        y = 0 if y < 0 else y
+        w = self.image.shape[1] - x if x + w > self.image.shape[1] else w
+        h = self.image.shape[0] - y if y + h > self.image.shape[0] else h
+
         return (x, y), (w, h)
     
     def paintEvent(self, a0: QtGui.QPaintEvent) -> None:
