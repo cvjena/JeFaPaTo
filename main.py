@@ -18,7 +18,7 @@ def main(argv):
     splash.startup(app)
 
     ex = frontend.JeFaPaTo(args)
-    logger.info("Start JeFaPaTo", version=ex.VERSION)
+    logger.info("Start JeFaPaTo")
 
     ex.show()
     splash.finish(ex)

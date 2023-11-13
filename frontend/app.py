@@ -28,8 +28,6 @@ class JeFaPaTo(QMainWindow, config.Config):
 
         self.progress_bar = QProgressBar()
 
-        self.VERSION = "1.0.0" 
-
         start = time.time()
         self.tab_eye_blinking = LandmarkExtraction(self)
         logger.info("Start Time LandmarkExtraction", time=time.time() - start)
