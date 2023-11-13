@@ -660,6 +660,9 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
     def dropEvent(self, event: QtGui.QDropEvent):
         files = [u.toLocalFile() for u in event.mimeData().urls()]
 
+        if len(files) == 0:
+            return
+
         if len(files) > 1:
             logger.info("User dropped multiple files", widget=self)
         file = files[0]
