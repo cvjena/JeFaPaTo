@@ -648,7 +648,11 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
             exel_file = self.file.parent / (self.file.stem + "_blinking.xlsx")
             logger.info("Saving blinking results", file=exel_file)
             with pd.ExcelWriter(exel_file) as writer:
-                self.blinking_matched.to_excel(writer, sheet_name="Matched")
+                # convert the single columns to integers
+                self.blinking_matched[("left",  "single")] = self.blinking_matched[("left",  "single")].astype(str)
+                self.blinking_matched[("right", "single")] = self.blinking_matched[("right", "single")].astype(str)
+                # reset the index
+                self.blinking_matched.to_excel(writer, sheet_name="Matched", na_rep="NaN")
                 self.blinking_l.to_excel(writer, sheet_name="Left")
                 self.blinking_r.to_excel(writer, sheet_name="Right")
         else:
