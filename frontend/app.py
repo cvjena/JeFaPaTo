@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import QMainWindow, QTabWidget, QProgressBar
 
 from frontend import config
 from .landmark_extraction import LandmarkExtraction
-from .widget_eye_blinking_freq import WidgetEyeBlinkingFreq
+from .eye_blinking_freq import EyeBlinkingFreq
 
 logger = structlog.get_logger()
 
@@ -35,7 +35,7 @@ class JeFaPaTo(QMainWindow, config.Config):
         logger.info("Start Time LandmarkExtraction", time=time.time() - start)
 
         start = time.time()
-        self.tab_eye_blinking_freq = WidgetEyeBlinkingFreq(self)
+        self.tab_eye_blinking_freq = EyeBlinkingFreq(self)
         logger.info("Start Time WidgetEyeBlinkingFreq", time=time.time() - start)
 
         self.central_widget.addTab(self.tab_eye_blinking, "Landmark Extraction")
