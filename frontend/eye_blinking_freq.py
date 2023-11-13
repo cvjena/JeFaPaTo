@@ -192,6 +192,7 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         cb_width_height = QtWidgets.QCheckBox()
         cb_simple_draw = QtWidgets.QCheckBox()
         btn_reset_graph = QtWidgets.QPushButton(qta.icon("msc.refresh"), "Reset Graph Y Range")
+        btn_reset_view = QtWidgets.QPushButton(qta.icon("msc.refresh"), "View Full Graph")
 
         self.fps_box = QtWidgets.QGroupBox()
         self.radio_30 = QtWidgets.QRadioButton("30")
@@ -213,11 +214,13 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         cb_simple_draw.clicked.connect(lambda _: self.plot_data())
         cb_width_height.clicked.connect(lambda _: self.plot_data())
         btn_reset_graph.clicked.connect(lambda: self.graph.setYRange(0, 1))
+        btn_reset_view.clicked.connect(lambda: self.graph.autoRange())
 
         self.set_visuals.addRow("FPS", self.fps_box)
         self.set_visuals.addRow("X-Axis As Time", cb_as_time)
         self.set_visuals.addRow("Draw Width/Height", cb_width_height)
         self.set_visuals.addRow("Simple Draw", cb_simple_draw)
+        self.set_visuals.addRow(btn_reset_view)
         self.set_visuals.addRow(btn_reset_graph)
 
         self.format_export = QtWidgets.QComboBox()

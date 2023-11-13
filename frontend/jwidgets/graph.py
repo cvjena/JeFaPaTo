@@ -65,6 +65,9 @@ class JGraph(QWidget):
     def removeItem(self, item: pg.GraphicsObject) -> None:  
         self.plot_item.removeItem(item)
 
+    def autoRange(self) -> None:
+        self.plot_item.autoRange()
+
     def clear(self) -> None:
         self.plot_item.clear()
         self.curves.clear()
