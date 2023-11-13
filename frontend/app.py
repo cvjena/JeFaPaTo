@@ -37,7 +37,7 @@ class JeFaPaTo(QMainWindow, config.Config):
         logger.info("Start Time WidgetEyeBlinkingFreq", time=time.time() - start)
 
         self.central_widget.addTab(self.tab_eye_blinking, "Landmark Extraction")
-        self.central_widget.addTab(self.tab_eye_blinking_freq, "Eye Blinking Frequency")
+        self.central_widget.addTab(self.tab_eye_blinking_freq, "Blinking Detection")
 
         tab_idx = args.start_tab
         if tab_idx > self.central_widget.count():
