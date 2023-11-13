@@ -3,6 +3,7 @@ __all__ = ["LandmarkExtraction"]
 import csv
 import datetime
 from pathlib import Path
+import sys
 from typing import Any, Callable, Type
 
 import numpy as np
@@ -324,12 +325,15 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.setAcceptDrops(True)
         self.widget_frame.set_interactive(True)
         
-        notification.notify(
-            title="Analysis finished",
-            message="The analysis has finished and the next video can be analyzed.",
-            app_name="JeFaPaTo",
-            timeout = 10,
-        )
+        try:
+            notification.notify(
+                title="Analysis finished",
+                message="The analysis has finished and the next video can be analyzed.",
+                app_name="JeFaPaTo",
+                timeout = 10,
+            )
+        except Exception as e:
+            logger.error("Failed to send notification", error=e, os=sys.platform)
 
     @facial_features.FaceAnalyzer.hookimpl
     def updated_display(self, image: np.ndarray):
