@@ -53,9 +53,14 @@ class FaceVideoContainer:
             return frame
 
         x, y, w, h = faces[0]
-        # scale 0.25 in the y direction
-        y = max(0, y - int(h * 0.25))
-        h = int(h * 1.5)
+        # # scale 0.25 in the y direction
+        # y = max(0, y - int(h * 0.25))
+        # h = int(h * 1.5)
+
+        x = 0 if x < 0 else x
+        y = 0 if y < 0 else y
+        w = frame.shape[1] - x if x + w > frame.shape[1] else w
+        h = frame.shape[0] - y if y + h > frame.shape[0] else h
 
         frame = frame[y:y+h, x:x+w]
         return frame

@@ -237,6 +237,7 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.add_handler("export_format", self.format_export, default="Excel")
 
         self.face_preview = jwidgets.JVideoFacePreview()
+        self.face_preview.setMaximumHeight(300)
 
         # Layouting #
         self.box_settings.setLayout(self.set_algo)
