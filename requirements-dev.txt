@@ -1,9 +1,6 @@
-snakeviz~=2.1
 flake8
 black
 isort
 pylint
 pre-commit
-plotly
-nuitka
 py2app ; sys_platform == 'darwin' 
