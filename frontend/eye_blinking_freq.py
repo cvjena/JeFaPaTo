@@ -225,9 +225,9 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         btn_reset_view.clicked.connect(lambda: self.graph.autoRange())
 
         self.set_visuals.addRow("FPS", self.fps_box)
-        self.set_visuals.addRow("X-Axis As Time", cb_as_time)
-        self.set_visuals.addRow("Draw Width/Height", cb_width_height)
-        self.set_visuals.addRow("Simple Draw", cb_simple_draw)
+        # self.set_visuals.addRow("X-Axis As Time", cb_as_time)
+        # self.set_visuals.addRow("Draw Width/Height", cb_width_height)
+        # self.set_visuals.addRow("Simple Draw", cb_simple_draw)
         self.set_visuals.addRow(btn_reset_view)
         self.set_visuals.addRow(btn_reset_graph)
 
