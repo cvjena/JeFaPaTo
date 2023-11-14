@@ -401,10 +401,12 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.progress.setRange(0, 100)
 
         self.progress.setValue(0)
-        self.compute_intervals()
+        if not self.compute_intervals():
+            return
         self.progress.setValue(60)
 
-        self.plot_intervals()
+        if not self.plot_intervals():
+            return
         self.progress.setValue(80)
 
         if self.blinking_l is None or self.blinking_r is None:
@@ -425,6 +427,17 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         assert self.raw_ear_r is not None, "Somehow the raw ear right is None"
         assert self.raw_ear_l is not None, "Somehow the raw ear left is None"
+        
+        # check if the column selection index are not the same
+        if self.comb_ear_l.currentIndex() == self.comb_ear_r.currentIndex():
+            dialog = QtWidgets.QMessageBox()
+            dialog.setIcon(QtWidgets.QMessageBox.Icon.Warning)
+            dialog.setWindowTitle("Blinking Extraction Error")
+            dialog.setText("It looks like you selected the same column for both eyes")
+            dialog.setInformativeText("Please change your settings and try again")
+            dialog.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Ok)
+            dialog.exec()
+            return False
 
         kwargs = {}
         kwargs["fps"] = self.get("fps")
@@ -447,11 +460,24 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         self.blinking_l = blinking.peaks(self.ear_l, threshold=threshold_l, **kwargs)
         self.blinking_r = blinking.peaks(self.ear_r, threshold=threshold_r, **kwargs)
-        self.blinking_matched = blinking.match(self.blinking_l, self.blinking_r, tolerance=30)
+        try:
+            self.blinking_matched = blinking.match(self.blinking_l, self.blinking_r, tolerance=30)
+        except ValueError as e:
+            logger.error("Error while matching the blinking data frames", error=e)
+            # create a warning dialog
+            dialog = QtWidgets.QMessageBox()
+            dialog.setIcon(QtWidgets.QMessageBox.Icon.Warning)
+            dialog.setWindowTitle("Blinking Extraction Error")
+            dialog.setText("Your extraction settings did not yield any blinkings")
+            dialog.setInformativeText("Please change your settings and try again")
+            dialog.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Ok)
+            dialog.exec()
+            return False
+        return True
 
-    def plot_intervals(self) -> None:
+    def plot_intervals(self) -> bool:
         if self.blinking_l is None or self.blinking_r is None:
-            return
+            return False
         
         self.plot_curve_ear_l.clear()
         self.plot_curve_ear_r.clear()
@@ -464,6 +490,8 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         self.plot_scatter_blinks_l.setData(x=self.blinking_l["frame"].to_numpy(), y=self.blinking_l["score"].to_numpy(), pen={"color": "#00F", "width": 2})
         self.plot_scatter_blinks_r.setData(x=self.blinking_r["frame"].to_numpy(), y=self.blinking_r["score"].to_numpy(), pen={"color": "#F00", "width": 2})
+
+        return True
 
     def clear_on_new_file(self) -> None:
         self.raw_ear_l = None
