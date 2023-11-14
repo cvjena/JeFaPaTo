@@ -245,6 +245,7 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         # add all things to the settings layout
         self.layout_settings.addWidget(self.btn_load)
         self.layout_settings.addWidget(self.la_current_file)
+        self.layout_settings.addWidget(self.face_preview, alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
         self.layout_settings.addWidget(jwidgets.JHLine())
         
         self.layout_settings.addWidget(QtWidgets.QLabel("Left Eye"))
@@ -265,7 +266,6 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.layout_settings.addWidget(self.box_visuals)
         self.layout_settings.addWidget(jwidgets.JHLine())
 
-        self.layout_settings.addWidget(self.face_preview, alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
 
         spacer = QtWidgets.QWidget()
         spacer.setSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding)
