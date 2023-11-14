@@ -419,7 +419,8 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.blinking_table.set_data(self.blinking_matched)
         self.progress.setValue(100)
 
-        self.enable_export()        
+        self.enable_export()
+        self.tab_widget_results.setCurrentIndex(0)
 
     def compute_intervals(self) -> None:
         assert self.data_frame is not None, "Somehow the data frame is None"
