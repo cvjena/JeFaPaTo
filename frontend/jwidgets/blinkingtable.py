@@ -29,10 +29,19 @@ def create_blinking_combobox() -> QComboBox:
     combobox.setCurrentIndex(2)
     return combobox
 
-# TODO make table nicer.
-#   - add better headers? perhaps alreayd in the dataframe?
 class JBlinkingTable(QWidget):
     selection_changed = pyqtSignal(int)
+    
+    mapping = {
+        "promi" : "Prominence",
+        "width" : "Width",
+        "height" : "Height",
+        "single" : "Single",
+        "ips_l" : "Intersection Start",
+        "ips_r" : "Intersection End",
+        "score" : "EAR Value",
+        "frame_og" : "Frame",
+    }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -40,58 +49,30 @@ class JBlinkingTable(QWidget):
         self.table_layout = QHBoxLayout()
         self.setLayout(self.table_layout)
 
-        self.table_blinking_type = QTableView()
-        self.table_left_eye = QTableView()
-        self.table_right_eye = QTableView()
-
-        self.table_layout.addWidget(self.table_blinking_type, stretch=1)
-        self.table_layout.addWidget(self.table_left_eye, stretch=4)
-        self.table_layout.addWidget(self.table_right_eye, stretch=4)
-
-        # set the model such that the whole list is selected when a row is selected
-        self.table_left_eye.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
-        self.table_right_eye.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
-        # set the model such that only one row can be selected at a time
-        self.table_left_eye.setSelectionMode(QTableView.SelectionMode.SingleSelection)
-        self.table_right_eye.setSelectionMode(QTableView.SelectionMode.SingleSelection)
-        # set the model such that the user cannot edit the table
-        self.table_left_eye.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
-        self.table_right_eye.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
-        # set the model such that the user cannot move the columns
-        self.table_left_eye.horizontalHeader().setSectionsMovable(False)
-        self.table_right_eye.horizontalHeader().setSectionsMovable(False)
+        self.table_blinking = QTableView()
+        self.table_layout.addWidget(self.table_blinking, stretch=1)
+        # # set the model such that the whole list is selected when a row is selected
+        self.table_blinking.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
+        self.table_blinking.setSelectionMode(QTableView.SelectionMode.SingleSelection)
+        self.table_blinking.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
+        self.table_blinking.horizontalHeader().setSectionsMovable(False)
 
         # set the model
         self.model_blinking_type = QStandardItemModel()
-        self.model_left_eye = QStandardItemModel()
-        self.model_right_eye = QStandardItemModel()
-
-        self.table_blinking_type.setModel(self.model_blinking_type)
-        self.table_left_eye.setModel(self.model_left_eye)
-        self.table_right_eye.setModel(self.model_right_eye)
+        self.table_blinking.setModel(self.model_blinking_type)
         
-        # if the user clicks on a row, the other table should also select the same row
-        self.table_left_eye.selectionModel().selectionChanged.connect(
-            lambda selected, deselected: self.table_right_eye.selectRow(selected.indexes()[0].row())
+        self.table_blinking.selectionModel().selectionChanged.connect(
+            lambda selected, _: self.selection_changed.emit(selected.indexes()[0].row())
         )
-        self.table_right_eye.selectionModel().selectionChanged.connect(
-            lambda selected, deselected: self.table_left_eye.selectRow(selected.indexes()[0].row())
-        )
-
-        self.table_left_eye.selectionModel().selectionChanged.connect(
-            lambda selected, deselected: self.selection_changed.emit(selected.indexes()[0].row())
-        )
-
+        
     def reset(self):
         self.model_blinking_type.clear()
-        self.model_left_eye.clear()
-        self.model_right_eye.clear()
 
     def get_annotations(self) -> pd.DataFrame:
         texts = []
         for i in range(self.model_blinking_type.rowCount()):
             model_idx = self.model_blinking_type.index(i, 0)
-            widget: QComboBox = self.table_blinking_type.indexWidget(model_idx) # type: ignore
+            widget: QComboBox = self.table_blinking.indexWidget(model_idx) # type: ignore
             texts.append(widget.currentText())
         
         annotations = pd.DataFrame()
@@ -101,27 +82,16 @@ class JBlinkingTable(QWidget):
 
     def set_data(self, blinking_matched: pd.DataFrame):
         assert blinking_matched is not None and isinstance(blinking_matched, pd.DataFrame)
-
         self.reset()
 
-        data_left = blinking_matched["left"]
-        data_right = blinking_matched["right"]
-
-        for _, row in data_left.iterrows():
-            self.model_left_eye.appendRow(to_qt_row(row))
-
-        for _, row in data_right.iterrows():
-            self.model_right_eye.appendRow(to_qt_row(row))
-            self.model_blinking_type.appendRow(QStandardItem(""))
+        for _, row in blinking_matched.iterrows():
+            self.model_blinking_type.appendRow([QStandardItem("")] + to_qt_row(row))
 
         # TODO perhaps we can atleast estimate which kind of blinking it is?
-        for i in range(len(data_left)):
-            self.table_blinking_type.setIndexWidget(self.model_blinking_type.index(i, 0), create_blinking_combobox())
+        for i in range(len(blinking_matched)):
+            self.table_blinking.setIndexWidget(self.model_blinking_type.index(i, 0), create_blinking_combobox())
 
-        self.table_left_eye.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.table_right_eye.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.table_blinking_type.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-
-        self.model_left_eye.setHorizontalHeaderLabels(list(data_left.columns))
-        self.model_right_eye.setHorizontalHeaderLabels(list(data_right.columns))
-        self.model_blinking_type.setHorizontalHeaderLabels(["Eyelid Closure Type"])
+        self.table_blinking.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        # get the colums from the left and right eye and combine them
+        header = [f"{self.mapping[c[1]]} [{c[0][0]}]" for c in blinking_matched.columns]
+        self.model_blinking_type.setHorizontalHeaderLabels(["Eyelid Closure Type"] + header)
