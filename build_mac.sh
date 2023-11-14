@@ -52,25 +52,32 @@ if [[ $(uname -m) == "arm64" ]]; then
 
         # install dependencies
         python -m pip install -r requirements-dev.txt
-        python -m pip install -r requirements.txt
     fi
+    
+    python -m pip install -r requirements.txt --upgrade
+
     rm -rf build
     rm -rf dist
+
+    # NOTE if you get some libffi.8.dylib error, a likely reason is that the virtual environment
+    # is based on the python version of conda (e.g. miniconda) and not the python version of brew
+    # therfore deactivate conda COMPLETELY, delete the virtual environment, and rerun this script
+
     python setup.py py2app --arch=universal2
     # create a dmg file, requires create-dmg from brew to be installed
-    rm JeFaPaTo_M1-arm64.dmg 
-    create-dmg \
-        --volname JeFaPaTo \
-        --volicon frontend/assets/icons/icon.icns \
-        --window-pos 200 120 \
-        --window-size 800 400 \
-        --icon-size 100 \
-        --icon "JeFaPaTo.app" 200 190 \
-        --hide-extension "JeFaPaTo.app" \
-        --app-drop-link 600 185 \
-        --no-internet-enable \
-        " JeFaPaTo_M1-arm64.dmg" \
-        dist
+    # rm JeFaPaTo_M1-arm64.dmg 
+    # create-dmg \
+    #     --volname JeFaPaTo \
+    #     --volicon frontend/assets/icons/icon.icns \
+    #     --window-pos 200 120 \
+    #     --window-size 800 400 \
+    #     --icon-size 100 \
+    #     --icon "JeFaPaTo.app" 200 190 \
+    #     --hide-extension "JeFaPaTo.app" \
+    #     --app-drop-link 600 185 \
+    #     --no-internet-enable \
+    #     " JeFaPaTo_M1-arm64.dmg" \
+    #     dist
 
 else
     echo "mac architecture is not arm64"

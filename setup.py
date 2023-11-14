@@ -9,7 +9,7 @@ from setuptools import setup
 
 APP = ['main.py']
 APP_NAME = "JeFaPaTo"
-DATA_FILES = ["frontend", "jefapato"]
+DATA_FILES = ["frontend", "jefapato", "examples"]
 OPTIONS = {
     "iconfile": "frontend/assets/icons/icon.icns",
     'plist': {
@@ -17,10 +17,10 @@ OPTIONS = {
         'CFBundleDisplayName': APP_NAME,
         'CFBundleGetInfoString': "Jena Facial Palsy Tool",
         'CFBundleIdentifier': "com.cvgj.osx.jefapato",
-        'CFBundleVersion': "0.1.0",
-        'CFBundleShortVersionString': "0.1.0",
+        'CFBundleVersion': "1.0.0",
+        'CFBundleShortVersionString': "1.0.0",
         'NSHumanReadableCopyright': u"Copyright © 2023, Tim Büchner, All Rights Reserved",
-        'NSCameraUsageDescription': u'JeFaPaTo needs access to your camera to record videos.',
+        # 'NSCameraUsageDescription': u'JeFaPaTo needs access to your camera to record videos.',
         'LSPrefersPPC': False,
     },
     "alias": False,
