@@ -152,15 +152,15 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         le_width_max = QtWidgets.QLineEdit()
 
         MAPPER_FLOAT_STR = (lambda x: float(x), lambda x: str(x))
-        MAPPTER_INT_STR = (lambda x: int(x), lambda x: str(x))
+        MAPPER_INT_STR = (lambda x: int(x), lambda x: str(x))
 
         self.add_handler("threshold_l", le_th_l, mapper=MAPPER_FLOAT_STR, default=0.16)
         self.add_handler("threshold_r", le_th_r, mapper=MAPPER_FLOAT_STR, default=0.16)
-        self.add_handler("fps", le_fps, mapper=MAPPTER_INT_STR, default=240)
-        self.add_handler("min_dist", le_distance, mapper=MAPPTER_INT_STR, default=50)
+        self.add_handler("fps", le_fps, mapper=MAPPER_INT_STR, default=240)
+        self.add_handler("min_dist", le_distance, mapper=MAPPER_INT_STR, default=50)
         self.add_handler("min_prominence", le_prominence, mapper=MAPPER_FLOAT_STR, default=0.1)
-        self.add_handler("min_width", le_width_min, mapper=MAPPTER_INT_STR, default=10)
-        self.add_handler("max_width", le_width_max, mapper=MAPPTER_INT_STR, default=100)
+        self.add_handler("min_width", le_width_min, mapper=MAPPER_INT_STR, default=10)
+        self.add_handler("max_width", le_width_max, mapper=MAPPER_INT_STR, default=100)
 
         le_fps.setValidator(QtGui.QIntValidator())
         le_width_min.setValidator(QtGui.QIntValidator())
@@ -182,8 +182,8 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         le_smooth_size = QtWidgets.QLineEdit()
         le_smooth_poly = QtWidgets.QLineEdit()
-        self.add_handler("smooth_size", le_smooth_size, mapper=MAPPTER_INT_STR, default=91)
-        self.add_handler("smooth_poly", le_smooth_poly, mapper=MAPPTER_INT_STR, default=5)
+        self.add_handler("smooth_size", le_smooth_size, mapper=MAPPER_INT_STR, default=91)
+        self.add_handler("smooth_poly", le_smooth_poly, mapper=MAPPER_INT_STR, default=5)
         le_smooth_size.setValidator(QtGui.QIntValidator())
         le_smooth_poly.setValidator(QtGui.QIntValidator())
 
