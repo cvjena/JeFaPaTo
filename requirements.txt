@@ -3,6 +3,7 @@ numpy
 opencv-python-headless
 mediapipe
 protobuf>=3.11,<4
+# pillow is only for arm or for intel... but now universal...
 
 # general scientific libs
 scipy~=1.8

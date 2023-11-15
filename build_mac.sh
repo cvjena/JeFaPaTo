@@ -25,45 +25,48 @@ else
     brew install create-dmg
 fi
 
+# check if python3 is installed, else prompt the user to install the UNIVERSAL installer
+# for python 3 we need at least version 3.10.11
+if python3 -V > /dev/null; then
+    echo "python3 is installed"
+    # update pip
+    python3 -m pip install --upgrade pip
 
-# check if python3.10 is installed (via brew)
-if brew ls --versions python@3.10 > /dev/null; then
-    echo "python3.10 is installed"
 else
-    echo "python3.10 is not installed"
-    echo "installing python3.10"
-    brew install python@3.10
+    echo "python3 is not installed"
+    echo "installing python3"
+    echo "install the UNIVERSAL installer from https://www.python.org/downloads/"
+    exit 1
 fi
 
+# check if the virtual environment exists
+# if not exists, create a virtual environment
+if [ -d "venv-mac" ]; then
+    echo "virtual environment exists"
+    source venv-mac/bin/activate
+else
+    echo "virtual environment does not exist"
+    echo "creating virtual environment"
+    # create a virtual environment
+    python3 -m venv venv-mac 
+    source venv-mac/bin/activate
+fi
+# update pip else some installation scripts might fail!
+# install dependencies
+python3 -m pip install --upgrade pip
+python3 -m pip install -r requirements-dev.txt --upgrade
+python3 -m pip install -r requirements.txt --upgrade
+
+rm -rf build
+rm -rf dist
+
 # check mac architecture
+# NOTE if you get some libffi.8.dylib error, a likely reason is that the virtual environment
+# is based on the python version of conda (e.g. miniconda) and not the python version of brew
+# therfore deactivate conda COMPLETELY, delete the virtual environment, and rerun this script
 if [[ $(uname -m) == "arm64" ]]; then
     echo "mac architecture is arm64"
-    # check if the virtual environment exists
-    # if not exists, create a virtual environment
-    if [ -d "venv-m1-arm64" ]; then
-        echo "virtual environment exists"
-        source venv-m1-arm64/bin/activate
-    else
-        echo "virtual environment does not exist"
-        echo "creating virtual environment"
-        # create a virtual environment
-        python3.10 -m venv venv-m1-arm64
-        source venv-m1-arm64/bin/activate
-
-        # install dependencies
-        python -m pip install -r requirements-dev.txt
-    fi
-    
-    python -m pip install -r requirements.txt --upgrade
-
-    rm -rf build
-    rm -rf dist
-
-    # NOTE if you get some libffi.8.dylib error, a likely reason is that the virtual environment
-    # is based on the python version of conda (e.g. miniconda) and not the python version of brew
-    # therfore deactivate conda COMPLETELY, delete the virtual environment, and rerun this script
-
-    python setup.py py2app --arch=universal2
+    python3 setup.py py2app --arch=universal2
     # create a dmg file, requires create-dmg from brew to be installed
     # rm JeFaPaTo_M1-arm64.dmg 
     # create-dmg \
@@ -78,41 +81,21 @@ if [[ $(uname -m) == "arm64" ]]; then
     #     --no-internet-enable \
     #     " JeFaPaTo_M1-arm64.dmg" \
     #     dist
-
 else
     echo "mac architecture is not arm64"
-    # check if the virtual environment exists
-    if [ -d "venv-intel-x86_64" ]; then
-        echo "virtual environment exists"
-        source venv-intel-x86_64/bin/activate
-    else
-        echo "virtual environment does not exist"
-        echo "creating virtual environment"
-        # create a virtual environment
-        python3.10 -m venv venv-intel-x86_64
-        source venv-intel-x86_64/bin/activate
-
-        # install dependencies
-        python -m pip install -r requirements-dev.txt
-        python -m pip install -r requirements.txt
-    fi
-
-    rm -rf build
-    rm -rf dist
     python setup.py py2app --arch=x86_64
-
     # create a dmg file, requires create-dmg from brew to be installed
-    rm JeFaPaTo_Intel-x86_64.dmg
-    create-dmg \
-        --volname JeFaPaTo \
-        --volicon frontend/assets/icons/icon.icns \
-        --window-pos 200 120 \
-        --window-size 800 400 \
-        --icon-size 100 \
-        --icon "JeFaPaTo.app" 200 190 \
-        --hide-extension "JeFaPaTo.app" \
-        --app-drop-link 600 185 \
-        --no-internet-enable \
-        " JeFaPaTo_Intel-x86_64.dmg" \
-        dist
+    # rm JeFaPaTo_Intel-x86_64.dmg
+    # create-dmg \
+    #     --volname JeFaPaTo \
+    #     --volicon frontend/assets/icons/icon.icns \
+    #     --window-pos 200 120 \
+    #     --window-size 800 400 \
+    #     --icon-size 100 \
+    #     --icon "JeFaPaTo.app" 200 190 \
+    #     --hide-extension "JeFaPaTo.app" \
+    #     --app-drop-link 600 185 \
+    #     --no-internet-enable \
+    #     " JeFaPaTo_Intel-x86_64.dmg" \
+    #     dist
 fi
