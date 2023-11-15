@@ -195,7 +195,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.flayout_se.addRow(self.bt_pause_resume)
         self.flayout_se.addRow(self.button_stop)
         self.flayout_se.addRow(self.feature_group)
-        self.flayout_se.addRow(self.blends_shape_group)
+        # self.flayout_se.addRow(self.blends_shape_group)
         self.flayout_se.addRow("Graph Update Delay:", self.skip_frame)
         self.flayout_se.addRow(self.bt_reset_graph)
         self.flayout_se.addRow(self.auto_save)
