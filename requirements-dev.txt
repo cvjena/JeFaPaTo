@@ -3,4 +3,5 @@ black
 isort
 pylint
 pre-commit
+pretty_errors
 py2app ; sys_platform == 'darwin' 
