@@ -5,6 +5,9 @@
 # - add version numbers
 # - switch to universal2 (check which modules are the issues)
 
+# this is needed that python gets the correct platform version on mac big sur
+export SYSTEM_VERSION_COMPAT=0
+
 # check if brew is installed
 # if not abort
 if brew -v > /dev/null; then
@@ -17,13 +20,13 @@ fi
 
 # check if create-dmg is installed
 # if not install it
-if brew ls --versions create-dmg > /dev/null; then
-    echo "create-dmg is installed"
-else
-    echo "create-dmg is not installed"
-    echo "installing create-dmg"
-    brew install create-dmg
-fi
+# if brew ls --versions create-dmg > /dev/null; then
+#     echo "create-dmg is installed"
+# else
+#     echo "create-dmg is not installed"
+#     echo "installing create-dmg"
+#     brew install create-dmg
+# fi
 
 # check if python3 is installed, else prompt the user to install the UNIVERSAL installer
 # for python 3 we need at least version 3.10.11
@@ -31,7 +34,6 @@ if python3 -V > /dev/null; then
     echo "python3 is installed"
     # update pip
     python3 -m pip install --upgrade pip
-
 else
     echo "python3 is not installed"
     echo "installing python3"
@@ -51,11 +53,12 @@ else
     python3 -m venv venv-mac 
     source venv-mac/bin/activate
 fi
+
+python3 -c "import platform; print(platform.platform())"
 # update pip else some installation scripts might fail!
-# install dependencies
-python3 -m pip install --upgrade pip
-python3 -m pip install -r requirements-dev.txt --upgrade
-python3 -m pip install -r requirements.txt --upgrade
+arch -x86_64 python3 -m pip install --upgrade pip setuptools wheel
+arch -x86_64 python3 -m pip install --upgrade --force-reinstall -r requirements-dev.txt 
+arch -x86_64 python3 -m pip install --upgrade --force-reinstall -r requirements.txt
 
 rm -rf build
 rm -rf dist
@@ -82,8 +85,8 @@ if [[ $(uname -m) == "arm64" ]]; then
     #     " JeFaPaTo_M1-arm64.dmg" \
     #     dist
 else
-    echo "mac architecture is not arm64"
-    python setup.py py2app --arch=x86_64
+    echo "mac architecture is x86_64"
+    arch -x86_64 python setup.py py2app --arch=x86_64
     # create a dmg file, requires create-dmg from brew to be installed
     # rm JeFaPaTo_Intel-x86_64.dmg
     # create-dmg \
