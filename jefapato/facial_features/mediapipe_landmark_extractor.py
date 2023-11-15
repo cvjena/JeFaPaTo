@@ -2,13 +2,10 @@ __all__ = ["MediapipeLandmarkExtractor"]
 
 import queue
 import time
-from pathlib import Path
 
 import mediapipe as mp
 import numpy as np
 import structlog
-from mediapipe.tasks import python
-from mediapipe.tasks.python import vision
 from PyQt6.QtCore import QThread, pyqtSignal
 
 from .queue_items import AnalyzeQueueItem, InputQueueItem
@@ -71,15 +68,13 @@ class MediapipeLandmarkExtractor(Extractor):
     ) -> None:
         super().__init__(data_queue=data_queue, data_amount=data_amount)
 
-        base_options = python.BaseOptions(model_asset_path=str(Path(__file__).parent / "models/2023-07-09_face_landmarker.task"))
-        options = vision.FaceLandmarkerOptions(
-            base_options=base_options,
-            running_mode=vision.RunningMode.IMAGE,
-            output_face_blendshapes=True, 
-            output_facial_transformation_matrixes=False,
-            num_faces=1,
+        self.detector = mp.solutions.face_mesh.FaceMesh(
+            static_image_mode=True, # False would be faster but the static one is more accurate!
+            max_num_faces=1,
+            refine_landmarks=True,
+            min_detection_confidence=0.2,
+            min_tracking_confidence=0.2,
         )
-        self.detector = vision.FaceLandmarker.create_from_options(options)
         self.start_time = time.time()
         self.processing_per_second: int = 0
         self.bbox_slice = bbox_slice
@@ -134,23 +129,18 @@ class MediapipeLandmarkExtractor(Extractor):
                 image = image[y1:y2, x1:x2].copy()
 
             h, w = image.shape[:2]
-            mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image)
-
-            face_landmarker_result = self.detector.detect(mp_image)
+            results = self.detector.process(image)
+            
             landmarks = np.empty((478, 3), dtype=np.int32)
             blendshapes = {}
 
             valid = False
-            if face_landmarker_result.face_landmarks:
+            if results.multi_face_landmarks:
                 valid = True
-                face_landmarks = face_landmarker_result.face_landmarks[0]
-                for i, lm in enumerate(face_landmarks):
+                for i, lm in enumerate(results.multi_face_landmarks[0].landmark):
                     landmarks[i, 0] = int(lm.x * w)
                     landmarks[i, 1] = int(lm.y * h)
                     landmarks[i, 2] = int(lm.z * w)
-
-                for face_blendshape in face_landmarker_result.face_blendshapes[0]:
-                    blendshapes[face_blendshape.category_name] = face_blendshape.score
 
             x_offset = 0 if self.bbox_slice is None else self.bbox_slice[2]
             y_offset = 0 if self.bbox_slice is None else self.bbox_slice[0]
