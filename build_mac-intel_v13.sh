@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# NOTE if you get some libffi.8.dylib error, a likely reason is that the virtual environment
+# is based on the python version of conda (e.g. miniconda) and not the python version of brew
+# therfore deactivate conda COMPLETELY, delete the virtual environment, and rerun this script
+
 # this is needed that python gets the correct platform version on mac big sur
 export SYSTEM_VERSION_COMPAT=0
 
@@ -27,8 +31,6 @@ fi
 # for python 3 we need at least version 3.10.11
 if python3 -V > /dev/null; then
     echo "python3 is installed"
-    # update pip
-    python3 -m pip install --upgrade pip
 else
     echo "python3 is not installed"
     echo "installing python3"
@@ -38,15 +40,15 @@ fi
 
 # check if the virtual environment exists
 # if not exists, create a virtual environment
-if [ -d "venv-mac" ]; then
+if [ -d "venv-mac-intel" ]; then
     echo "virtual environment exists"
-    source venv-mac/bin/activate
+    source venv-mac-intel/bin/activate
 else
     echo "virtual environment does not exist"
     echo "creating virtual environment"
     # create a virtual environment
-    python3 -m venv venv-mac 
-    source venv-mac/bin/activate
+    python3 -m venv venv-mac-intel 
+    source venv-mac-intel/bin/activate
 fi
 
 python3 -c "import platform; print(platform.platform())"
@@ -56,44 +58,20 @@ arch -x86_64 python3 -m pip install --upgrade --force-reinstall -r requirements-
 arch -x86_64 python3 -m pip install --upgrade --force-reinstall -r requirements.txt
 
 rm -rf build
-rm -rf dist
+arch -x86_64 python setup.py py2app --arch=x86_64
+mv dist/JeFaPaTo.app dist/JeFaPaTo_intel.app
 
-# check mac architecture
-# NOTE if you get some libffi.8.dylib error, a likely reason is that the virtual environment
-# is based on the python version of conda (e.g. miniconda) and not the python version of brew
-# therfore deactivate conda COMPLETELY, delete the virtual environment, and rerun this script
-if [[ $(uname -m) == "arm64" ]]; then
-    echo "mac architecture is arm64"
-    arch -x86_64 python3 setup.py py2app --arch=universal2
-    # create a dmg file, requires create-dmg from brew to be installed
-    # rm JeFaPaTo_M1-arm64.dmg 
-    # create-dmg \
-    #     --volname JeFaPaTo \
-    #     --volicon frontend/assets/icons/icon.icns \
-    #     --window-pos 200 120 \
-    #     --window-size 800 400 \
-    #     --icon-size 100 \
-    #     --icon "JeFaPaTo.app" 200 190 \
-    #     --hide-extension "JeFaPaTo.app" \
-    #     --app-drop-link 600 185 \
-    #     --no-internet-enable \
-    #     " JeFaPaTo_M1-arm64.dmg" \
-    #     dist
-else
-    echo "mac architecture is x86_64"
-    arch -x86_64 python setup.py py2app --arch=x86_64
-    # create a dmg file, requires create-dmg from brew to be installed
-    # rm JeFaPaTo_Intel-x86_64.dmg
-    # create-dmg \
-    #     --volname JeFaPaTo \
-    #     --volicon frontend/assets/icons/icon.icns \
-    #     --window-pos 200 120 \
-    #     --window-size 800 400 \
-    #     --icon-size 100 \
-    #     --icon "JeFaPaTo.app" 200 190 \
-    #     --hide-extension "JeFaPaTo.app" \
-    #     --app-drop-link 600 185 \
-    #     --no-internet-enable \
-    #     " JeFaPaTo_Intel-x86_64.dmg" \
-    #     dist
-fi
+# create a dmg file, requires create-dmg from brew to be installed
+# rm JeFaPaTo_Intel-x86_64.dmg
+# create-dmg \
+#     --volname JeFaPaTo \
+#     --volicon frontend/assets/icons/icon.icns \
+#     --window-pos 200 120 \
+#     --window-size 800 400 \
+#     --icon-size 100 \
+#     --icon "JeFaPaTo.app" 200 190 \
+#     --hide-extension "JeFaPaTo.app" \
+#     --app-drop-link 600 185 \
+#     --no-internet-enable \
+#     " JeFaPaTo_Intel-x86_64.dmg" \
+#     dist
