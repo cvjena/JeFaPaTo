@@ -1,10 +1,5 @@
 #!/bin/bash
 
-# TODO
-# - make more general
-# - add version numbers
-# - switch to universal2 (check which modules are the issues)
-
 # this is needed that python gets the correct platform version on mac big sur
 export SYSTEM_VERSION_COMPAT=0
 
@@ -69,7 +64,7 @@ rm -rf dist
 # therfore deactivate conda COMPLETELY, delete the virtual environment, and rerun this script
 if [[ $(uname -m) == "arm64" ]]; then
     echo "mac architecture is arm64"
-    python3 setup.py py2app --arch=universal2
+    arch -x86_64 python3 setup.py py2app --arch=universal2
     # create a dmg file, requires create-dmg from brew to be installed
     # rm JeFaPaTo_M1-arm64.dmg 
     # create-dmg \
