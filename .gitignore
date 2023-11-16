@@ -71,5 +71,5 @@ MANIFEST
 temp/
 venv*
 *.dmg
-
+*.spec
 !examples/ear_score.csv
