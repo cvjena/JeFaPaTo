@@ -19,13 +19,13 @@ fi
 
 # check if create-dmg is installed
 # if not install it
-# if brew ls --versions create-dmg > /dev/null; then
-#     echo "create-dmg is installed"
-# else
-#     echo "create-dmg is not installed"
-#     echo "installing create-dmg"
-#     brew install create-dmg
-# fi
+if brew ls --versions create-dmg > /dev/null; then
+    echo "create-dmg is installed"
+else
+    echo "create-dmg is not installed"
+    echo "installing create-dmg"
+    brew install create-dmg
+fi
 
 # check if python3 is installed, else prompt the user to install the UNIVERSAL installer
 # for python 3 we need at least version 3.10.11
@@ -51,6 +51,7 @@ else
     source venv-mac-intel-old/bin/activate
 fi
 
+python3 --version
 python3 -c "import platform; print(platform.platform())"
 # update pip else some installation scripts might fail!
 arch -x86_64 python3 -m pip install --upgrade pip setuptools wheel
@@ -59,19 +60,25 @@ arch -x86_64 python3 -m pip install --upgrade --force-reinstall -r requirements.
 
 rm -rf build
 arch -x86_64 python setup.py py2app --arch=x86_64
-mv dist/JeFaPaTo.app dist/JeFaPaTo_intel_old.app
+
+mkdir -p dist/intel
+mkdir -p dist/dmg
+
+mv dist/JeFaPaTo.app dist/intel/JeFaPaTo.app
 
 # create a dmg file, requires create-dmg from brew to be installed
-# rm JeFaPaTo_Intel-x86_64.dmg
-# create-dmg \
-#     --volname JeFaPaTo \
-#     --volicon frontend/assets/icons/icon.icns \
-#     --window-pos 200 120 \
-#     --window-size 800 400 \
-#     --icon-size 100 \
-#     --icon "JeFaPaTo.app" 200 190 \
-#     --hide-extension "JeFaPaTo.app" \
-#     --app-drop-link 600 185 \
-#     --no-internet-enable \
-#     " JeFaPaTo_Intel-x86_64.dmg" \
-#     dist
+rm dist/dmg/JeFaPaTo_intel_v10.dmg
+create-dmg \
+    --volname JeFaPaTo_intel_v10 \
+    --volicon frontend/assets/icons/icon.icns \
+    --window-pos 200 120 \
+    --window-size 800 400 \
+    --icon-size 100 \
+    --icon "JeFaPaTo.app" 200 190 \
+    --hide-extension "JeFaPaTo.app" \
+    --app-drop-link 600 185 \
+    --no-internet-enable \
+    "JeFaPaTo_intel_v10.dmg" \
+    dist/intel
+
+mv JeFaPaTo_intel_v10.dmg dist/dmg/JeFaPaTo_intel_v10.dmg
