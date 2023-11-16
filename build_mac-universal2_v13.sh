@@ -60,19 +60,25 @@ python3 -m pip install --upgrade --force-reinstall -r requirements.txt
 rm -rf build
 python3 setup.py py2app --arch=universal2
 # rename the created app
-mv dist/JeFaPaTo.app dist/JeFaPaTo_universal2.app
+mkdir -p dist/universal2
+mv dist/JeFaPaTo.app dist/universal2/JeFaPaTo.app
 
 # create a dmg file, requires create-dmg from brew to be installed
-# rm JeFaPaTo_M1-arm64.dmg 
-# create-dmg \
-#     --volname JeFaPaTo \
-#     --volicon frontend/assets/icons/icon.icns \
-#     --window-pos 200 120 \
-#     --window-size 800 400 \
-#     --icon-size 100 \
-#     --icon "JeFaPaTo.app" 200 190 \
-#     --hide-extension "JeFaPaTo.app" \
-#     --app-drop-link 600 185 \
-#     --no-internet-enable \
-#     " JeFaPaTo_M1-arm64.dmg" \
-#     dist
+# create a folder for the dmg files
+mkdir -p dist/dmg
+
+rm -f dist/dmg/JeFaPaTo_universal2.dmg
+create-dmg \
+    --volname JeFaPaTo_universal2 \
+    --volicon frontend/assets/icons/icon.icns \
+    --window-pos 200 120 \
+    --window-size 800 400 \
+    --icon-size 100 \
+    --icon "JeFaPaTo.app" 200 190 \
+    --hide-extension "JeFaPaTo.app" \
+    --app-drop-link 600 185 \
+    --no-internet-enable \
+    "JeFaPaTo_universal2.dmg" \
+    dist/universal2
+
+mv JeFaPaTo_universal2.dmg dist/dmg/JeFaPaTo_universal2.dmg

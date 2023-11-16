@@ -59,19 +59,22 @@ arch -x86_64 python3 -m pip install --upgrade --force-reinstall -r requirements.
 
 rm -rf build
 arch -x86_64 python setup.py py2app --arch=x86_64
-mv dist/JeFaPaTo.app dist/JeFaPaTo_intel.app
+mkdir -p dist/intel
+mv dist/JeFaPaTo.app dist/intel/JeFaPaTo.app
 
+mkdir -p dist/dmg
 # create a dmg file, requires create-dmg from brew to be installed
-# rm JeFaPaTo_Intel-x86_64.dmg
-# create-dmg \
-#     --volname JeFaPaTo \
-#     --volicon frontend/assets/icons/icon.icns \
-#     --window-pos 200 120 \
-#     --window-size 800 400 \
-#     --icon-size 100 \
-#     --icon "JeFaPaTo.app" 200 190 \
-#     --hide-extension "JeFaPaTo.app" \
-#     --app-drop-link 600 185 \
-#     --no-internet-enable \
-#     " JeFaPaTo_Intel-x86_64.dmg" \
-#     dist
+create-dmg \
+    --volname JeFaPaTo_intel \
+    --volicon frontend/assets/icons/icon.icns \
+    --window-pos 200 120 \
+    --window-size 800 400 \
+    --icon-size 100 \
+    --icon "JeFaPaTo.app" 200 190 \
+    --hide-extension "JeFaPaTo.app" \
+    --app-drop-link 600 185 \
+    --no-internet-enable \
+    "JeFaPaTo_intel.dmg" \
+    dist/intel
+
+mv JeFaPaTo_intel.dmg dist/dmg/JeFaPaTo_intel.dmg
