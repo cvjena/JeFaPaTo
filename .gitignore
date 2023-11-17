@@ -73,3 +73,7 @@ venv*
 *.dmg
 *.spec
 !examples/ear_score.csv
+
+paper/paper.jats
+paper/paper.pdf
+paper/media
