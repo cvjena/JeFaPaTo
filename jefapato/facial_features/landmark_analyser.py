@@ -170,39 +170,44 @@ class FaceAnalyzer():
 
         return row
 
-    def prepare_video_resource(self, value: Path | int) -> tuple[bool, np.ndarray]:
+    def prepare_video_resource(self, value: Path) -> tuple[bool, np.ndarray]:
         self.video_resource = value
 
-        if not isinstance(self.video_resource, (Path, int)):
+        if not isinstance(self.video_resource, Path):
             raise ValueError("Video resource must be a Path or an integer.")
 
-        if isinstance(self.video_resource, Path):
-            if not self.video_resource.exists():
-                raise FileNotFoundError(f"File {self.video_resource} does not exist.")
-
-            self.resource_interface = cv2.VideoCapture(str(self.video_resource.absolute()))
-            self.data_amount = self.resource_interface.get(cv2.CAP_PROP_FRAME_COUNT)
-            
-            success, image = self.resource_interface.read()
-            return success, cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-        if self.video_resource != -1:
-            raise ValueError("Video resource must be a Path or -1 for webcam.")
+        if not self.video_resource.exists():
+            raise FileNotFoundError(f"File {self.video_resource} does not exist.")
         
-        # this is the case for a webcam
-        # check on which kind of system we are running 
-        self.resource_interface = cv2.VideoCapture(1 if platform.system() == "Darwin" else 0)
-        self.resource_interface.set(cv2.CAP_PROP_FPS, 30)
-        self.resource_interface.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter.fourcc("M", "J", "P", "G"))
-        self.resource_interface.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)  # 1280 # TODO check if this is correct
-        self.resource_interface.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)  # 720 # TODO check if this is correct
-        self.data_amount = -1
+        if not self.video_resource.is_file():
+            raise ValueError(f"File {self.video_resource} is not a file.")
 
+        if self.video_resource.suffix.lower() not in [".mp4", ".flv", ".ts", ".mts", ".avi", ".mov"]:
+            raise ValueError(f"File {self.video_resource} is not a video file.")
+
+        self.resource_interface = cv2.VideoCapture(str(self.video_resource.absolute()))
+        self.data_amount = self.resource_interface.get(cv2.CAP_PROP_FRAME_COUNT)
+        
         success, image = self.resource_interface.read()
-        if not success:
-            logger.error("Could not read from webcam.")
-            return False, None
         return success, cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+        # if self.video_resource != -1:
+        #     raise ValueError("Video resource must be a Path or -1 for webcam.")
+        
+        # # this is the case for a webcam
+        # # check on which kind of system we are running 
+        # self.resource_interface = cv2.VideoCapture(1 if platform.system() == "Darwin" else 0)
+        # self.resource_interface.set(cv2.CAP_PROP_FPS, 30)
+        # self.resource_interface.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter.fourcc("M", "J", "P", "G"))
+        # self.resource_interface.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)  # 1280 # TODO check if this is correct
+        # self.resource_interface.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)  # 720 # TODO check if this is correct
+        # self.data_amount = -1
+
+        # success, image = self.resource_interface.read()
+        # if not success:
+        #     logger.error("Could not read from webcam.")
+        #     return False, None
+        # return success, cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
     def release_resource(self):
         # reset the resource back to the first frame
