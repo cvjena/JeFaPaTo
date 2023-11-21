@@ -109,11 +109,27 @@ class FaceAnalyzer():
             extractor.stopped = True
             extractor.wait()
 
-    def reset(self):
-        self.features = list()
-
     def register_hooks(self, plugin: object) -> None:
-        self.pm.register(plugin)
+        """
+        Register hooks for the given plugin.
+        Gives access to the following hooks:
+            - started
+            - finished
+            - paused
+            - resumed
+            - processed_percentage
+            - updated_display
+            - updated_feature
+        Args:
+            plugin (object): The plugin object to register hooks for.
+
+        Returns:
+            None
+        """
+        try:
+            self.pm.register(plugin)
+        except ValueError:
+            pass
 
     def set_features(self, features: list[Type[Feature]]) -> None:
         self.feature_classes.clear()
