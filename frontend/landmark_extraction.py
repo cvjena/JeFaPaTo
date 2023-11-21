@@ -1,5 +1,6 @@
 __all__ = ["LandmarkExtraction"]
 
+from collections import OrderedDict
 import csv
 import datetime
 from pathlib import Path
@@ -103,6 +104,53 @@ class BlendShapeFeatureGroupBox(QtWidgets.QGroupBox):
     def get_features(self) -> list[FeatureCheckBox]:
         return self.features_left.get_features() + self.features_right.get_features() + self.features_whole.get_features()
 
+class JeFaPaToSignalThread(QtCore.QThread):
+    sig_updated_display = pyqtSignal(np.ndarray)
+    sig_updated_feature = pyqtSignal(dict)
+    sig_processed_percentage = pyqtSignal(float)
+    sig_started = pyqtSignal()
+    sig_paused = pyqtSignal()
+    sig_resumed = pyqtSignal()
+    sig_finished = pyqtSignal()
+    
+    def __init__(self, parent: QtWidgets.QWidget):
+        super().__init__(parent=parent)
+        self.parent = parent
+
+    def run(self):
+        while True:
+            if self.stopped:
+                return
+    def stop(self):
+        self.stopped = True
+
+    @facial_features.FaceAnalyzer.hookimpl
+    def updated_display(self, image: np.ndarray):
+        self.sig_updated_display.emit(image)
+
+    @facial_features.FaceAnalyzer.hookimpl
+    def updated_feature(self, feature_data: OrderedDict[str, Any]) -> None:
+        self.sig_updated_feature.emit(feature_data)
+        
+    @facial_features.FaceAnalyzer.hookimpl
+    def processed_percentage(self, percentage: float) -> None:
+        self.sig_processed_percentage.emit(percentage)
+    
+    @facial_features.FaceAnalyzer.hookimpl
+    def started(self) -> None:
+        self.sig_started.emit()
+    
+    @facial_features.FaceAnalyzer.hookimpl
+    def paused(self) -> None:
+        self.sig_paused.emit()
+    
+    @facial_features.FaceAnalyzer.hookimpl
+    def resumed(self) -> None:
+        self.sig_resumed.emit()
+
+    @facial_features.FaceAnalyzer.hookimpl
+    def finished(self) -> None:
+        self.sig_finished.emit()
 
 class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
     updated = pyqtSignal(int) 
@@ -117,7 +165,6 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.plot_data = {}
         self.chunk_size = 1000
         self.ea = facial_features.FaceAnalyzer()
-        self.ea.register_hooks(self)
 
         # UI elements
         self.setAcceptDrops(True)
@@ -230,7 +277,19 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.setStretchFactor(1, 4)
 
         self.set_features()
-
+        
+        self.jefapato_signal_thread = JeFaPaToSignalThread(self)
+        self.ea.register_hooks(self.jefapato_signal_thread)
+        
+        self.jefapato_signal_thread.sig_updated_display.connect(self.sig_updated_display)
+        self.jefapato_signal_thread.sig_updated_feature.connect(self.sig_updated_feature)
+        self.jefapato_signal_thread.sig_processed_percentage.connect(self.sig_processed_percentage)
+        self.jefapato_signal_thread.sig_started.connect(self.sig_started)
+        self.jefapato_signal_thread.sig_paused.connect(self.sig_paused)
+        self.jefapato_signal_thread.sig_resumed.connect(self.sig_resumed)
+        self.jefapato_signal_thread.sig_finished.connect(self.sig_finished)
+        self.jefapato_signal_thread.start()
+        
     def setup_graph(self) -> None:
         logger.info("Setup graph for all features to plot", features=len(self.used_features_classes))
         self.widget_graph.clear()
@@ -280,9 +339,10 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
 
     def stop(self) -> None:
         self.ea.stop()
+        self.jefapato_signal_thread.stop()
+        self.jefapato_signal_thread.wait()
 
-    @facial_features.FaceAnalyzer.hookimpl
-    def started(self):
+    def sig_started(self):
         self.button_video_open.setDisabled(True)
         self.button_webcam_open.setDisabled(True)
 
@@ -295,18 +355,15 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.setAcceptDrops(False)
         self.widget_frame.set_interactive(False)
 
-    @facial_features.FaceAnalyzer.hookimpl
-    def paused(self):
+    def sig_paused(self):
         self.bt_pause_resume.setText("Resume")
         self.bt_pause_resume.setIcon(qta.icon("ph.play-light"))
 
-    @facial_features.FaceAnalyzer.hookimpl
-    def resumed(self):
+    def sig_resumed(self):
         self.bt_pause_resume.setText("Pause")
         self.bt_pause_resume.setIcon(qta.icon("ph.pause-light"))
 
-    @facial_features.FaceAnalyzer.hookimpl
-    def finished(self):
+    def sig_finished(self):
         self.save_results()
 
         self.button_video_open.setDisabled(False)
@@ -335,20 +392,16 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         except Exception as e:
             logger.error("Failed to send notification", error=e, os=sys.platform)
 
-    @facial_features.FaceAnalyzer.hookimpl
-    def updated_display(self, image: np.ndarray):
+    def sig_updated_display(self, image: np.ndarray):
         self.widget_frame.set_image(image)
 
-    @facial_features.FaceAnalyzer.hookimpl
-    def processed_percentage(self, percentage: int):
-        self.pb_anal.setValue(percentage)
-
+    def sig_processed_percentage(self, percentage: int):
+        self.pb_anal.setValue(int(percentage))
         data_input, data_proce = self.ea.get_throughput()
         self.la_input.setText(f"Input: {data_input: 3d} frames/s")
         self.la_proce.setText(f"Processed: {data_proce: 3d} frames/s")
 
-    @facial_features.FaceAnalyzer.hookimpl
-    def updated_feature(self, feature_data: dict[str, Any]) -> None:
+    def sig_updated_feature(self, feature_data: dict[str, Any]) -> None:
         self.update_count += 1
         for feature_class in self.used_features_classes:
             if feature_class.__name__ not in feature_data:
@@ -409,6 +462,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
 
 
     def save_results(self) -> None:
+        return
         logger.info("Save Results Dialog", widget=self)
         ts = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
