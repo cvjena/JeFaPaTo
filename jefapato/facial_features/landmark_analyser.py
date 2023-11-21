@@ -186,6 +186,10 @@ class FaceAnalyzer():
         
         The hooks are triggered in the extractor itself!
         """
+        # raise runtime error if the extractor is not running
+        if not hasattr(self, "extractor"):
+            raise RuntimeError("Cannot toggle pause while the extractor setup.")
+
         self.extractor.toggle_pause()
 
     def start(self, bbox_slice: tuple[int, int, int, int] | None) -> None:
