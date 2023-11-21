@@ -132,13 +132,46 @@ class FaceAnalyzer():
             pass
 
     def set_features(self, features: list[Type[Feature]]) -> None:
+        """
+        Sets the features for the landmark analyser.
+        
+        The features are stored in a dictionary with the feature name as key and the feature object as value.
+        The features are automatically tracked over time and stored in a list for saving it later.
+        
+        If the list of features is empty, the feature classes and data are cleared nevertheless.
+
+        Args:
+            features (list[Type[Feature]]): A list of feature classes.
+
+        Returns:
+            None
+        """
+        if features is None:
+            logger.error("Features cannot be None.")
+            raise ValueError("Features cannot be None.")
+    
+        if not isinstance(features, list):
+            # if it is not a list, we make it a list to make it easier to handle, just like a single feature
+            features = [features]
+        
         self.feature_classes.clear()
         self.feature_data.clear()
 
         for feature in features:
+            if feature is None:
+                logger.error("Feature cannot be None.")
+                raise ValueError("Feature cannot be None.")
+            
+            if not isinstance(feature, type):
+                logger.error("Feature is not a class.", feature=feature)
+                raise ValueError(f"Feature {feature} is not a class.")
+            
+            if not issubclass(feature, Feature):
+                logger.error("Feature is not a subclass of Feature.", feature=feature)
+                raise ValueError(f"Feature {feature} is not a subclass of Feature.")
+            
             self.feature_classes[feature.__name__] = feature()
             self.feature_data[feature.__name__] = []
-
 
     def set_skip_count(self, value: int) -> None:
         self.extractor.set_skip_count(value)
