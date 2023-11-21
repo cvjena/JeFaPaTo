@@ -350,4 +350,7 @@ class FaceAnalyzer():
         Returns:
             A tuple containing the processing per second of the loader and extractor.
         """
+        if not hasattr(self, "loader") or not hasattr(self, "extractor"):
+            raise RuntimeError("Loader or extractor not set up.")
+
         return self.loader.processing_per_second, self.extractor.processing_per_second
