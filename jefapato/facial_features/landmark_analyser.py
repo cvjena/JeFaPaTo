@@ -264,49 +264,6 @@ class FaceAnalyzer():
         if len(self.pm.get_plugins()) > 0:
             self.pm.hook.finished()
 
-    @hookspec
-    def updated_display(self, image: np.ndarray):
-        """
-        Trigger a hook that the displaying information was updated.
-        """
-
-    @hookspec
-    def updated_feature(self, feature_data: OrderedDict[str, Any]) -> None:
-        """
-        Trigger a hook that the features were updated.
-        """
-        
-    @hookspec
-    def processed_percentage(self, percentage: float) -> None:
-        """
-        Trigger a hook that the percentage was updated.
-        """
-    
-    @hookspec
-    def started(self) -> None:
-        """
-        Trigger a hook that the analysis started.
-        """
-    
-    @hookspec
-    def paused(self) -> None:
-        """
-        Trigger a hook that the analysis was paused.
-        """
-    
-    @hookspec
-    def resumed(self) -> None:
-        """
-        Trigger a hook that the analysis was resumed.
-        """
-        
-    @hookspec
-    def finished(self) -> None:
-        """
-        Trigger a hook that the analysis finished.
-        """
-        
-
     def get_header(self) -> list[str]:
         header = ["frame"]
         for feature in self.feature_classes.values():
@@ -396,3 +353,45 @@ class FaceAnalyzer():
             raise RuntimeError("Loader or extractor not set up.")
 
         return self.loader.processing_per_second, self.extractor.processing_per_second
+    
+    @hookspec
+    def updated_display(self, image: np.ndarray):
+        """
+        Trigger a hook that the displaying information was updated.
+        """
+
+    @hookspec
+    def updated_feature(self, feature_data: OrderedDict[str, Any]) -> None:
+        """
+        Trigger a hook that the features were updated.
+        """
+        
+    @hookspec
+    def processed_percentage(self, percentage: float) -> None:
+        """
+        Trigger a hook that the percentage was updated.
+        """
+    
+    @hookspec
+    def started(self) -> None:
+        """
+        Trigger a hook that the analysis started.
+        """
+    
+    @hookspec
+    def paused(self) -> None:
+        """
+        Trigger a hook that the analysis was paused.
+        """
+    
+    @hookspec
+    def resumed(self) -> None:
+        """
+        Trigger a hook that the analysis was resumed.
+        """
+        
+    @hookspec
+    def finished(self) -> None:
+        """
+        Trigger a hook that the analysis finished.
+        """
