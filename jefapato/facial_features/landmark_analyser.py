@@ -178,6 +178,14 @@ class FaceAnalyzer():
             self.feature_data[feature.__name__] = []
 
     def toggle_pause(self) -> None:
+        """
+        Toggles the pause state of the extractor.
+        
+        This is just a convenience function to make it easier to pause and resume the extractor,
+        used in the GUI.
+        
+        The hooks are triggered in the extractor itself!
+        """
         self.extractor.toggle_pause()
 
     def start(self, bbox_slice: tuple[int, int, int, int] | None) -> None:
