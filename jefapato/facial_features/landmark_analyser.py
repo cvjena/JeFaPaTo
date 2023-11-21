@@ -40,7 +40,6 @@ class FaceAnalyzer():
         self.data_amount: int = 0
 
         self.pm = pluggy.PluginManager("analyser")
-        self.pm.add_hookspecs(self.__class__)
 
     def analysis_setup(self, bbox_slice: tuple[int, int, int, int] | None = None) -> bool:
         """
@@ -71,10 +70,7 @@ class FaceAnalyzer():
 
         self.loader = VideoDataLoader(self.resource_interface.read, data_amount=self.data_amount, queue_maxsize=items_to_place)
         self.extractor = MediapipeLandmarkExtractor(data_queue=self.loader.data_queue, data_amount=self.data_amount, bbox_slice=bbox_slice)
-
-        self.extractor.processingUpdated.connect(self.handle_update)
-        self.extractor.processedPercentage.connect(lambda x: self.pm.hook.processed_percentage(percentage=x))
-        self.extractor.processingFinished.connect(lambda: self.pm.hook.finished())
+        self.extractor.register(self)
         return True
 
     def analysis_start(self):
@@ -98,8 +94,6 @@ class FaceAnalyzer():
         # only trigger the started hook if there are any registered plugins
         if len(self.pm.get_plugins()) > 0:
             self.pm.hook.started()
-            self.extractor.processingPaused.connect(self.pm.hook.paused)
-            self.extractor.processingResumed.connect(self.pm.hook.resumed)
 
     def stop(self):
         """
@@ -110,7 +104,7 @@ class FaceAnalyzer():
             loader.join()
         if (extractor := getattr(self, "extractor", None)) is not None:
             extractor.stopped = True
-            extractor.wait()
+            extractor.join()
 
     def register_hooks(self, plugin: object) -> None:
         """
@@ -215,15 +209,16 @@ class FaceAnalyzer():
         self.analysis_setup(bbox_slice=bbox_slice)
         self.analysis_start()
 
-    def handle_update(self, q_item: AnalyzeQueueItem) -> None:
+    @MediapipeLandmarkExtractor.hookimpl
+    def handle_update(self, item: AnalyzeQueueItem) -> None:
+        # logger.debug("Handling update")
         # here would be some drawing? and storing of the features we are interested in
         temp_data = OrderedDict()
-        image = q_item.image
-        valid = q_item.valid
-        features = q_item.landmark_features
-        blendshapes = q_item.blendshape_features
-        x_offset, y_offset = q_item.x_offset, q_item.y_offset
-
+        image = item.image
+        valid = item.valid
+        features = item.landmark_features
+        blendshapes = item.blendshape_features
+        x_offset, y_offset = item.x_offset, item.y_offset
 
         for f_name, f_class in self.feature_classes.items():
             # if it f_class is a blendshape feature, we need to pass the blendshapes
@@ -239,6 +234,35 @@ class FaceAnalyzer():
         if len(self.pm.get_plugins()) > 0:
             self.pm.hook.updated_feature(feature_data=temp_data)
             self.pm.hook.updated_display(image=image)
+            
+    @MediapipeLandmarkExtractor.hookimpl
+    def update_progress(self, perc: float) -> None:
+        """
+        Trigger a hook that the progress was updated.
+        """
+        if len(self.pm.get_plugins()) > 0:
+            self.pm.hook.processed_percentage(percentage=perc)
+
+    @MediapipeLandmarkExtractor.hookimpl
+    def handle_pause(self) -> None:
+        """
+        Trigger a hook that the extractor was paused.
+        """
+        if len(self.pm.get_plugins()) > 0:
+            self.pm.hook.paused()
+        
+    @MediapipeLandmarkExtractor.hookimpl
+    def handle_resume(self) -> None:
+        if len(self.pm.get_plugins()) > 0:
+            self.pm.hook.resumed()
+
+    @MediapipeLandmarkExtractor.hookimpl
+    def handle_finished(self) -> None:
+        """
+        Trigger a hook that the extractor finished.
+        """
+        if len(self.pm.get_plugins()) > 0:
+            self.pm.hook.finished()
 
     @hookspec
     def updated_display(self, image: np.ndarray):
@@ -251,6 +275,37 @@ class FaceAnalyzer():
         """
         Trigger a hook that the features were updated.
         """
+        
+    @hookspec
+    def processed_percentage(self, percentage: float) -> None:
+        """
+        Trigger a hook that the percentage was updated.
+        """
+    
+    @hookspec
+    def started(self) -> None:
+        """
+        Trigger a hook that the analysis started.
+        """
+    
+    @hookspec
+    def paused(self) -> None:
+        """
+        Trigger a hook that the analysis was paused.
+        """
+    
+    @hookspec
+    def resumed(self) -> None:
+        """
+        Trigger a hook that the analysis was resumed.
+        """
+        
+    @hookspec
+    def finished(self) -> None:
+        """
+        Trigger a hook that the analysis finished.
+        """
+        
 
     def get_header(self) -> list[str]:
         header = ["frame"]

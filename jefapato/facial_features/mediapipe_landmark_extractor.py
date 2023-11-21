@@ -9,21 +9,17 @@ import numpy as np
 import structlog
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
-from PyQt6.QtCore import QThread, pyqtSignal
-
+from threading import Thread
 from .queue_items import AnalyzeQueueItem, InputQueueItem
+import pluggy
 
 logger = structlog.get_logger()
 
 
-class Extractor(QThread):
-    processingStarted = pyqtSignal()
-    processingUpdated = pyqtSignal(object)
-    processingPaused = pyqtSignal()
-    processingResumed = pyqtSignal()
-    processingFinished = pyqtSignal()
-    processedPercentage = pyqtSignal(int)
-
+class Extractor(Thread):
+    hookimpl = pluggy.HookimplMarker("Extractor")
+    hookspec = pluggy.HookspecMarker("Extractor")
+    
     def __init__(
         self, data_queue: queue.Queue[InputQueueItem], data_amount: int, sleep_duration: float = 0.1
     ) -> None:
@@ -33,17 +29,42 @@ class Extractor(QThread):
         self.stopped = False
         self.paused = False
         self.sleep_duration = sleep_duration
+        
+        self.pm = pluggy.PluginManager("Extractor")
 
-    def __del__(self):
-        self.wait()
+    def register(self, object) -> None:
+        try:
+            self.pm.register(object)
+        except ValueError:
+            pass
+        
+    @hookspec
+    def handle_update(self, item: AnalyzeQueueItem) -> None:
+        pass
+    
+    @hookspec
+    def handle_finished(self) -> None:
+        pass
+    
+    @hookspec
+    def update_progress(self, perc: int) -> None:
+        pass
+
+    @hookspec
+    def handle_pause(self) -> None:
+        pass
+    
+    @hookspec
+    def handle_resume(self) -> None:
+        pass
 
     def pause(self) -> None:
         self.paused = True
-        self.processingPaused.emit()
+        self.pm.hook.handle_pause()
 
     def resume(self) -> None:
         self.paused = False
-        self.processingResumed.emit()
+        self.pm.hook.handle_resume()
 
     def stop(self) -> None:
         self.stopped = True
@@ -61,6 +82,20 @@ class Extractor(QThread):
         raise NotImplementedError(
             "Extractor.run() must be implemented in the inherited class."
         )
+        
+    def isRunning(self) -> bool:
+        """
+        Check if the mediapipe landmark extractor is running.
+
+        NOTE: This is not the same as the thread state. The thread can be alive
+        but the extractor can be paused. However, this is a workaround to be compatible
+        with the old QThread implementation.
+
+        Returns:
+            bool: True if the extractor is running, False otherwise.
+        """
+        # check if the thread is alive
+        return self.is_alive() and not self.paused
 
 class MediapipeLandmarkExtractor(Extractor):
     def __init__(
@@ -153,11 +188,14 @@ class MediapipeLandmarkExtractor(Extractor):
             y_offset = 0 if self.bbox_slice is None else self.bbox_slice[0]
 
             item = AnalyzeQueueItem(frame, valid, landmarks, blendshapes, x_offset, y_offset)
-            self.processingUpdated.emit(item)
+            
+            self.pm.hook.handle_update(item=item)
+            
             processed += 1
             perc = int((processed / self.data_amount) * 100)
-            self.processedPercentage.emit(perc)
+            
+            self.pm.hook.update_progress(perc=perc)
 
-        self.processedPercentage.emit(100)
-        self.processingFinished.emit()
+        self.pm.hook.update_progress(perc=100.0)
+        self.pm.hook.handle_finished()
         logger.info("Extractor Thread", state="finished")
