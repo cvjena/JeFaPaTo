@@ -146,6 +146,10 @@ class FaceAnalyzer():
         Returns:
             None
         """
+        # raise runtime error if the extractor is already running
+        if hasattr(self, "extractor") and self.extractor.isRunning():
+            raise RuntimeError("Cannot set features while the extractor is running.")
+  
         if features is None:
             logger.error("Features cannot be None.")
             raise ValueError("Features cannot be None.")
