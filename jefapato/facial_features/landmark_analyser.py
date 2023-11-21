@@ -173,9 +173,6 @@ class FaceAnalyzer():
             self.feature_classes[feature.__name__] = feature()
             self.feature_data[feature.__name__] = []
 
-    def set_skip_count(self, value: int) -> None:
-        self.extractor.set_skip_count(value)
-
     def toggle_pause(self) -> None:
         self.extractor.toggle_pause()
 

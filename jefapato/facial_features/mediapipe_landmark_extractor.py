@@ -84,9 +84,6 @@ class MediapipeLandmarkExtractor(Extractor):
         self.processing_per_second: int = 0
         self.bbox_slice = bbox_slice
 
-    def set_skip_count(self, _) -> None:
-        pass
-
     def run(self) -> None:
         # init values
         processed = 0
