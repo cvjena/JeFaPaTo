@@ -61,12 +61,11 @@ class FaceAnalyzer():
 
         # compute how much RAM space we have
         available_memory = min(psutil.virtual_memory().available, self.max_ram_size)
-        item_size = self.get_item_size_in_bytes()
+        item_size = self.get_item_size(in_bytes=True)
         items_to_place = int(available_memory // item_size)
 
         w, h, d = self.get_item_size()
-        b = self.get_item_size_in_bytes()
-        logger.info("Item information", width=w, height=h, depth=d, bytes=b)
+        logger.info("Item information", width=w, height=h, depth=d)
         logger.info("Available memory", memory=available_memory)
         logger.info("Data loader queue space", space=items_to_place)
 
@@ -330,17 +329,23 @@ class FaceAnalyzer():
     def get_fps(self) -> float:
         return self.resource_interface.get(cv2.CAP_PROP_FPS)
 
-    def get_item_size_in_bytes(self) -> int:
-        width = self.resource_interface.get(cv2.CAP_PROP_FRAME_WIDTH)
-        height = self.resource_interface.get(cv2.CAP_PROP_FRAME_HEIGHT)
-        channels = 3
-        data_size_in_bytes = 1
-        return width * height * channels * data_size_in_bytes
+    def get_item_size(self, in_bytes: bool = False) -> tuple[int, int, int] | int:
+        """
+        Get the size of the item.
 
-    def get_item_size(self) -> tuple[int, int, int]:
-        width = self.resource_interface.get(cv2.CAP_PROP_FRAME_WIDTH)
-        height = self.resource_interface.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        Parameters:
+        - in_bytes (bool): Whether to return the size in bytes. Default is False.
+
+        Returns:
+        - tuple[int, int, int] | int: If in_bytes is True, returns the size in bytes.
+            Otherwise, returns a tuple of width, height, and channels.
+        """
+        width  = int(self.resource_interface.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(self.resource_interface.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        # set the number of channels to 3, because we are using RGB images
         channels = 3
+        if in_bytes:
+                return width * height * channels
         return width, height, channels
 
     def get_throughput(self) -> tuple[int, int]:
