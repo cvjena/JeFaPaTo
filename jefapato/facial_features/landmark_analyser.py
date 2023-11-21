@@ -9,7 +9,6 @@ import numpy as np
 import pluggy
 import psutil
 import structlog
-import platform
 
 from .features import Feature, FeatureData
 from .video_data_loader import VideoDataLoader
@@ -61,12 +60,26 @@ class FaceAnalyzer():
         return True
 
     def analysis_start(self):
-        self.pm.hook.started()
+        """
+        Starts the analysis process by initializing the loader and extractor.
+        
+        Raises:
+            RuntimeError: If the loader or extractor is not set up.
+        """
+        
+        if not hasattr(self, "loader") or not hasattr(self, "extractor"):
+            logger.error("Loader or extractor not set up.")
+            raise RuntimeError("Loader or extractor not set up.")
+        
         self.loader.start()
         logger.info("Started loader thread.", loader=self.loader)
+
         self.extractor.start()
         logger.info("Started extractor thread.", extractor=self.extractor)
-
+        
+        # only trigger the started hook if there are any registered plugins
+        if len(self.pm.get_plugins()) > 0:
+            self.pm.hook.started()
 
     def stop(self):
         if (loader := getattr(self, "loader", None)) is not None:
