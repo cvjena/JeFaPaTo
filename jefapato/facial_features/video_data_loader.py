@@ -74,4 +74,4 @@ class VideoDataLoader(threading.Thread):
                 # the main thread somehow
                 time.sleep(0.1)
 
-        logger.info("Loader Thread", state="finished", object=self)
+        logger.info("Loader Thread", state="finished")

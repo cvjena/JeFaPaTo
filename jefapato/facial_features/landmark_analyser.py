@@ -69,13 +69,12 @@ class FaceAnalyzer():
         logger.info("Available memory", memory=available_memory)
         logger.info("Data loader queue space", space=items_to_place)
 
-        self.loader = VideoDataLoader(self.get_next_item, data_amount=self.data_amount, queue_maxsize=items_to_place)
+        self.loader = VideoDataLoader(self.resource_interface.read, data_amount=self.data_amount, queue_maxsize=items_to_place)
         self.extractor = MediapipeLandmarkExtractor(data_queue=self.loader.data_queue, data_amount=self.data_amount, bbox_slice=bbox_slice)
 
         self.extractor.processingUpdated.connect(self.handle_update)
         self.extractor.processedPercentage.connect(lambda x: self.pm.hook.processed_percentage(percentage=x))
         self.extractor.processingFinished.connect(lambda: self.pm.hook.finished())
-        self.extractor.processingFinished.connect(self.release_resource)
         return True
 
     def analysis_start(self):
@@ -300,31 +299,6 @@ class FaceAnalyzer():
         
         success, image = self.resource_interface.read()
         return success, cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-        # if self.video_resource != -1:
-        #     raise ValueError("Video resource must be a Path or -1 for webcam.")
-        
-        # # this is the case for a webcam
-        # # check on which kind of system we are running 
-        # self.resource_interface = cv2.VideoCapture(1 if platform.system() == "Darwin" else 0)
-        # self.resource_interface.set(cv2.CAP_PROP_FPS, 30)
-        # self.resource_interface.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter.fourcc("M", "J", "P", "G"))
-        # self.resource_interface.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)  # 1280 # TODO check if this is correct
-        # self.resource_interface.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)  # 720 # TODO check if this is correct
-        # self.data_amount = -1
-
-        # success, image = self.resource_interface.read()
-        # if not success:
-        #     logger.error("Could not read from webcam.")
-        #     return False, None
-        # return success, cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-    def release_resource(self):
-        # reset the resource back to the first frame
-        self.resource_interface.set(cv2.CAP_PROP_POS_FRAMES, 0)
-
-    def get_next_item(self) -> tuple[bool, np.ndarray]:
-        return self.resource_interface.read()
 
     def get_fps(self) -> float:
         """
