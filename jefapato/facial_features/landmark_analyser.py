@@ -344,7 +344,10 @@ class FaceAnalyzer():
         return width, height, channels
 
     def get_throughput(self) -> tuple[int, int]:
-        data_input = self.loader.processing_per_second
-        data_proce = self.extractor.processing_per_second
+        """
+        Returns the throughput of the loader and extractor in items per second.
 
-        return data_input, data_proce
+        Returns:
+            A tuple containing the processing per second of the loader and extractor.
+        """
+        return self.loader.processing_per_second, self.extractor.processing_per_second
