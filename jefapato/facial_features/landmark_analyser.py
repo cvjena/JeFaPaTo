@@ -82,6 +82,9 @@ class FaceAnalyzer():
             self.pm.hook.started()
 
     def stop(self):
+        """
+        Stops the loader and extractor threads if they exist.
+        """
         if (loader := getattr(self, "loader", None)) is not None:
             loader.stopped = True
             loader.join()
