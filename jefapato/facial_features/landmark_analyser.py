@@ -327,7 +327,7 @@ class FaceAnalyzer():
         # set the number of channels to 3, because we are using RGB images
         channels = 3
         if in_bytes:
-                return width * height * channels
+            return width * height * channels
         return width, height, channels
 
     def get_throughput(self) -> tuple[int, int]:
