@@ -41,15 +41,17 @@ class FaceAnalyzer():
 
         self.pm = pluggy.PluginManager("analyser")
         self.pm.add_hookspecs(self.__class__)
-        self.bbox_slice: tuple[int, int, int, int] | None = None
 
-    def analysis_setup(self) -> bool:
+    def analysis_setup(self, bbox_slice: tuple[int, int, int, int] | None = None) -> bool:
         """
         Sets up the analysis by initializing necessary components and calculating available resources.
 
+        Args:
+            bbox_slice (tuple[int, int, int, int] | None): Optional bounding box slice.
+
         Returns:
             bool: True if the setup is successful.
-        
+
         Raises:
             ValueError: If no resource interface is set.
         """
@@ -69,7 +71,7 @@ class FaceAnalyzer():
         logger.info("Data loader queue space", space=items_to_place)
 
         self.loader = VideoDataLoader(self.get_next_item, data_amount=self.data_amount, queue_maxsize=items_to_place)
-        self.extractor = MediapipeLandmarkExtractor(data_queue=self.loader.data_queue, data_amount=self.data_amount, bbox_slice=self.bbox_slice)
+        self.extractor = MediapipeLandmarkExtractor(data_queue=self.loader.data_queue, data_amount=self.data_amount, bbox_slice=bbox_slice)
 
         self.extractor.processedPercentage.connect(lambda x: self.pm.hook.processed_percentage(percentage=x))
         self.extractor.processingFinished.connect(lambda: self.pm.hook.finished())
@@ -192,12 +194,11 @@ class FaceAnalyzer():
 
         self.extractor.toggle_pause()
 
-    def start(self, bbox_slice: tuple[int, int, int, int] | None) -> None:
+    def start(self, bbox_slice: tuple[int, int, int, int] | None = None) -> None:
         for m_name in self.feature_classes:
             self.feature_data[m_name].clear()
 
-        self.bbox_slice = bbox_slice
-        self.analysis_setup()
+        self.analysis_setup(bbox_slice=bbox_slice)
         self.extractor.processingUpdated.connect(self.handle_update)
         self.extractor.processingPaused.connect(self.pm.hook.paused)
         self.extractor.processingResumed.connect(self.pm.hook.resumed)
