@@ -327,6 +327,14 @@ class FaceAnalyzer():
         return self.resource_interface.read()
 
     def get_fps(self) -> float:
+        """
+        Get the frames per second (FPS) of the video capture.
+        Can be used for internal time calculations to display the correct frame.
+        However, this fully depends on the actual video capture, so it might not be accurate.
+
+        Returns:
+            float: The frames per second of the video capture.
+        """
         return self.resource_interface.get(cv2.CAP_PROP_FPS)
 
     def get_item_size(self, in_bytes: bool = False) -> tuple[int, int, int] | int:
