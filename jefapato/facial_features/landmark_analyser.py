@@ -20,7 +20,15 @@ logger = structlog.get_logger()
 class FaceAnalyzer():
     hookimpl = pluggy.HookimplMarker("analyser")
     hookspec = pluggy.HookspecMarker("analyser")
+    
     def __init__(self, max_ram_size: int = 4<<28):
+        """
+        Initialize the LandmarkAnalyser object.
+
+        Args:
+            max_ram_size (int): Maximum RAM size in bytes. Defaults to 4<<28.
+        """
+        
         super().__init__()
         self.max_ram_size = max_ram_size
 
@@ -36,6 +44,15 @@ class FaceAnalyzer():
         self.bbox_slice: tuple[int, int, int, int] | None = None
 
     def analysis_setup(self) -> bool:
+        """
+        Sets up the analysis by initializing necessary components and calculating available resources.
+
+        Returns:
+            bool: True if the setup is successful.
+        
+        Raises:
+            ValueError: If no resource interface is set.
+        """
         if self.resource_interface is None:
             logger.error("No resource interface set.")
             raise ValueError("No resource interface set.")
