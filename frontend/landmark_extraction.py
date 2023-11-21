@@ -276,7 +276,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.ea.set_features(self.used_features_classes)
         
         rect = self.widget_frame.get_roi_rect() if self.use_bbox.isChecked() else None        
-        self.ea.start(rect)
+        self.ea.clean_start(rect)
 
     def stop(self) -> None:
         self.ea.stop()

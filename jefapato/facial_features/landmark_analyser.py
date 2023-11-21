@@ -73,6 +73,7 @@ class FaceAnalyzer():
         self.loader = VideoDataLoader(self.get_next_item, data_amount=self.data_amount, queue_maxsize=items_to_place)
         self.extractor = MediapipeLandmarkExtractor(data_queue=self.loader.data_queue, data_amount=self.data_amount, bbox_slice=bbox_slice)
 
+        self.extractor.processingUpdated.connect(self.handle_update)
         self.extractor.processedPercentage.connect(lambda x: self.pm.hook.processed_percentage(percentage=x))
         self.extractor.processingFinished.connect(lambda: self.pm.hook.finished())
         self.extractor.processingFinished.connect(self.release_resource)
@@ -99,6 +100,8 @@ class FaceAnalyzer():
         # only trigger the started hook if there are any registered plugins
         if len(self.pm.get_plugins()) > 0:
             self.pm.hook.started()
+            self.extractor.processingPaused.connect(self.pm.hook.paused)
+            self.extractor.processingResumed.connect(self.pm.hook.resumed)
 
     def stop(self):
         """
@@ -194,14 +197,24 @@ class FaceAnalyzer():
 
         self.extractor.toggle_pause()
 
-    def start(self, bbox_slice: tuple[int, int, int, int] | None = None) -> None:
+    def clean_start(self, bbox_slice: tuple[int, int, int, int] | None = None) -> None:
+        """
+        Starts the landmark analysis process.
+        
+        This function is used to start the analysis process.
+        It sets up the analysis, starts the loader and extractor threads and connects the hooks.
+        The process is stopped by calling the stop() function, or paused by calling the toggle_pause() function.
+
+        Args:
+            bbox_slice (tuple[int, int, int, int] | None): Optional bounding box slice.
+
+        Returns:
+            None
+        """
         for m_name in self.feature_classes:
             self.feature_data[m_name].clear()
 
         self.analysis_setup(bbox_slice=bbox_slice)
-        self.extractor.processingUpdated.connect(self.handle_update)
-        self.extractor.processingPaused.connect(self.pm.hook.paused)
-        self.extractor.processingResumed.connect(self.pm.hook.resumed)
         self.analysis_start()
 
     def handle_update(self, q_item: AnalyzeQueueItem) -> None:
@@ -223,9 +236,11 @@ class FaceAnalyzer():
             f_class.draw(image=image, data=feature_data, x_offset=x_offset, y_offset=y_offset)
             self.feature_data[f_name].append(feature_data)
             temp_data[f_name] = feature_data
-
-        self.pm.hook.updated_feature(feature_data=temp_data)
-        self.pm.hook.updated_display(image=image)
+            
+        # connect the hooks only if there are any plugins registered
+        if len(self.pm.get_plugins()) > 0:
+            self.pm.hook.updated_feature(feature_data=temp_data)
+            self.pm.hook.updated_display(image=image)
 
     @hookspec
     def updated_display(self, image: np.ndarray):
