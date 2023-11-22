@@ -462,37 +462,24 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
 
 
     def save_results(self) -> None:
-        return
-        logger.info("Save Results Dialog", widget=self)
-        ts = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        logger.info("Start saving procedure", widget=self)
 
         if isinstance(self.video_resource, Path) and self.auto_save.isChecked():
             parent = self.video_resource.parent
-            file_name = self.video_resource.stem
         else:
             # open save dialog for folder
-            parent = QtWidgets.QFileDialog.getExistingDirectory(parent=self, caption="Select Directory",directory=str(Path.home()))
+            parent = QtWidgets.QFileDialog.getExistingDirectory(parent=self, caption="Select Directory", directory=str(Path.home()))
             if parent == "":
                 logger.info("Save Results Dialog canceled")
                 return
 
-            parent = Path(parent)
-            if isinstance(self.video_resource, int):
-                file_name = "jefapato_webcam"
-            elif isinstance(self.video_resource, Path):
-                file_name = self.video_resource.stem
-            else:
-                raise ValueError("Invalid video resource")
-
-        result_path = parent / (file_name + f"_{ts}.csv")
-        with open(result_path, "w", newline="") as csvfile:
-            writer = csv.writer(csvfile)
-
-            header = self.ea.get_header()
-            writer.writerow(header)
-            writer.writerows(self.ea)
-
-        logger.info("Results saved", file_name=result_path)
+        succ = self.ea.save_results(folder=parent)
+        if succ:
+            logger.info("Results saved successfully", folder=parent)
+        else:
+            logger.error("Failed to save results", folder=parent)
+            # TODO show error message dialog 
+            
 
     def shut_down(self) -> None:
         logger.info("Shutdown", state="starting", widget=self)

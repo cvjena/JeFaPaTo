@@ -1,5 +1,7 @@
 __all__ = ["FaceAnalyzer"]
 
+import csv
+import datetime
 from typing import Any, Type
 from collections import OrderedDict
 from pathlib import Path
@@ -298,6 +300,49 @@ class FaceAnalyzer():
             raise RuntimeError("Loader or extractor not set up.")
 
         return self.loader.processing_per_second, self.extractor.processing_per_second
+
+    def save_results(self, folder: Path) -> bool:
+        """
+        Saves the data to the given path.
+        Uses original video name and timestamp to create a unique filename in the given folder.
+
+        Args:
+            path (Path): The path to save the data to.
+
+        Raises:
+            RuntimeError: If the extractor is still running.
+            
+        Returns:
+            bool: True if the data was saved successfully. False if the data could not be saved.
+        """
+        if not hasattr(self, "extractor"):
+            raise RuntimeError("You haven't started the analysis yet.")
+        
+        if hasattr(self, "extractor") and self.extractor.isRunning():
+            raise RuntimeError("Cannot save while the extractor is running.")
+        
+        if not isinstance(folder, Path):
+            raise ValueError("Folder must be a Path.")
+
+        if not folder.exists():
+            folder.mkdir(parents=True)
+            
+        if self.video_resource is None:
+            raise RuntimeError("No video resource set.")
+        
+        ts = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        output_file = folder / f"{self.video_resource.stem}_{ts}.csv"
+
+        try:
+            with open(output_file, "w", newline="") as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(self.get_header())
+                writer.writerows(self)
+        except Exception as e:
+            logger.error("Could not save file.", exception=e)
+            return False
+        
+        return True
     
     @MediapipeLandmarkExtractor.hookimpl
     def handle_update(self, item: AnalyzeQueueItem) -> None:
