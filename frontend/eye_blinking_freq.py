@@ -145,7 +145,7 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         le_th_l = QtWidgets.QLineEdit()
         le_th_r = QtWidgets.QLineEdit()
-        # le_fps = QtWidgets.QLineEdit()
+        le_maximum_matching_dist = QtWidgets.QLineEdit()
         le_distance = QtWidgets.QLineEdit()
         le_prominence = QtWidgets.QLineEdit()
         le_width_min = QtWidgets.QLineEdit()
@@ -156,7 +156,7 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         self.add_handler("threshold_l", le_th_l, mapper=MAPPER_FLOAT_STR, default=0.16)
         self.add_handler("threshold_r", le_th_r, mapper=MAPPER_FLOAT_STR, default=0.16)
-        # self.add_handler("fps", le_fps, mapper=MAPPER_INT_STR, default=240)
+        self.add_handler("maximum_matching_dist", le_maximum_matching_dist, mapper=MAPPER_INT_STR, default=30)
         self.add_handler("min_dist", le_distance, mapper=MAPPER_INT_STR, default=50)
         self.add_handler("min_prominence", le_prominence, mapper=MAPPER_FLOAT_STR, default=0.1)
         self.add_handler("min_width", le_width_min, mapper=MAPPER_INT_STR, default=10)
@@ -168,11 +168,11 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         self.set_algo.addRow("Threshold Left", le_th_l)
         self.set_algo.addRow("Threshold Right", le_th_r)
-        # self.set_algo.addRow("FPS", le_fps)
-        self.set_algo.addRow("Min Distance", le_distance)
-        self.set_algo.addRow("Min Prominence", le_prominence)
-        self.set_algo.addRow("Min Width", le_width_min)
-        self.set_algo.addRow("Max Width", le_width_max)
+        self.set_algo.addRow("Minimum Distance", le_distance)
+        self.set_algo.addRow("Minimum Prominence", le_prominence)
+        self.set_algo.addRow("Mininum Internal Width", le_width_min)
+        self.set_algo.addRow("Maximum Internal Width", le_width_max)
+        self.set_algo.addRow("Maximum Matching Dist", le_maximum_matching_dist)
 
         box_smooth = QtWidgets.QGroupBox("Smoothing")
         box_smooth.setCheckable(True)
@@ -462,7 +462,7 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
         self.blinking_l = blinking.peaks(self.ear_l, threshold=threshold_l, **kwargs)
         self.blinking_r = blinking.peaks(self.ear_r, threshold=threshold_r, **kwargs)
         try:
-            self.blinking_matched = blinking.match(self.blinking_l, self.blinking_r, tolerance=30)
+            self.blinking_matched = blinking.match(self.blinking_l, self.blinking_r, tolerance=self.get("maximum_matching_dist"))
         except ValueError as e:
             logger.error("Error while matching the blinking data frames", error=e)
             # create a warning dialog
