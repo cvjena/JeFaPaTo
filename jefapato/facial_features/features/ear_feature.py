@@ -42,7 +42,7 @@ def ear_score(eye: np.ndarray) -> float:
     if not isinstance(eye, np.ndarray):
         raise TypeError(f"eye must be a numpy array, but got {type(eye)}")
     
-    if eye.shape != (6, 2):
+    if eye.shape != (6, 2) and eye.shape != (6, 3): # allow for 3D landmarks
         raise ValueError(f"eye must be a 6x2 array, but got {eye.shape}")
     
     # check that no value is negative
