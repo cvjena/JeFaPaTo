@@ -30,10 +30,38 @@ def match(
     
     pd.DataFrame
         A dataframe with the matched left and right eye, with same columns as the input dataframes but with _left and _right suffixes.
-        
+    
+    Raises
+    ------
+    
+    ValueError
+        - If the dataframe for the left eye is None.
+        - If the dataframe for the right eye is None.
+        - If the dataframe for the left eye is not a pandas dataframe.
+        - If the dataframe for the right eye is not a pandas dataframe.
+        - If the dataframe for the left eye is empty.
+        - If the dataframe for the right eye is empty.
+        - If the tolerance is negative.
+        - If the dataframe for the left eye does not have a column called 'frame'.
+        - If the dataframe for the right eye does not have a column called 'frame'.
+    
     """
-    if blinking_l.empty or blinking_r.empty:
-        raise ValueError("Dataframes are empty.")
+    if blinking_l is None:
+        raise ValueError("Dataframe for left eye is None.")
+    if blinking_r is None:
+        raise ValueError("Dataframe for right eye is None.")
+    if not isinstance(blinking_l, pd.DataFrame):
+        raise TypeError("Dataframe for left eye is not a pandas dataframe.")
+    if not isinstance(blinking_r, pd.DataFrame):
+        raise TypeError("Dataframe for right eye is not a pandas dataframe.")
+    
+    if blinking_l.empty:
+        raise ValueError("Dataframe for left eye is empty.")
+    if blinking_r.empty:
+        raise ValueError("Dataframe for right eye is empty.")
+   
+    if tolerance < 0:
+        raise ValueError("Tolerance is negative.") 
     
     # delete column called "index"
     if "index" in blinking_l.columns:
