@@ -336,20 +336,15 @@ class FaceAnalyzer():
             raise ValueError("Folder must be a Path.")
 
         if not folder.exists():
-            folder.mkdir(mode=777, parents=True)
+            folder.mkdir(parents=True)
         
         ts = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         output_file = folder / f"{self.video_resource.stem}_{ts}.csv"
 
-        try:
-            with open(output_file, "w", newline="") as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerow(self.get_header())
-                writer.writerows(self)
-        except Exception as e:
-            logger.info("Could not save file.", e=e)
-            return False
-        
+        with open(output_file, "w", newline="") as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(self.get_header())
+            writer.writerows(self)
         return True
     
     @MediapipeLandmarkExtractor.hookimpl
