@@ -70,6 +70,9 @@ class FaceAnalyzer():
         logger.info("Available memory", memory=available_memory)
         logger.info("Data loader queue space", space=items_to_place)
 
+        if bbox_slice is not None:
+            logger.info("Bounding box slice", bbox=bbox_slice)
+
         self.loader = VideoDataLoader(self.resource_interface.read, data_amount=self.data_amount, queue_maxsize=items_to_place)
         self.extractor = MediapipeLandmarkExtractor(data_queue=self.loader.data_queue, data_amount=self.data_amount, bbox_slice=bbox_slice)
         self.extractor.register(self)
