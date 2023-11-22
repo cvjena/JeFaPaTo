@@ -336,7 +336,7 @@ class FaceAnalyzer():
             raise ValueError("Folder must be a Path.")
 
         if not folder.exists():
-            folder.mkdir(parents=True)
+            folder.mkdir(mode=777, parents=True)
         
         ts = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         output_file = folder / f"{self.video_resource.stem}_{ts}.csv"
