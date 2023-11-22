@@ -145,7 +145,7 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         le_th_l = QtWidgets.QLineEdit()
         le_th_r = QtWidgets.QLineEdit()
-        le_fps = QtWidgets.QLineEdit()
+        # le_fps = QtWidgets.QLineEdit()
         le_distance = QtWidgets.QLineEdit()
         le_prominence = QtWidgets.QLineEdit()
         le_width_min = QtWidgets.QLineEdit()
@@ -156,19 +156,19 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         self.add_handler("threshold_l", le_th_l, mapper=MAPPER_FLOAT_STR, default=0.16)
         self.add_handler("threshold_r", le_th_r, mapper=MAPPER_FLOAT_STR, default=0.16)
-        self.add_handler("fps", le_fps, mapper=MAPPER_INT_STR, default=240)
+        # self.add_handler("fps", le_fps, mapper=MAPPER_INT_STR, default=240)
         self.add_handler("min_dist", le_distance, mapper=MAPPER_INT_STR, default=50)
         self.add_handler("min_prominence", le_prominence, mapper=MAPPER_FLOAT_STR, default=0.1)
         self.add_handler("min_width", le_width_min, mapper=MAPPER_INT_STR, default=10)
         self.add_handler("max_width", le_width_max, mapper=MAPPER_INT_STR, default=100)
 
-        le_fps.setValidator(QtGui.QIntValidator())
+        # le_fps.setValidator(QtGui.QIntValidator())
         le_width_min.setValidator(QtGui.QIntValidator())
         le_width_max.setValidator(QtGui.QIntValidator())
 
         self.set_algo.addRow("Threshold Left", le_th_l)
         self.set_algo.addRow("Threshold Right", le_th_r)
-        self.set_algo.addRow("FPS", le_fps)
+        # self.set_algo.addRow("FPS", le_fps)
         self.set_algo.addRow("Min Distance", le_distance)
         self.set_algo.addRow("Min Prominence", le_prominence)
         self.set_algo.addRow("Min Width", le_width_min)
@@ -441,11 +441,11 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
             return False
 
         kwargs = {}
-        kwargs["fps"] = self.get("fps")
-        kwargs["distance"] = self.get("min_dist")
-        kwargs["prominence"] = self.get("min_prominence")
-        kwargs["width_min"] = self.get("min_width")
-        kwargs["width_max"] = self.get("max_width")
+        # kwargs["fps"] = self.get("fps")
+        kwargs["minimum_distance"] = self.get("min_dist")
+        kwargs["minimum_prominence"] = self.get("min_prominence")
+        kwargs["minimum_internal_width"] = self.get("min_width")
+        kwargs["maximum_internal_width"] = self.get("max_width")
 
         do_smoothing: bool = self.get("smooth") or False
         smooth_size: int = self.get("smooth_size") or 91
@@ -456,8 +456,8 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         self.progress.setValue(40)
 
-        threshold_l = self.get("threshold_l") or 0.16
-        threshold_r = self.get("threshold_r") or 0.16
+        threshold_l = self.get("threshold_l")
+        threshold_r = self.get("threshold_r")
 
         self.blinking_l = blinking.peaks(self.ear_l, threshold=threshold_l, **kwargs)
         self.blinking_r = blinking.peaks(self.ear_r, threshold=threshold_r, **kwargs)
