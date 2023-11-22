@@ -316,6 +316,8 @@ class FaceAnalyzer():
             bool: True if the data was saved successfully. False if the data could not be saved.
         """
         if not hasattr(self, "extractor"):
+            # if the extractor is not set up, we cannot save anything
+            # the video_resource has to be set up already here else the setup fails
             raise RuntimeError("You haven't started the analysis yet.")
         
         if hasattr(self, "extractor") and self.extractor.isRunning():
@@ -326,9 +328,6 @@ class FaceAnalyzer():
 
         if not folder.exists():
             folder.mkdir(parents=True)
-            
-        if self.video_resource is None:
-            raise RuntimeError("No video resource set.")
         
         ts = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         output_file = folder / f"{self.video_resource.stem}_{ts}.csv"
