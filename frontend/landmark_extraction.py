@@ -159,7 +159,7 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         config.Config.__init__(self, prefix="landmarks")
         QtWidgets.QSplitter.__init__(self, parent=parent)
 
-        self.used_features_classes: list[Type[features.Feature]] = [features.BS_Valid]
+        self.used_features_classes: list[Type[features.Feature]] = []
         self.video_resource: Path | int | None = None
         self.plot_item = {}
         self.plot_data = {}

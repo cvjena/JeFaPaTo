@@ -12,7 +12,7 @@ import pluggy
 import psutil
 import structlog
 
-from .features import Feature, FeatureData
+from .features import Feature, FeatureData, Blendshape, BS_Valid
 from .video_data_loader import VideoDataLoader
 from .mediapipe_landmark_extractor import MediapipeLandmarkExtractor
 from .queue_items import AnalyzeQueueItem
@@ -175,6 +175,12 @@ class FaceAnalyzer():
             
             self.feature_classes[feature.__name__] = feature()
             self.feature_data[feature.__name__] = []
+
+        # if there is a blendshape feature, we need to add the blendshape valid feature
+        # this is because the blendshape feature needs the blendshape valid feature
+        if any([issubclass(f, Blendshape) for f in features]):
+            self.feature_classes[BS_Valid.__name__] = BS_Valid()
+            self.feature_data[BS_Valid.__name__] = []
 
     def toggle_pause(self) -> None:
         """
