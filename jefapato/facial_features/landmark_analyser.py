@@ -344,7 +344,7 @@ class FaceAnalyzer():
                 writer.writerow(self.get_header())
                 writer.writerows(self)
         except Exception as e:
-            logger.error("Could not save file.", exception=e)
+            logger.info("Could not save file.", e=e)
             return False
         
         return True
