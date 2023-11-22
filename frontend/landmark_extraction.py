@@ -116,6 +116,7 @@ class JeFaPaToSignalThread(QtCore.QThread):
     def __init__(self, parent: QtWidgets.QWidget):
         super().__init__(parent=parent)
         self.parent = parent
+        self.stopped = False
 
     def run(self):
         while True:
