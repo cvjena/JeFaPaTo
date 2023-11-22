@@ -21,7 +21,7 @@ class Extractor(Thread):
     hookspec = pluggy.HookspecMarker("Extractor")
     
     def __init__(
-        self, data_queue: queue.Queue[InputQueueItem], data_amount: int, sleep_duration: float = 0.1
+        self, data_queue: queue.Queue[InputQueueItem], data_amount: int, sleep_duration: float = 0.08
     ) -> None:
         super().__init__()
         self.data_queue = data_queue
@@ -33,30 +33,37 @@ class Extractor(Thread):
         self.pm = pluggy.PluginManager("Extractor")
 
     def register(self, object) -> None:
-        try:
-            self.pm.register(object)
-        except ValueError:
-            pass
-        
+        self.pm.register(object)
+ 
     @hookspec
     def handle_update(self, item: AnalyzeQueueItem) -> None:
-        pass
+        """
+        A trigger to be implemented by the hook to handle the according event.
+        """
     
     @hookspec
     def handle_finished(self) -> None:
-        pass
+        """
+        A trigger to be implemented by the hook to handle the according event.
+        """
     
     @hookspec
     def update_progress(self, perc: int) -> None:
-        pass
+        """
+        A trigger to be implemented by the hook to handle the according event.
+        """
 
     @hookspec
     def handle_pause(self) -> None:
-        pass
+        """
+        A trigger to be implemented by the hook to handle the according event.
+        """
     
     @hookspec
     def handle_resume(self) -> None:
-        pass
+        """
+        A trigger to be implemented by the hook to handle the according event.
+        """
 
     def pause(self) -> None:
         self.paused = True
@@ -78,11 +85,6 @@ class Extractor(Thread):
         else:
             self.pause()
 
-    def run(self):
-        raise NotImplementedError(
-            "Extractor.run() must be implemented in the inherited class."
-        )
-        
     def isRunning(self) -> bool:
         """
         Check if the mediapipe landmark extractor is running.
@@ -118,23 +120,21 @@ class MediapipeLandmarkExtractor(Extractor):
         self.start_time = time.time()
         self.processing_per_second: int = 0
         self.bbox_slice = bbox_slice
+        self.processed = 0
 
     def run(self) -> None:
         # init values
-        processed = 0
+        self.processed = 0
         logger.info("Extractor Thread", state="starting", data_amount=self.data_amount)
 
         # wait for the queue to be filled
-        time.sleep(1)
+        self.sleep()
 
         empty_in_a_row = 0
         processed_p_sec = 0
 
         while True:
-            if processed == self.data_amount:
-                break
-
-            if self.stopped:
+            if self.processed == self.data_amount or self.stopped:
                 break
 
             if self.paused:
@@ -151,9 +151,9 @@ class MediapipeLandmarkExtractor(Extractor):
             processed_p_sec += 1
             if self.data_queue.empty():
                 empty_in_a_row += 1
-                time.sleep(0.08)
+                self.sleep()
                 if empty_in_a_row > 20:
-                    logger.info("Extractor Thread", state="Queue Emptpy", data_amount=self.data_amount, processed=processed)
+                    logger.info("Extractor Thread", state="Queue Emptpy", data_amount=self.data_amount, processed=self.processed)
                     self.stopped = True
                 continue
             empty_in_a_row = 0
@@ -191,8 +191,8 @@ class MediapipeLandmarkExtractor(Extractor):
             
             self.pm.hook.handle_update(item=item)
             
-            processed += 1
-            perc = int((processed / self.data_amount) * 100)
+            self.processed += 1
+            perc = int((self.processed / self.data_amount) * 100)
             
             self.pm.hook.update_progress(perc=perc)
 
