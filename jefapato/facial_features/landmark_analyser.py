@@ -351,6 +351,7 @@ class FaceAnalyzer():
         """
         Trigger a hook that the extractor finished.
         """
+        self.resource_interface.set(cv2.CAP_PROP_POS_FRAMES, 0)
         if len(self.pm.get_plugins()) > 0:
             self.pm.hook.finished()
     
