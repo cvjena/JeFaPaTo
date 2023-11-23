@@ -518,13 +518,11 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
 
         # check if the column selection index are not the same
         if self.comb_ear_l.currentIndex() == self.comb_ear_r.currentIndex():
-            dialog = QtWidgets.QMessageBox()
-            dialog.setIcon(QtWidgets.QMessageBox.Icon.Warning)
-            dialog.setWindowTitle("Blinking Extraction Error")
-            dialog.setText("It looks like you selected the same column for both eyes")
-            dialog.setInformativeText("Please change your settings and try again")
-            dialog.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Ok)
-            dialog.exec()
+            jwidgets.JDialogWarn(
+                "Blinking Extraction Error",
+                "It looks like you selected the same column for both eyes",
+                "Please select different columns and try again",
+            )
             return False
 
         kwargs = {}
@@ -551,14 +549,11 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
             self.blinking_matched = blinking.match(self.blinking_l, self.blinking_r, tolerance=self.get("maximum_matching_dist"))
         except ValueError as e:
             logger.error("Error while matching the blinking data frames", error=e)
-            # create a warning dialog
-            dialog = QtWidgets.QMessageBox()
-            dialog.setIcon(QtWidgets.QMessageBox.Icon.Warning)
-            dialog.setWindowTitle("Blinking Extraction Error")
-            dialog.setText("Your extraction settings did not yield any blinkings")
-            dialog.setInformativeText("Please change your settings and try again")
-            dialog.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Ok)
-            dialog.exec()
+            jwidgets.JDialogWarn(
+                "Blinking Extraction Error",
+                "The blinking could not be matched, likely none found",
+                "Please change your settings and try again",
+            )
             return False
         return True
 
