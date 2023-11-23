@@ -1,6 +1,7 @@
 __all__ = ["JeFaPaTo"]
 
 import argparse
+import re
 import time
 
 import structlog
@@ -13,6 +14,9 @@ from .ui_facial_feature_extraction import FacialFeatureExtraction
 from .ui_eye_blinking_extraction import EyeBlinkingExtraction
 
 logger = structlog.get_logger()
+
+def add_space_between_words(text):
+    return re.sub(r"(\w)([A-Z])", r"\1 \2", text)
 
 class JeFaPaTo(QMainWindow, config.Config):
     def __init__(self, args: argparse.Namespace) -> None:
@@ -47,7 +51,7 @@ class JeFaPaTo(QMainWindow, config.Config):
             start = time.time()        
             temp = ui(self)
             self.tabs.append(temp)
-            self.central_widget.addTab(temp, temp.__class__.__name__)
+            self.central_widget.addTab(temp, add_space_between_words(temp.__class__.__name__))
             logger.info("Start-up time", time=time.time() - start, widget=temp.__class__.__name__)
     
         tab_idx = args.start_tab
