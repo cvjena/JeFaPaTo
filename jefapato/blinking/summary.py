@@ -17,10 +17,10 @@ def calculate_statistics(summary_df, group, col, precision=1):
     summary_df[f"{col}_std [#]"] = group_std(group, col, precision)
     
 def summarize(
-    merged_blinking: pd.DataFrame,
+    matched_blinks: pd.DataFrame,
     fps: int = 240,
 ) -> pd.DataFrame:
-    df = pd.DataFrame(merged_blinking, copy=True)
+    df = pd.DataFrame(matched_blinks, copy=True)
     
     def _compute_statistics(df_i: pd.DataFrame, df_o: pd.DataFrame, side: str):
         df_i[(side,  "minute")] = df_i[(side,  "frame_og")]  / fps / 60
@@ -44,7 +44,7 @@ def visualize(
     df = pd.DataFrame(matched_df, copy=True)
     # drop all rows that are true in the "signle" column
     if df[(("left", "single"))].dtype != bool:
-        df[("left", "single")] = df[("left", "single")].astype(bool)
+        df[("left",  "single")] = df[("left",  "single")].astype(bool)
         df[("right", "single")] = df[("right", "single")].astype(bool)
     
     df = df[~df[("left", "single")]]
