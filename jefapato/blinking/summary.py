@@ -58,8 +58,23 @@ def visualize(
     fps: int = 240,
     rolling_mean: int = 5,
 ) -> np.ndarray:
+    """
+    Visualizes the data from the matched_df DataFrame by creating a scatter plot
+    of the time difference between left and right frames, along with rolling average
+    and standard deviation. It also generates a histogram of the time differences
+    and a bar chart showing the number of blinks per minute.
+
+    Parameters:
+        matched_df (pd.DataFrame): DataFrame containing the matched data.
+        fps (int): Frames per second of the video. Default is 240.
+        rolling_mean (int): Number of data points to use for computing rolling average
+            and standard deviation. Default is 5.
+
+    Returns:
+        np.ndarray: RGBA array representing the generated plot.
+    """
     df = pd.DataFrame(matched_df, copy=True)
-    # drop all rows that are true in the "signle" column
+    # drop all rows that are true in the "single" column
     if df[(("left", "single"))].dtype != bool:
         df[("left",  "single")] = df[("left",  "single")].astype(bool)
         df[("right", "single")] = df[("right", "single")].astype(bool)
@@ -134,19 +149,20 @@ def visualize(
     
     # group the dataframe by stds and count the number of blinks
     group_index = np.array([avg-outer, avg-3*std, avg-2*std, avg-std, avg, avg+std, avg+2*std, avg+3*std, avg+outer])
-    groups = df.groupby(pd.cut(df["distance_ms"], group_index))
-    groups_count = groups.count()
-
-    # make the bins based on the stds
-    # axis_hist.hist(df["distance_ms"], bins="sqrt", color="k", orientation="horizontal")
-    bars = axis_hist.barh(group_index[:-1]+std/2, groups_count["distance_ms"], color="k", height=std*0.9)
-    axis_hist.bar_label(bars, fmt="%d", label_type="center", color="w")
-    # shift the ticks slightly higher to correct the bin centering
-    axis_hist.yaxis.set_ticks_position("right")
-    axis_hist.set_ylim(ylims)
-    axis_hist.yaxis.set_visible(False)
-    axis_hist.set_title("Histogram")
-    
+    # check that the group_index is monotonically increasing
+    if np.all(np.diff(group_index) > 0):
+        groups = df.groupby(pd.cut(df["distance_ms"], group_index))
+        groups_count = groups.count()
+        # make the bins based on the stds
+        # axis_hist.hist(df["distance_ms"], bins="sqrt", color="k", orientation="horizontal")
+        bars = axis_hist.barh(group_index[:-1]+std/2, groups_count["distance_ms"], color="k", height=std*0.9)
+        axis_hist.bar_label(bars, fmt="%d", label_type="center", color="w")
+        # shift the ticks slightly higher to correct the bin centering
+        axis_hist.yaxis.set_ticks_position("right")
+        axis_hist.set_ylim(ylims)
+        axis_hist.yaxis.set_visible(False)
+        axis_hist.set_title("Histogram")
+        
     # Add a new axis for the time histogram
     # 1. convert the frame_og to minutes based on the fps
     df[("left",  "minute")] = df[("left",  "frame_og")]  / fps / 60
