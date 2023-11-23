@@ -9,8 +9,8 @@ from PyQt6 import QtGui
 from PyQt6.QtWidgets import QMainWindow, QTabWidget, QProgressBar
 
 from frontend import config
-from .landmark_extraction import FacialFeatureExtraction
-from .eye_blinking_freq import EyeBlinkingExtraction
+from .ui_facial_feature_extraction import FacialFeatureExtraction
+from .ui_eye_blinking_extraction import EyeBlinkingExtraction
 
 logger = structlog.get_logger()
 
