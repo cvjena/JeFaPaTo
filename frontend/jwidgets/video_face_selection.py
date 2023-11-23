@@ -19,7 +19,24 @@ PEN = pg.mkPen(color="g", width=3, style=Qt.PenStyle.DashLine, join=Qt.PenJoinSt
 PEN_H = pg.mkPen(color="r", width=3,  style=Qt.PenStyle.DashLine, join=Qt.PenJoinStyle.RoundJoin, cap=Qt.PenCapStyle.RoundCap)
 PEN_HANDLE = pg.mkPen(color="k", width=8, style=Qt.PenStyle.SolidLine, join=Qt.PenJoinStyle.RoundJoin, cap=Qt.PenCapStyle.RoundCap)
 
+TEXT_DROP_HERE = "Drag and drop a video file here, or click the button in the menu bar."
+
 class JVideoFaceSelection(QWidget):
+    """
+    Widget for selecting a face region in a video frame.
+
+    Attributes:
+        selection_box (pg.ViewBox): ViewBox for displaying the video frame and face selection.
+        frame (pg.ImageItem): ImageItem for displaying the video frame.
+        face_box (JImageBox): JImageBox for displaying the selected face region.
+        roi (pg.ROI): ROI (Region of Interest) for selecting the face region.
+        image (np.ndarray | None): The video frame image.
+        cb_auto_find (QCheckBox): Checkbox for enabling automatic face detection.
+        __handles (dict[str, tuple[tuple[float, float], tuple[float, float]]]): Dictionary of handle positions for the ROI.
+        graphics_layout_widget (pg.GraphicsLayoutWidget): GraphicsLayoutWidget for organizing the selection_box and face_box.
+        label (QLabel): QLabel for displaying an icon when no video frame is set.
+        label_text (QLabel): QLabel for displaying a text when no video frame is set.
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -56,20 +73,20 @@ class JVideoFaceSelection(QWidget):
         }
         self.set_interactive(False)
         self.graphics_layout_widget = pg.GraphicsLayoutWidget()
+        
         # set the margins to 10px
         self.graphics_layout_widget.ci.setSpacing(10)
         self.graphics_layout_widget.addItem(self.selection_box)
         self.graphics_layout_widget.addItem(self.face_box)
         
         self.setLayout(QVBoxLayout())
-        self.layout().setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        # self.layout().addWidget(graphics_layout_widget)        
+        self.layout().setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)     
         
         self.label = QLabel()
         self.label.setPixmap(qta.icon("ri.drag-drop-line", color="gray").pixmap(100, 100))
         self.label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
 
-        self.label_text = QLabel("Drag and drop a video file here, or click the button, or start the Webcam")
+        self.label_text = QLabel(TEXT_DROP_HERE)
         self.label_text.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.label_text.setStyleSheet("font-size: 15px;")
         
@@ -78,18 +95,18 @@ class JVideoFaceSelection(QWidget):
 
     def set_selection_image(self, image: np.ndarray) -> None:
         if self.image is None:
-            assert self.label is not None, "Label must be set before selection image can be set"
-            assert self.label_text is not None, "Label text must be set before selection image can be set"
-            # remove the label
-            self.layout().removeWidget(self.label)
-            self.layout().removeWidget(self.label_text)
-            self.label.deleteLater()
-            self.label_text.deleteLater()
-            self.label = None
-            self.label_text = None
-
-        # add the graphics layout widget
-        self.layout().addWidget(self.graphics_layout_widget)
+            try:
+                # remove the label
+                self.layout().removeWidget(self.label)
+                self.layout().removeWidget(self.label_text)
+                self.label.deleteLater()
+                self.label_text.deleteLater()
+                self.label = None
+                self.label_text = None
+            except AttributeError:
+                pass
+            # add the graphics layout widget
+            self.layout().addWidget(self.graphics_layout_widget)
 
         self.set_image(image)
         self.set_roi(*self.__auto_find())
