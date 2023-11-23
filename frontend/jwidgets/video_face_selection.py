@@ -58,7 +58,7 @@ class JVideoFaceSelection(QWidget):
         )
         ## handles scaling horizontally around center
         self.selection_box.addItem(self.roi)
-        self.roi.sigRegionChanged.connect(self.__update)
+        self.roi.sigRegionChanged.connect(self.__update_image_roi)
 
         self.image: np.ndarray | None = None
         self.cb_auto_find = QCheckBox("Auto find face")
@@ -92,8 +92,24 @@ class JVideoFaceSelection(QWidget):
         
         self.layout().addWidget(self.label)        
         self.layout().addWidget(self.label_text)
+        
+        self.face_cascade = cv2.CascadeClassifier(str(Path(__file__).parent / "models" / "haarcascade_frontalface_default.xml"))
+
+    def paintEvent(self, a0: QtGui.QPaintEvent) -> None:
+        painter = QtGui.QPainter(self)
+        painter.drawRoundedRect(0, 0, self.width()-1, self.height()-1, 10, 10)
+        super().paintEvent(a0)
 
     def set_selection_image(self, image: np.ndarray) -> None:
+        """
+        Sets the selection image and updates the widget accordingly.
+
+        Parameters:
+            image (np.ndarray): The image to be set as the selection image.
+
+        Returns:
+        None
+        """    
         if self.image is None:
             try:
                 # remove the label
@@ -108,34 +124,42 @@ class JVideoFaceSelection(QWidget):
             # add the graphics layout widget
             self.layout().addWidget(self.graphics_layout_widget)
 
-        self.set_image(image)
-        self.set_roi(*self.__auto_find())
+        self.__set_initial_roi(*self.__auto_find(image))
+        self.update_image(image)
         self.set_interactive(True)
+        
+    def update_image(self, image: np.ndarray) -> None:
+        """
+        Update the image displayed in the widget.
 
-    def set_image(self, image: np.ndarray) -> None:
+        Args:
+            image (np.ndarray): The image to be displayed.
+
+        Returns:
+            None
+        """
         self.image = image
         self.frame.setImage(image)
-        h, w = image.shape[:2]
-        self.roi.maxBounds = QRectF(0, 0, w, h)
-        self.__update()
+        self.__update_image_roi()
+        
+    def get_roi_rect(self) -> tuple[int, int, int, int]:
+        """
+        Returns the coordinates of the region of interest (ROI) rectangle.
 
-    def set_roi(self, pos: tuple, size: tuple) -> None:
-        self.roi.setPos(pos)
-        self.roi.setSize(size)
-
-    def __update(self) -> None:
-        if self.image is None:
-            return        
-        y1, y2, x1, x2 = self.get_roi_rect()
-        sub_img = self.image[y1:y2, x1:x2]
-        self.face_box.set_image(sub_img)
-
-    def get_roi_rect(self) -> tuple[int, int, int, int]: 
+        Returns:
+            A tuple containing the top, bottom, left, and right coordinates of the ROI rectangle.
+        """
         pos = self.roi.pos()
         size = self.roi.size()
         return int(pos.y()), int(pos.y() + size.y()), int(pos.x()), int(pos.x() + size.x())
-
+    
     def set_interactive(self, state: bool) -> None:
+        """
+        Sets the interactive state of the video face selection widget.
+
+        Parameters:
+            state (bool): The interactive state to set. True for interactive, False for non-interactive.
+        """
         self.roi.translatable = state
         self.roi.resizable = state
 
@@ -144,45 +168,112 @@ class JVideoFaceSelection(QWidget):
             if state:
                 self.__add_handle(key)
 
+    def __set_initial_roi(self, w:int, h: int, pos: tuple, size: tuple) -> None:
+        """
+        Set the initial region of interest (ROI) for face selection.
+
+        Args:
+            w (int): Width of the ROI.
+            h (int): Height of the ROI.
+            pos (tuple): Position of the ROI (x, y).
+            size (tuple): Size of the ROI (width, height).
+
+        Returns:
+            None
+        """
+        self.roi.maxBounds = QRectF(0, 0, w, h)
+        self.roi.setPos(pos)
+        self.roi.setSize(size)
+
+    def __update_image_roi(self) -> None:
+        """
+        Update the region of interest (ROI) in the image.
+
+        This method extracts the ROI from the image based on the current
+        selection rectangle and updates the face box widget with the
+        extracted ROI.
+
+        Returns:
+            None
+        """
+        if self.image is None:
+            return        
+        y1, y2, x1, x2 = self.get_roi_rect()
+        sub_img = self.image[y1:y2, x1:x2]
+        self.face_box.set_image(sub_img)
+
     def __remove_handle(self, handle: str) -> None:
+        """
+        Removes a handle from the ROI.
+
+        Args:
+            handle (str): The name of the handle to be removed.
+
+        Returns:
+            None
+        """
         handle_attr = getattr(self, handle, None)
         if handle_attr is None:
-            logger.warning("ROI Handle does not exists", handle=handle)
+            logger.warning("ROI Handle does not exist", handle=handle)
             return
         try:
             self.roi.removeHandle(handle_attr)
             delattr(self, handle)
         except IndexError:
-            logger.error("ROI Handle is not attached to ROI", handle=handle)
+            # logger.error("ROI Handle is not attached to ROI", handle=handle)
             pass
 
     def __add_handle(self, handle: str) -> None:
+        """
+        Adds a handle to the video face selection widget.
+
+        Args:
+            handle (str): The handle to be added.
+
+        Returns:
+            None
+        """
         if handle in self.__handles.keys():
             pos, center = self.__handles[handle]
             setattr(self, handle, self.roi.addScaleHandle(pos, center))
         else:
-            logger.error("Handle does not exists", handle=handle)
+            logger.error("Handle does not exist", handle=handle)
 
-    def __fall_back_settings(self) -> tuple[tuple[int, int], tuple[int, int]]:
-        assert self.image is not None, "Image must be set before fall back settings can be used"
-        h, w = self.image.shape[:2]
-        pos = (w // 2 - w // 6, h // 2 - h // 3)
-        size = (w // 3, h // 2)
+    def __fall_back_settings(self, img_w: int, img_h: int) -> tuple[tuple[int, int], tuple[int, int]]:
+        """
+        Calculate the fallback position and size for face selection.
+
+        Args:
+            img_w (int): The width of the image.
+            img_h (int): The height of the image.
+
+        Returns:
+            tuple[tuple[int, int], tuple[int, int]]: A tuple containing the position and size of the fallback settings.
+        """
+        pos  = (img_w // 2 - img_w // 6, img_h // 2 - img_h // 3)
+        size = (img_w // 3, img_h // 2)
         return pos, size
     
+    def __auto_find(self, image: np.ndarray) -> tuple[tuple[int, int], tuple[int, int]]:
+        """
+        Automatically finds the face in the given image and returns the coordinates of the face bounding box.
 
-    def __auto_find(self) -> tuple[tuple[int, int], tuple[int, int]]:
-        assert self.image is not None, "Image must be set before auto find can be used"
+        Args:
+            image (np.ndarray): The input image.
 
-        if not self.cb_auto_find.isChecked():
-            return self.__fall_back_settings()
+        Returns:
+            tuple[tuple[int, int], tuple[int, int]]: A tuple containing the width and height of the image, 
+            and the coordinates of the top-left corner and the width and height of the face bounding box.
+        """
         
-        path = Path(__file__).parent / "models" / "haarcascade_frontalface_default.xml"
-        face_cascade = cv2.CascadeClassifier(str(path))
-        img_gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
-        faces = face_cascade.detectMultiScale(img_gray, 1.3, 5)
+        img_h, img_w = image.shape[:2]
+        if not self.cb_auto_find.isChecked():
+            return img_w, img_h, *self.__fall_back_settings(img_w, img_h)
+        
+        img_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        faces = self.face_cascade.detectMultiScale(img_gray, 1.3, 5)
         if len(faces) == 0:
-            return self.__fall_back_settings()
+            return img_w, img_h, *self.__fall_back_settings(img_w, img_h)
 
         x, y, w, h = faces[0]
         # increase the size of the box by 50%
@@ -194,12 +285,7 @@ class JVideoFaceSelection(QWidget):
         # make sure the box is not out of bounds
         x = 0 if x < 0 else x
         y = 0 if y < 0 else y
-        w = self.image.shape[1] - x if x + w > self.image.shape[1] else w
-        h = self.image.shape[0] - y if y + h > self.image.shape[0] else h
+        w = image.shape[1] - x if x + w > image.shape[1] else w
+        h = image.shape[0] - y if y + h > image.shape[0] else h
 
-        return (x, y), (w, h)
-    
-    def paintEvent(self, a0: QtGui.QPaintEvent) -> None:
-        painter = QtGui.QPainter(self)
-        painter.drawRoundedRect(0, 0, self.width()-1, self.height()-1, 10, 10)
-        super().paintEvent(a0)
+        return img_w, img_h, (x, y), (w, h)

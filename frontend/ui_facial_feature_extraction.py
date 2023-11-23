@@ -394,7 +394,7 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
             logger.error("Failed to send notification", error=e, os=sys.platform)
 
     def sig_updated_display(self, image: np.ndarray):
-        self.widget_frame.set_image(image)
+        self.widget_frame.update_image(image)
 
     def sig_processed_percentage(self, percentage: int):
         self.pb_anal.setValue(int(percentage))
