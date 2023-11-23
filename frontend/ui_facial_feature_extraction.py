@@ -12,7 +12,7 @@ from PyQt6.QtCore import pyqtSignal
 from qtpy import QtCore, QtGui, QtWidgets
 
 from frontend import config, jwidgets
-from jefapato import JeFaPaToGUISignalThread
+from frontend.gui_interface import JeFaPaToGUISignalThread
 from jefapato import facial_features
 from jefapato.facial_features import features
 
