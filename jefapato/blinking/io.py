@@ -1,6 +1,7 @@
-__all__ = ["load_ear_score"]
+__all__ = ["load_ear_score", "save_results"]
 
 from pathlib import Path
+from typing import Literal
 import numpy as np
 import pandas as pd
 
@@ -48,3 +49,57 @@ def load_ear_score(
     left = dataframe[column_left].to_numpy()
     right = dataframe[column_right].to_numpy()
     return left, right
+
+def save_results(
+    filename: Path | str,
+    blinking_l: pd.DataFrame | None = None,
+    blinking_r: pd.DataFrame | None = None,
+    blinking_matched: pd.DataFrame | None = None,
+    blinking_summary: pd.DataFrame | None = None,
+    format: Literal["csv", "excel"] = "excel",
+    exists_ok: bool = False,
+):
+    if isinstance(filename, str):
+        filename = Path(filename)
+        
+    if format == "excel":
+        excel_file = filename.parent / (filename.stem + "_blinking.xlsx")
+        
+        if excel_file.exists() and not exists_ok:
+            raise FileExistsError(f"File {excel_file} already exists.")
+        
+        with pd.ExcelWriter(excel_file) as writer:
+            if blinking_l is not None:
+                blinking_l.to_excel(writer, sheet_name="blinking left eye")
+            
+            if blinking_r is not None:
+                blinking_r.to_excel(writer, sheet_name="blinking right eye")
+            
+            if blinking_matched is not None:
+                blinking_matched[("left",  "single")] = blinking_matched[("left",  "single")].astype(str)
+                blinking_matched[("right", "single")] = blinking_matched[("right", "single")].astype(str)
+                blinking_matched.to_excel(writer, sheet_name="Matched")
+            
+            if blinking_summary is not None:
+                blinking_summary.to_excel(writer, sheet_name="Summary")
+        return
+    elif format == "csv":
+        csv_file = filename.parent / (filename.stem + "_left.csv")
+        if blinking_l is not None and exists_ok:
+            blinking_l.to_csv(csv_file)
+
+        csv_file = filename.parent / (filename.stem + "_right.csv")
+        if blinking_r is not None and exists_ok:
+            blinking_r.to_csv(csv_file)
+            
+        csv_file = filename.parent / (filename.stem + "_matched.csv")
+        if blinking_matched is not None and exists_ok:
+            blinking_matched.to_csv(csv_file)
+
+        csv_file = filename.parent / (filename.stem + "_summary.csv")
+        if blinking_summary is not None and exists_ok:
+            blinking_summary.to_csv(csv_file)
+            
+        return
+    else:
+        raise ValueError(f"Invalid format {format}.")

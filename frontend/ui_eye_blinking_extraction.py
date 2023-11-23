@@ -96,6 +96,7 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         self.blinking_l: pd.DataFrame | None = None
         self.blinking_r: pd.DataFrame | None = None
         self.blinking_matched: pd.DataFrame | None = None
+        self.blinking_summary: pd.DataFrame | None = None
 
         self.lines: list = []
         self.file: Path | None = None
@@ -282,6 +283,9 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         self.set_visuals.addRow(btn_reset_view)
 
         # Export Settings #
+        self.overwrite_export = QtWidgets.QCheckBox("Overwrite Existing File")
+        self.add_handler("overwrite_export", self.overwrite_export, default=True)
+    
         self.format_export = QtWidgets.QComboBox()
         self.format_export.addItems(["CSV", "Excel"])
         self.format_export.setCurrentIndex(0)
@@ -311,6 +315,7 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         self.layout_settings.addWidget(self.btn_summ)
         self.layout_settings.addWidget(jwidgets.JHLine())
         self.layout_settings.addWidget(QtWidgets.QLabel("Export Format"))
+        self.layout_settings.addWidget(self.overwrite_export)
         self.layout_settings.addWidget(self.format_export)
         self.layout_settings.addWidget(self.btn_eprt)
         self.layout_settings.addWidget(jwidgets.JHLine())
@@ -696,10 +701,9 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         """
         Computes the summary of blinking data and updates the UI with the results.
         """
-        
         fps = self.get_selected_fps()
-        self.summary_df = blinking.summarize(self.blinking_matched, fps=fps)
-        self.te_results_g.setText(tabulate.tabulate(self.summary_df, headers="keys", tablefmt="github"))
+        self.blinking_summary = blinking.summarize(self.blinking_matched, fps=fps)
+        self.te_results_g.setText(tabulate.tabulate(self.blinking_summary, headers="keys", tablefmt="github"))
         logger.info("Summary computed")
         
         image = blinking.visualize(self.blinking_matched, fps=fps)
@@ -721,42 +725,38 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
             None
         """
         if self.data_frame is None or self.file is None:
-            return
-        
-        if self.blinking_l is None or self.blinking_r is None:
-            logger.error("No blinking results to save", widget=self)
-            return
-        
-        if self.blinking_matched is None:
-            logger.error("No matched blinking results to save", widget=self)
+            jwidgets.JDialogWarn("Blinking Extraction Error", "No file loaded", "Please load a file and process it first")
             return
 
         # add the annotations to the data frame
-        self.blinking_matched["annotation"] = self.blinking_table.get_annotations()
+        # TODO this should later be done in the backend and not here!!!
+        if self.blinking_matched is None:
+            self.blinking_matched["annotation"] = self.blinking_table.get_annotations()
+        
+        try:
+            blinking.save_results(
+                self.file,
+                self.blinking_l,
+                self.blinking_r,
+                self.blinking_matched,
+                self.blinking_summary,
+                format=self.format_export.currentText().lower(),
+                exists_ok=self.get("overwrite_export"),
+            )
+        except ValueError as e:
+            logger.error("Error while saving the blinking results", error=e)
+            jwidgets.JDialogWarn("Blinking Extraction Error", "The blinking results could not be saved", "Please try again")
+            return
+        except PermissionError as e:
+            logger.error("Error while saving the blinking results", error=e)
+            jwidgets.JDialogWarn("Blinking Extraction Error", "The blinking results could not be saved", "You have not permission to save the file")
+            return
+        except FileExistsError as e:
+            logger.error("Error while saving the blinking results", error=e)
+            jwidgets.JDialogWarn("Blinking Extraction Error", "The blinking results could not be saved", "The file already exists")
+            return
 
-        if self.format_export.currentText() == "CSV":
-            self.blinking_matched.to_csv(self.file.parent / (self.file.stem + "_blinking.csv"), index=False, na_rep="NaN")
-            
-            if self.summary_df is not None:
-                self.summary_dfl.to_csv(self.file.parent / (self.file.stem + "_summary.csv"), index=False, na_rep="NaN")
-            
-        elif self.format_export.currentText() == "Excel":
-            exel_file = self.file.parent / (self.file.stem + "_blinking.xlsx")
-            logger.info("Saving blinking results", file=exel_file)
-            with pd.ExcelWriter(exel_file) as writer:
-                # convert the single columns to integers
-                self.blinking_matched[("left",  "single")] = self.blinking_matched[("left",  "single")].astype(str)
-                self.blinking_matched[("right", "single")] = self.blinking_matched[("right", "single")].astype(str)
-                self.blinking_matched.to_excel(writer, sheet_name="Matched", na_rep="NaN")
-                
-                if self.summary_df is not None:
-                    self.summary_df.to_excel(writer, sheet_name="Summary", na_rep="NaN")
-                    
-                self.blinking_l.to_excel(writer, sheet_name="Left")
-                self.blinking_r.to_excel(writer, sheet_name="Right")
-        else:
-            # raise NotImplementedError("Export format not implemented")
-            logger.error("Export format not implemented", widget=self)
+        # TODO give user feedback that saving was successful
         logger.info("Saving blinking finished")
     
     ## general widget functions
