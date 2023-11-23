@@ -6,7 +6,7 @@ import time
 import structlog
 
 from PyQt6 import QtGui
-from PyQt6.QtWidgets import QMainWindow, QTabWidget, QProgressBar
+from PyQt6.QtWidgets import QMainWindow, QTabWidget, QProgressBar, QWidget
 
 from frontend import config
 from .ui_facial_feature_extraction import FacialFeatureExtraction
@@ -36,17 +36,20 @@ class JeFaPaTo(QMainWindow, config.Config):
         self.setCentralWidget(self.central_widget)
 
         self.progress_bar = QProgressBar()
-
-        start = time.time()
-        self.tab_facial_feature_extraction = FacialFeatureExtraction(self)
-        self.central_widget.addTab(self.tab_facial_feature_extraction, "Facial Feature Extraction")
-        logger.info("Start-up time", time=time.time() - start, widget=self.tab_facial_feature_extraction.__class__.__name__)
-
-        start = time.time()
-        self.tab_eye_blinking_extraction = EyeBlinkingExtraction(self)
-        self.central_widget.addTab(self.tab_eye_blinking_extraction, "Eye Blinking Extraction")
-        logger.info("Start-up time", time=time.time() - start, widget=self.tab_eye_blinking_extraction.__class__.__name__)
-
+        
+        self.uis: list[QWidget] = [
+            FacialFeatureExtraction, 
+            EyeBlinkingExtraction,
+        ]
+        self.tabs: list[QWidget] = []
+        
+        for ui in self.uis:
+            start = time.time()        
+            temp = ui(self)
+            self.tabs.append(temp)
+            self.central_widget.addTab(temp, temp.__class__.__name__)
+            logger.info("Start-up time", time=time.time() - start, widget=temp.__class__.__name__)
+    
         tab_idx = args.start_tab
         if tab_idx > self.central_widget.count():
             tab_idx = 0
@@ -66,8 +69,9 @@ class JeFaPaTo(QMainWindow, config.Config):
         logger.info("Close Event Detected", widget=self)
         logger.info("Shut Down Processes in each Tab")
 
-        self.tab_facial_feature_extraction.shut_down()
-        self.tab_eye_blinking_extraction.shut_down()
+        for tab in self.tabs:
+            tab.shut_down()
+
         logger.info("Shut Down Processes in each Tab complete", widget=self)
         logger.info("Save Config")
         self.save()
