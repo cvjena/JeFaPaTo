@@ -55,6 +55,14 @@ class JeFaPaTo(QMainWindow, config.Config):
         self.statusBar().addPermanentWidget(self.progress_bar)
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        """
+        Event handler for the close event of the application window.
+        Performs necessary cleanup tasks before closing the application.
+        
+        Args:
+            event (QtGui.QCloseEvent): The close event object.
+        """
+        
         logger.info("Close Event Detected", widget=self)
         logger.info("Shut Down Processes in each Tab")
 
