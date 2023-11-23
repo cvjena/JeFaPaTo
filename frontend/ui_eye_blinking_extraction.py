@@ -17,6 +17,39 @@ logger = structlog.get_logger()
 
 DOWNSAMPLE_FACTOR = 8
 
+def to_float(value: str) -> float:
+    """
+    Converts a string value to a float.
+
+    Args:
+        value (str): The string value to be converted.
+
+    Returns:
+        float: The converted float value. If the conversion fails, returns 0.0.
+    """
+    try:
+        return float(value)
+    except ValueError:
+        return 0.0
+
+def to_int(value: str) -> int:
+    """
+    Converts a string value to an integer.
+    
+    Args:
+        value (str): The string value to be converted.
+    
+    Returns:
+        int: The converted integer value. If the conversion fails, returns 0.
+    """
+    try:
+        return int(value)
+    except ValueError:  
+        return 0
+
+F2S = (lambda x: to_float(x), lambda x: str(x))
+I2S = (lambda x: to_int(x), lambda x: str(x))
+
 def to_MM_SS(value):
     """
     Converts a value in seconds to a string representation in the format MM:SS.
@@ -134,8 +167,7 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         self.layout_content.addWidget(self.tab_widget_results, stretch=1)
         self.layout_content.addWidget(self.graph, stretch=1)
 
-        # Create the specific widgets for the settings layout
-        # algorithm specific settings
+        # Create the specific widgets for the settings layout, algorithm specific settings
         self.btn_load = QtWidgets.QPushButton(qta.icon("ph.folder-open-light"), "Open CSV File")
         self.btn_anal = QtWidgets.QPushButton(qta.icon("ph.chart-line-fill"), "Extract Blinks")
         self.btn_summ = QtWidgets.QPushButton(qta.icon("ph.info-light"), "Compute Summary")
@@ -160,38 +192,53 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         # dont make the groupbox changeable in height
         self.box_settings.setMinimumHeight(200)
         self.set_algo = QtWidgets.QFormLayout()
+        
+        local = QtCore.QLocale(QtCore.QLocale.Language.English, QtCore.QLocale.Country.UnitedStates) 
+        doulbe_validator = QtGui.QDoubleValidator()
+        doulbe_validator.setBottom(0)
+        doulbe_validator.setDecimals(3)
+        doulbe_validator.setNotation(QtGui.QDoubleValidator.Notation.StandardNotation)
+        doulbe_validator.setLocale(local)
 
-        le_th_l = QtWidgets.QLineEdit()
-        le_th_r = QtWidgets.QLineEdit()
+        int_validator = QtGui.QIntValidator()
+        int_validator.setBottom(0)
+        int_validator.setLocale(local)
+        
+        le_threshold_left = QtWidgets.QLineEdit()
+        le_threshold_left.setValidator(doulbe_validator)
+        self.add_handler("threshold_l", le_threshold_left, mapper=F2S, default=0.16)
+        self.set_algo.addRow("Threshold Left", le_threshold_left)
+        
+        le_threshold_right = QtWidgets.QLineEdit()
+        le_threshold_right.setValidator(doulbe_validator)
+        self.add_handler("threshold_r", le_threshold_right, mapper=F2S, default=0.16)
+        self.set_algo.addRow("Threshold Right", le_threshold_right)
+
+        le_minimum_distance = QtWidgets.QLineEdit()
+        le_minimum_distance.setValidator(int_validator)
+        self.add_handler("min_dist", le_minimum_distance, mapper=I2S, default=50)
+        self.set_algo.addRow("Minimum Distance", le_minimum_distance)
+
+        le_minimum_prominence = QtWidgets.QLineEdit()
+        le_minimum_prominence.setValidator(doulbe_validator)
+        self.add_handler("min_prominence", le_minimum_prominence, mapper=F2S, default=0.1)
+        self.set_algo.addRow("Minimum Prominence", le_minimum_prominence)
+
+        le_minimum_internal_width = QtWidgets.QLineEdit()
+        le_minimum_internal_width.setValidator(int_validator)
+        self.add_handler("min_width", le_minimum_internal_width, mapper=I2S, default=10)
+        self.set_algo.addRow("Mininum Internal Width", le_minimum_internal_width)
+
+        le_maximum_internal_width = QtWidgets.QLineEdit()
+        le_maximum_internal_width.setValidator(int_validator)        
+        self.add_handler("max_width", le_maximum_internal_width, mapper=I2S, default=100)
+        self.set_algo.addRow("Maximum Internal Width", le_maximum_internal_width)
+
         le_maximum_matching_dist = QtWidgets.QLineEdit()
-        le_distance = QtWidgets.QLineEdit()
-        le_prominence = QtWidgets.QLineEdit()
-        le_width_min = QtWidgets.QLineEdit()
-        le_width_max = QtWidgets.QLineEdit()
-
-        MAPPER_FLOAT_STR = (lambda x: float(x), lambda x: str(x))
-        MAPPER_INT_STR = (lambda x: int(x), lambda x: str(x))
-
-        self.add_handler("threshold_l", le_th_l, mapper=MAPPER_FLOAT_STR, default=0.16)
-        self.add_handler("threshold_r", le_th_r, mapper=MAPPER_FLOAT_STR, default=0.16)
-        self.add_handler("min_dist", le_distance, mapper=MAPPER_INT_STR, default=50)
-        self.add_handler("min_prominence", le_prominence, mapper=MAPPER_FLOAT_STR, default=0.1)
-        self.add_handler("min_width", le_width_min, mapper=MAPPER_INT_STR, default=10)
-        self.add_handler("max_width", le_width_max, mapper=MAPPER_INT_STR, default=100)
-        self.add_handler("maximum_matching_dist", le_maximum_matching_dist, mapper=MAPPER_INT_STR, default=30)
-
-        # le_fps.setValidator(QtGui.QIntValidator())
-        # le_width_min.setValidator(QtGui.QIntValidator())
-        # le_width_max.setValidator(QtGui.QIntValidator())
-
-        self.set_algo.addRow("Threshold Left", le_th_l)
-        self.set_algo.addRow("Threshold Right", le_th_r)
-        self.set_algo.addRow("Minimum Distance", le_distance)
-        self.set_algo.addRow("Minimum Prominence", le_prominence)
-        self.set_algo.addRow("Mininum Internal Width", le_width_min)
-        self.set_algo.addRow("Maximum Internal Width", le_width_max)
-        self.set_algo.addRow("Maximum Matching Dist", le_maximum_matching_dist)
-
+        le_maximum_matching_dist.setValidator(int_validator)
+        self.add_handler("maximum_matching_dist", le_maximum_matching_dist, mapper=I2S, default=30)
+        self.set_algo.addRow("Maximum Matching Distance", le_maximum_matching_dist)
+        
         box_smooth = QtWidgets.QGroupBox("Smoothing")
         box_smooth.setCheckable(True)
         self.add_handler("smooth", box_smooth)
@@ -199,17 +246,17 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         box_smooth.setLayout(box_smooth_layout)
 
         le_smooth_size = QtWidgets.QLineEdit()
-        le_smooth_poly = QtWidgets.QLineEdit()
-        self.add_handler("smooth_size", le_smooth_size, mapper=MAPPER_INT_STR, default=91)
-        self.add_handler("smooth_poly", le_smooth_poly, mapper=MAPPER_INT_STR, default=5)
-        le_smooth_size.setValidator(QtGui.QIntValidator())
-        le_smooth_poly.setValidator(QtGui.QIntValidator())
-
-        box_smooth_layout.addRow("Polynomial Degree", le_smooth_poly)
+        le_smooth_size.setValidator(int_validator)
+        self.add_handler("smooth_size", le_smooth_size, mapper=I2S, default=91)
         box_smooth_layout.addRow("Window Size", le_smooth_size)
+        
+        le_smooth_poly = QtWidgets.QLineEdit()
+        le_smooth_poly.setValidator(int_validator)
+        self.add_handler("smooth_poly", le_smooth_poly, mapper=I2S, default=5)
+        box_smooth_layout.addRow("Polynomial Degree", le_smooth_poly)
 
         self.set_algo.addRow(box_smooth)
-
+        
         # Visual Settings #
         self.box_visuals = QtWidgets.QGroupBox("Visual Settings")
         self.set_visuals = QtWidgets.QFormLayout()
@@ -243,9 +290,6 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         btn_reset_view.clicked.connect(lambda: self.graph.autoRange())
 
         self.set_visuals.addRow("FPS", self.fps_box)
-        # self.set_visuals.addRow("X-Axis As Time", cb_as_time)
-        # self.set_visuals.addRow("Draw Width/Height", cb_width_height)
-        # self.set_visuals.addRow("Simple Draw", cb_simple_draw)
         self.set_visuals.addRow(btn_reset_view)
         self.set_visuals.addRow(btn_reset_graph)
 
@@ -510,50 +554,65 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
             ValueError: If the blinking data frames cannot be matched.
 
         """
-        assert self.data_frame is not None, "Somehow the data frame is None"
-        assert self.data_frame_columns is not None, "Somehow the data frame columns are None"
-
-        assert self.raw_ear_r is not None, "Somehow the raw ear right is None"
-        assert self.raw_ear_l is not None, "Somehow the raw ear left is None"
+        def validate_setting(setting_name: str) -> tuple[bool, int | float]:
+            try:
+                value = self.get(setting_name)
+            except ValueError:
+                logger.error("Error while validating the settings", setting=setting_name)
+                jwidgets.JDialogWarn("Blinking Extraction Error", f"The setting {setting_name} is not a valid input.", "Please change your settings and try again")
+                return False, None
+            return True, value
 
         # check if the column selection index are not the same
         if self.comb_ear_l.currentIndex() == self.comb_ear_r.currentIndex():
-            jwidgets.JDialogWarn(
-                "Blinking Extraction Error",
-                "It looks like you selected the same column for both eyes",
-                "Please select different columns and try again",
-            )
+            logger.error("The same column is selected for both eyes")
+            jwidgets.JDialogWarn("Blinking Extraction Error", "Both EAR columns are the same!", "Please select different columns and try again",)
+            return False
+        
+        succ, threshold_l = validate_setting("threshold_l")
+        if not succ:
+            return False
+        succ, threshold_r = validate_setting("threshold_r")
+        if not succ:
+            return False
+        succ, minimum_distance = validate_setting("min_dist")
+        if not succ:
+            return False
+        succ, minimum_prominence = validate_setting("min_prominence")
+        if not succ:
+            return False
+        succ, minimum_internal_width = validate_setting("min_width")
+        if not succ:
+            return False
+        succ, maximum_matching_dist = validate_setting("maximum_matching_dist")
+        if not succ:
+            return False
+        succ, maximum_internal_width = validate_setting("max_width")
+        if not succ:
+            return False
+        succ, smooth_size = validate_setting("smooth_size")
+        if not succ:
+            return False
+        succ, smooth_poly = validate_setting("smooth_poly")
+        if not succ:
             return False
 
-        kwargs = {}
-        kwargs["minimum_distance"] = self.get("min_dist")
-        kwargs["minimum_prominence"] = self.get("min_prominence")
-        kwargs["minimum_internal_width"] = self.get("min_width")
-        kwargs["maximum_internal_width"] = self.get("max_width")
-
-        do_smoothing: bool = self.get("smooth") or False
-        smooth_size: int = self.get("smooth_size") or 91
-        smooth_poly: int = self.get("smooth_poly") or 5
-
-        self.ear_l = blinking.smooth(self.raw_ear_l, smooth_size, smooth_poly) if do_smoothing else self.raw_ear_l
-        self.ear_r = blinking.smooth(self.raw_ear_r, smooth_size, smooth_poly) if do_smoothing else self.raw_ear_r
+        self.ear_l = blinking.smooth(self.raw_ear_l, smooth_size, smooth_poly) if self.get("smooth") else self.raw_ear_l
+        self.ear_r = blinking.smooth(self.raw_ear_r, smooth_size, smooth_poly) if self.get("smooth") else self.raw_ear_r
 
         self.progress.setValue(40)
 
         threshold_l = self.get("threshold_l")
         threshold_r = self.get("threshold_r")
 
-        self.blinking_l = blinking.peaks(self.ear_l, threshold=threshold_l, **kwargs)
-        self.blinking_r = blinking.peaks(self.ear_r, threshold=threshold_r, **kwargs)
+        self.blinking_l = blinking.peaks(self.ear_l, threshold_l, minimum_distance, minimum_prominence, minimum_internal_width, maximum_internal_width)
+        self.blinking_r = blinking.peaks(self.ear_r, threshold_r, minimum_distance, minimum_prominence, minimum_internal_width, maximum_internal_width)
+        
         try:
-            self.blinking_matched = blinking.match(self.blinking_l, self.blinking_r, tolerance=self.get("maximum_matching_dist"))
+            self.blinking_matched = blinking.match(self.blinking_l, self.blinking_r, tolerance=maximum_matching_dist)
         except ValueError as e:
             logger.error("Error while matching the blinking data frames", error=e)
-            jwidgets.JDialogWarn(
-                "Blinking Extraction Error",
-                "The blinking could not be matched, likely none found",
-                "Please change your settings and try again",
-            )
+            jwidgets.JDialogWarn( "Blinking Extraction Error", "The blinking could not be matched, likely none found", "Please change your settings and try again")
             return False
         return True
 
