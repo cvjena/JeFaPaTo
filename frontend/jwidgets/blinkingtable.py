@@ -31,18 +31,6 @@ def create_blinking_combobox() -> QComboBox:
 
 class JBlinkingTable(QWidget):
     selection_changed = pyqtSignal(int)
-    
-    mapping = {
-        "promi" : "Prominence",
-        "width" : "Width",
-        "height" : "Height",
-        "single" : "Single",
-        "ips_l" : "Intersection Start",
-        "ips_r" : "Intersection End",
-        "score" : "EAR Value",
-        "frame_og" : "Frame",
-    }
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -93,5 +81,9 @@ class JBlinkingTable(QWidget):
 
         self.table_blinking.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         # get the colums from the left and right eye and combine them
-        header = [f"{self.mapping[c[1]]} [{c[0][0]}]" for c in blinking_matched.columns]
+        
+        header = [f"{self.split_and_capitalize(c[1])} [{c[0][0]}]" for c in blinking_matched.columns]
         self.model_blinking_type.setHorizontalHeaderLabels(["Eyelid Closure Type"] + header)
+        
+    def split_and_capitalize(self, text: str) -> str:
+        return " ".join([word.capitalize() for word in text.split("_")])

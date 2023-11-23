@@ -40,12 +40,12 @@ def summarize(
     df = pd.DataFrame(matched_blinks, copy=True)
     
     def _compute_statistics(df_i: pd.DataFrame, df_o: pd.DataFrame, side: str):
-        df_i[(side,  "minute")] = df_i[(side,  "frame_og")]  / fps / 60
+        df_i[(side,  "minute")] = df_i[(side,  "apex_frame_og")]  / fps / 60
         times_l = pd.to_datetime(df_i[(side,  "minute")], unit='m', errors="ignore")
         group_l = df_i.groupby(times_l.dt.minute)
         df_o["blinks"] = group_l.count()[(side, "minute")]
-        calculate_statistics(df_o, group_l, (side,  "width"))
-        calculate_statistics(df_o, group_l, (side,  "height"), precision=2)
+        calculate_statistics(df_o, group_l, (side,  "peak_internal_width"))
+        calculate_statistics(df_o, group_l, (side,  "peak_height"), precision=2)
         
     summary_df = pd.DataFrame()
     _compute_statistics(df, summary_df, "left")
@@ -83,12 +83,12 @@ def visualize(
     df = df[~df[("right", "single")]]
     
     # compute the middle between left and right
-    df["timestep"] = (df[("left", "frame_og")] + df[("right", "frame_og")] ) / 2
+    df["timestep"] = (df[("left", "apex_frame_og")] + df[("right", "apex_frame_og")] ) / 2
     df["timestep_ms"]  = df["timestep"] / fps * 1000   # convert to ms
     df["timestep_min"] = df["timestep_ms"] / 1000 / 60 # convert to min
     
     # compute the distance between left and right, and convert to ms
-    df["distance"] = df[("left", "frame_og")] - df[("right", "frame_og")]
+    df["distance"] = df[("left", "apex_frame_og")] - df[("right", "apex_frame_og")]
     df["distance_ms"]  = df["distance"] / fps * 1000   # convert to ms
     df["distance_min"] = df["distance_ms"] / 1000 / 60 # convert to min
     
@@ -164,8 +164,8 @@ def visualize(
         
     # Add a new axis for the time histogram
     # 1. convert the frame_og to minutes based on the fps
-    df[("left",  "minute")] = df[("left",  "frame_og")]  / fps / 60
-    df[("right", "minute")] = df[("right", "frame_og")]  / fps / 60
+    df[("left",  "minute")] = df[("left",  "apex_frame_og")]  / fps / 60
+    df[("right", "minute")] = df[("right", "apex_frame_og")]  / fps / 60
     
     # 2. convert the minutes to datetime
     times_l = pd.to_datetime(df[("left",  "minute")], unit='m', errors="ignore")

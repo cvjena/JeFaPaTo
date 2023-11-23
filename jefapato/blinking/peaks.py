@@ -26,46 +26,47 @@ def peaks(
     
     Returns:
         pd.DataFrame: A DataFrame containing information about the detected peaks.
-            Columns: ['index', 'frame', 'score', 'ips_l', 'ips_r', 'promi', 'width', 'height']
+            Columns: ["index", "apex_frame", "ear_score", "intersection_point_lower", "intersection_point_upper", "prominance", "peak_internal_width", "peak_height"]
     """
+    # Find the peaks by turning the time series upside down
     peaks, props = signal.find_peaks(
-        x=-time_series, # invert the time series to find the peaks
+        x=-time_series,
         distance=minimum_distance, 
         prominence=minimum_prominence,
         width=minimum_internal_width,
     )
 
-    blinkings = {
+    blinks = {
         "index": [],
-        "frame": [],
-        "score": [],
-        "ips_l": [],
-        "ips_r": [],
-        "promi": [],
-        "width": [],
-        "height": [],
+        "apex_frame": [],
+        "ear_score": [],
+        "intersection_point_lower": [],
+        "intersection_point_upper": [],
+        "prominance": [],
+        "peak_internal_width": [],
+        "peak_height": [],
     }
     time_series = time_series.round(4)
     for idx, peak in enumerate(peaks):
         if time_series[peak] > threshold:
             continue
 
-        prom = props["prominences"][idx].round(4)
-        ipsl = props["left_ips"][idx].astype(np.int32)
-        ipsr = props["right_ips"][idx].astype(np.int32)
-        whei = -props["width_heights"][idx].round(4)
-        widt = ipsr - ipsl
+        prominance = props["prominences"][idx].round(4)
+        intersection_point_left = props["left_ips"][idx].astype(np.int32)
+        intersection_point_right = props["right_ips"][idx].astype(np.int32)
+        peak_height = -props["width_heights"][idx].round(4)
+        peak_interal_width = intersection_point_right - intersection_point_left
 
-        if widt > maximum_internal_width:
+        if peak_interal_width > maximum_internal_width:
             continue
 
-        blinkings["index"].append(idx)
-        blinkings["frame"].append(peak)
-        blinkings["score"].append(time_series[peak])
-        blinkings["ips_l"].append(ipsl)
-        blinkings["ips_r"].append(ipsr)
-        blinkings["promi"].append(prom)
-        blinkings["width"].append(widt)
-        blinkings["height"].append(whei)
+        blinks["index"].append(idx)
+        blinks["apex_frame"].append(peak)
+        blinks["ear_score"].append(time_series[peak])
+        blinks["intersection_point_lower"].append(intersection_point_left)
+        blinks["intersection_point_upper"].append(intersection_point_right)
+        blinks["prominance"].append(prominance)
+        blinks["peak_internal_width"].append(peak_interal_width)
+        blinks["peak_height"].append(peak_height)
 
-    return  pd.DataFrame(blinkings, columns=list(blinkings.keys()), index=blinkings["index"]).reset_index(drop=True)
+    return  pd.DataFrame(blinks, columns=list(blinks.keys()), index=blinks["index"]).reset_index(drop=True)

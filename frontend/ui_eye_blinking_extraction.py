@@ -636,8 +636,8 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         self.plot_scatter_blinks_l.clear()
         self.plot_scatter_blinks_r.clear()
 
-        self.plot_scatter_blinks_l.setData(x=self.blinking_l["frame"].to_numpy(), y=self.blinking_l["score"].to_numpy(), pen={"color": "#00F", "width": 2})
-        self.plot_scatter_blinks_r.setData(x=self.blinking_r["frame"].to_numpy(), y=self.blinking_r["score"].to_numpy(), pen={"color": "#F00", "width": 2})
+        self.plot_scatter_blinks_l.setData(x=self.blinking_l["apex_frame"].to_numpy(), y=self.blinking_l["ear_score"].to_numpy(), pen={"color": "#00F", "width": 2})
+        self.plot_scatter_blinks_r.setData(x=self.blinking_r["apex_frame"].to_numpy(), y=self.blinking_r["ear_score"].to_numpy(), pen={"color": "#F00", "width": 2})
 
         return True
 
@@ -682,8 +682,8 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
             return
 
         # TODO we already assume that blinking left and right are synced
-        frame_left  = self.blinking_matched["left"]["frame_og"].iloc[index]
-        frame_right = self.blinking_matched["right"]["frame_og"].iloc[index]
+        frame_left  = self.blinking_matched["left"]["apex_frame_og"].iloc[index]
+        frame_right = self.blinking_matched["right"]["apex_frame_og"].iloc[index]
         if np.isnan(frame_left) and np.isnan(frame_right):
             return
         if np.isnan(frame_left):

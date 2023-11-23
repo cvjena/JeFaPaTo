@@ -3,6 +3,8 @@ __all__ = ['match']
 import numpy as np
 import pandas as pd
 
+REQUIRED_COLUMNS = ["apex_frame"]
+
 def match(
     blinking_l: pd.DataFrame, 
     blinking_r: pd.DataFrame,
@@ -63,35 +65,42 @@ def match(
     if tolerance < 0:
         raise ValueError("Tolerance is negative.") 
     
+    # check that the required columns are present
+    if not all(col in list(blinking_l.columns) for col in REQUIRED_COLUMNS):
+        raise ValueError("Dataframe for left eye does not have all required columns.")
+    if not all(col in list(blinking_r.columns) for col in REQUIRED_COLUMNS):
+        raise ValueError("Dataframe for right eye does not have all required columns.")
+    
     # delete column called "index"
     if "index" in blinking_l.columns:
         blinking_l.drop(columns=["index"], inplace=True)
     if "index" in blinking_r.columns:
         blinking_r.drop(columns=["index"], inplace=True)
         
-    if "frame" not in blinking_l.columns:
-        raise ValueError("Dataframe for left eye does not have a column called 'frame'.")
-    if "frame" not in blinking_r.columns:
-        raise ValueError("Dataframe for right eye does not have a column called 'frame'.")
-        
+    # create a new column called "single" and set all values to False
+    # this column will store the information if the blink is a single blink for the left or right eye
     blinking_l["single"] = False
     blinking_r["single"] = False
     
-    blinking_l["frame_og"] = blinking_l["frame"]
-    blinking_r["frame_og"] = blinking_r["frame"]
+    # create a new column to store the original apex_frame
+    blinking_l["apex_frame_og"] = blinking_l["apex_frame"]
+    blinking_r["apex_frame_og"] = blinking_r["apex_frame"]
 
-    merge_lr = pd.merge_asof(blinking_l, blinking_r, on='frame', tolerance=tolerance, suffixes=('_left', '_right'), direction='nearest', allow_exact_matches=True)
-    merge_rl = pd.merge_asof(blinking_r, blinking_l, on='frame', tolerance=tolerance, suffixes=('_right', '_left'), direction='nearest', allow_exact_matches=True)
+    # do a left join on the left eye dataframe
+    merge_lr = pd.merge_asof(blinking_l, blinking_r, on='apex_frame', tolerance=tolerance, suffixes=('_left', '_right'), direction='nearest', allow_exact_matches=True)
+    # do a left join on the right eye dataframe
+    merge_rl = pd.merge_asof(blinking_r, blinking_l, on='apex_frame', tolerance=tolerance, suffixes=('_right', '_left'), direction='nearest', allow_exact_matches=True)
 
+    # and combine them to simulate a full outer join using the tolerance
     merged = pd.concat([merge_lr, merge_rl])
-    merged = merged.drop_duplicates(subset=["frame_og_left", "frame_og_right"]).sort_values(by=['frame']).reindex()
-    merged = merged.drop(columns=['frame'])
+    merged = merged.drop_duplicates(subset=["apex_frame_og_left", "apex_frame_og_right"]).sort_values(by=['apex_frame']).reindex()
+    merged = merged.drop(columns=['apex_frame'])
     merged = merged.reset_index(drop=True)
     
-    # check that all frames from blinking_l are in mergede["frame_og_left"]
-    assert blinking_l["frame_og"].isin(merged["frame_og_left"]).all()
-    # check that all frames from blinking_r are in mergede["frame_og_right"]
-    assert blinking_r["frame_og"].isin(merged["frame_og_right"]).all()
+    # check that all apex_frames from blinking_l are in mergede["apex_frame_og_left"]
+    assert blinking_l["apex_frame_og"].isin(merged["apex_frame_og_left"]).all()
+    # check that all apex_frames from blinking_r are in mergede["apex_frame_og_right"]
+    assert blinking_r["apex_frame_og"].isin(merged["apex_frame_og_right"]).all()
 
     # iterate over the rows and check the single condition
     # if for a row the left eye is missing, then the right eye is single (set value to True)
