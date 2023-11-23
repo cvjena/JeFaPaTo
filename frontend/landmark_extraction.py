@@ -1,10 +1,8 @@
 __all__ = ["LandmarkExtraction"]
 
-from collections import OrderedDict
-import csv
-import datetime
-from pathlib import Path
 import sys
+from collections import OrderedDict
+from pathlib import Path
 from typing import Any, Callable, Type
 
 import numpy as np
