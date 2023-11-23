@@ -156,15 +156,15 @@ class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
 
         self.add_handler("threshold_l", le_th_l, mapper=MAPPER_FLOAT_STR, default=0.16)
         self.add_handler("threshold_r", le_th_r, mapper=MAPPER_FLOAT_STR, default=0.16)
-        self.add_handler("maximum_matching_dist", le_maximum_matching_dist, mapper=MAPPER_INT_STR, default=30)
         self.add_handler("min_dist", le_distance, mapper=MAPPER_INT_STR, default=50)
         self.add_handler("min_prominence", le_prominence, mapper=MAPPER_FLOAT_STR, default=0.1)
         self.add_handler("min_width", le_width_min, mapper=MAPPER_INT_STR, default=10)
         self.add_handler("max_width", le_width_max, mapper=MAPPER_INT_STR, default=100)
+        self.add_handler("maximum_matching_dist", le_maximum_matching_dist, mapper=MAPPER_INT_STR, default=30)
 
         # le_fps.setValidator(QtGui.QIntValidator())
-        le_width_min.setValidator(QtGui.QIntValidator())
-        le_width_max.setValidator(QtGui.QIntValidator())
+        # le_width_min.setValidator(QtGui.QIntValidator())
+        # le_width_max.setValidator(QtGui.QIntValidator())
 
         self.set_algo.addRow("Threshold Left", le_th_l)
         self.set_algo.addRow("Threshold Right", le_th_r)

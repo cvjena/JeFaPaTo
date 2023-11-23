@@ -12,44 +12,27 @@ def group_std(group: pd.DataFrame, col: str, precision: int = 1) -> pd.Series:
     std = group.std(numeric_only=True)[col].round(precision)
     return std
     
+def calculate_statistics(summary_df, group, col, precision=1):
+    summary_df[f"{col}_avg [#]"] = group_avg(group, col, precision)
+    summary_df[f"{col}_std [#]"] = group_std(group, col, precision)
+    
 def summarize(
     merged_blinking: pd.DataFrame,
     fps: int = 240,
 ) -> pd.DataFrame:
     df = pd.DataFrame(merged_blinking, copy=True)
-    # group the dataframe by the minutes
-    # then count the number of blinks per minute
     
-    # 1. convert the frame_og to minutes based on the fps
-    df[("left",  "minute")] = df[("left",  "frame_og")]  / fps / 60
-    df[("right", "minute")] = df[("right", "frame_og")]  / fps / 60
-    
-    # 2. convert the minutes to datetime
-    times_l = pd.to_datetime(df[("left",  "minute")], unit='m', errors="ignore")
-    times_r = pd.to_datetime(df[("right", "minute")], unit='m', errors="ignore")
-
-    # 3. group the dataframe by the minutes
-    group_l = df.groupby(times_l.dt.minute)
-    group_r = df.groupby(times_r.dt.minute)
-    
-    # 4. create a summary dataframe
+    def _compute_statistics(df_i: pd.DataFrame, df_o: pd.DataFrame, side: str):
+        df_i[(side,  "minute")] = df_i[(side,  "frame_og")]  / fps / 60
+        times_l = pd.to_datetime(df_i[(side,  "minute")], unit='m', errors="ignore")
+        group_l = df_i.groupby(times_l.dt.minute)
+        df_o["blinks"] = group_l.count()[(side, "minute")]
+        calculate_statistics(df_o, group_l, (side,  "width"))
+        calculate_statistics(df_o, group_l, (side,  "height"), precision=2)
+        
     summary_df = pd.DataFrame()
-    
-    summary_df["blinks_l"] = group_l.count()[("left", "minute")]
-    summary_df["blinks_r"] = group_r.count()[("right", "minute")]
-
-    summary_df["width_l_avg [#]"] = group_avg(group_l, ("left", "width"))
-    summary_df["width_l_std [#]"] = group_std(group_l, ("left", "width"))
-    
-    summary_df["width_r_avg [#]"] = group_avg(group_r, ("right", "width"))
-    summary_df["width_r_std [#]"] = group_std(group_r, ("right", "width"))
-    
-    summary_df["height_l_avg [#]"] = group_avg(group_l, ("left", "height"), precision=2)
-    summary_df["height_l_std [#]"] = group_std(group_l, ("left", "height"), precision=2)
-    
-    summary_df["height_r_avg [#]"] = group_avg(group_r, ("right", "height"), precision=2)
-    summary_df["height_r_std [#]"] = group_std(group_r, ("right", "height"), precision=2)
-    
+    _compute_statistics(df, summary_df, "left")
+    _compute_statistics(df, summary_df, "right")
     summary_df.index.name = "minute"
     return summary_df
 
