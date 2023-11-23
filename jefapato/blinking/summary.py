@@ -144,13 +144,12 @@ def visualize(
     axis_devi.set_yticks([-outer, avg-3*std, avg-2*std, avg-std, avg, avg+std, avg+2*std, avg+3*std, outer])
     axis_devi.set_yticklabels(["", "-3o", "-2o", "-o", "mean", "+o", "+2o", "+3o", ""])
     
-    # Add a new axis for the histogram
-    axis_hist = fig.add_subplot(gs[1, 1])
-    
     # group the dataframe by stds and count the number of blinks
     group_index = np.array([avg-outer, avg-3*std, avg-2*std, avg-std, avg, avg+std, avg+2*std, avg+3*std, avg+outer])
     # check that the group_index is monotonically increasing
     if np.all(np.diff(group_index) > 0):
+        # Add a new axis for the histogram
+        axis_hist = fig.add_subplot(gs[1, 1])
         groups = df.groupby(pd.cut(df["distance_ms"], group_index))
         groups_count = groups.count()
         # make the bins based on the stds
