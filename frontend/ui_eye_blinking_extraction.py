@@ -239,6 +239,13 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         self.add_handler("maximum_matching_dist", le_maximum_matching_dist, mapper=I2S, default=30)
         self.set_algo.addRow("Maximum Matching Distance", le_maximum_matching_dist)
         
+        # TODO this value is not saved in the config!
+        self.cb_video_fps = QtWidgets.QComboBox()
+        self.cb_video_fps.addItems(["24", "30", "60", "120", "240"])
+        self.cb_video_fps.setCurrentIndex(4)
+        self.cb_video_fps.currentIndexChanged.connect(self.compute_graph_axis)
+        self.set_algo.addRow("Video FPS", self.cb_video_fps)
+        
         box_smooth = QtWidgets.QGroupBox("Smoothing")
         box_smooth.setCheckable(True)
         self.add_handler("smooth", box_smooth)
@@ -258,41 +265,23 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         self.set_algo.addRow(box_smooth)
         
         # Visual Settings #
-        self.box_visuals = QtWidgets.QGroupBox("Visual Settings")
+        self.box_visuals = QtWidgets.QGroupBox("Graph Control")
         self.set_visuals = QtWidgets.QFormLayout()
 
-        cb_as_time = QtWidgets.QCheckBox()
-        cb_width_height = QtWidgets.QCheckBox()
-        cb_simple_draw = QtWidgets.QCheckBox()
+        self.cb_as_time = QtWidgets.QCheckBox("Show Time")
+        self.add_handler("as_time", self.cb_as_time)
+        self.set_visuals.addRow(self.cb_as_time)
+        self.cb_as_time.stateChanged.connect(self.compute_graph_axis)
+
         btn_reset_graph = QtWidgets.QPushButton(qta.icon("msc.refresh"), "Reset Graph Y Range")
-        btn_reset_view = QtWidgets.QPushButton(qta.icon("msc.refresh"), "View Full Graph")
-
-        self.fps_box = QtWidgets.QGroupBox()
-        self.radio_30 = QtWidgets.QRadioButton("30")
-        self.radio_240 = QtWidgets.QRadioButton("240")
-        self.radio_240.setChecked(True)
-        
-        self.radio_30.toggled.connect(self.compute_graph_axis)
-
-        group_box_layout = QtWidgets.QHBoxLayout()
-        self.fps_box.setLayout(group_box_layout)
-        group_box_layout.addWidget(self.radio_30)
-        group_box_layout.addWidget(self.radio_240)
-
-        self.add_handler("as_time", cb_as_time)
-        self.add_handler("draw_width_height", cb_width_height)
-        self.add_handler("vis_downsample", cb_simple_draw)
-
-        cb_as_time.clicked.connect(self.compute_graph_axis)
-        cb_simple_draw.clicked.connect(lambda _: self.plot_data())
-        cb_width_height.clicked.connect(lambda _: self.plot_data())
         btn_reset_graph.clicked.connect(lambda: self.graph.setYRange(0, 1))
-        btn_reset_view.clicked.connect(lambda: self.graph.autoRange())
-
-        self.set_visuals.addRow("FPS", self.fps_box)
-        self.set_visuals.addRow(btn_reset_view)
         self.set_visuals.addRow(btn_reset_graph)
 
+        btn_reset_view  = QtWidgets.QPushButton(qta.icon("msc.refresh"), "View Full Graph")
+        btn_reset_view.clicked.connect(lambda: self.graph.autoRange())
+        self.set_visuals.addRow(btn_reset_view)
+
+        # Export Settings #
         self.format_export = QtWidgets.QComboBox()
         self.format_export.addItems(["CSV", "Excel"])
         self.format_export.setCurrentIndex(0)
@@ -329,7 +318,6 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         self.layout_settings.addWidget(self.box_visuals)
         self.layout_settings.addWidget(jwidgets.JHLine())
 
-
         spacer = QtWidgets.QWidget()
         spacer.setSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding)
         self.layout_settings.addWidget(spacer)
@@ -340,6 +328,15 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         self.disable_column_selection()
         self.disable_algorithm()
         self.disable_export()
+    
+    def get_selected_fps(self) -> int:
+        """
+        Get the selected frames per second (fps) from the video fps combo box.
+
+        Returns:
+            int: The selected frames per second (fps).
+        """
+        return int(self.cb_video_fps.currentText())
 
     # loading of the file
     def load_dialog(self) -> None:
@@ -372,7 +369,6 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
             None
         """
         self.progress.setValue(0)
-
         self.clear_on_new_file()
         ############################################################
 
@@ -483,7 +479,7 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
 
         if self.get("as_time"):
             x_axis.setLabel("Time (MM:SS)")
-            fps = 30 if self.radio_30.isChecked() else 240  # TODO make more general in the future
+            fps = self.get_selected_fps()
             x_ticks = np.arange(0, self.x_lim_max, fps)
             x_ticks_lab = [str(to_MM_SS(x // fps)) for x in x_ticks]
 
@@ -691,9 +687,8 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
             frame_idx = frame_left
         else:
             frame_idx = min(frame_left, frame_right)
-        # get fps
-        fps = 30 if self.radio_30.isChecked() else 240 # TODO make more general in the future
-        self.graph.setXRange(frame_idx - fps, frame_idx + fps)
+        # show 1 second before and after the blink
+        self.graph.setXRange(frame_idx - self.get_selected_fps(), frame_idx + self.get_selected_fps())
         self.face_preview.set_frame(frame_idx)
 
     # summary of the results
@@ -702,8 +697,7 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         Computes the summary of blinking data and updates the UI with the results.
         """
         
-        fps = 30 if self.radio_30.isChecked() else 240 # TODO make more general in the future        
-        
+        fps = self.get_selected_fps()
         self.summary_df = blinking.summarize(self.blinking_matched, fps=fps)
         self.te_results_g.setText(tabulate.tabulate(self.summary_df, headers="keys", tablefmt="github"))
         logger.info("Summary computed")
