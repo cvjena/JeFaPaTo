@@ -18,9 +18,27 @@ logger = structlog.get_logger()
 DOWNSAMPLE_FACTOR = 8
 
 def to_MM_SS(value):
+    """
+    Converts a value in seconds to a string representation in the format MM:SS.
+    
+    Args:
+        value (int): The value in seconds to be converted.
+    
+    Returns:
+        str: The string representation of the value in the format MM:SS.
+    """
     return f"{int(value / 60):02d}:{int(value % 60):02d}"
 
 def sec_to_min(seconds: float) -> str:
+    """
+    Converts seconds to minutes and seconds format.
+
+    Args:
+        seconds (float): The number of seconds to convert.
+
+    Returns:
+        str: The converted time in the format "MM:SS".
+    """
     minutes = int(seconds / 60)
     seconds = int(seconds % 60)
     return f"{minutes:02d}:{seconds:02d}"
@@ -281,7 +299,10 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
 
     # loading of the file
     def load_dialog(self) -> None:
-        logger.info("Open file dialo for loading CSV file")
+        """
+        Open a file dialog for loading a CSV file.
+        """
+        logger.info("Open file dialog for loading CSV file")
         file_path, _ = QtWidgets.QFileDialog.getOpenFileName(
             self,
             "Select csv file",
@@ -292,13 +313,22 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         if file_path == "":
             logger.info("No file selected")
             return
-        
+
         logger.info("File selected via dialog", file=file_path)
         self.load_file(Path(file_path))
 
     def load_file(self, file_path: Path) -> None:
+        """
+        Load a file and parse it as a data frame.
+
+        Args:
+            file_path (Path): The path to the file to be loaded.
+
+        Returns:
+            None
+        """
         self.progress.setValue(0)
-    
+
         self.clear_on_new_file()
         ############################################################
 
@@ -316,7 +346,7 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         self.enable_column_selection()
         self.enable_algorithm()
         self.disable_export()
-        
+
         # compute the possible options for the columns
         # make all columns to lower case and find the one ending in ear_l and ear_r
         cols_lower = [x.lower() for x in self.data_frame_columns]
@@ -324,10 +354,19 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         if len(idx_l) > 0:
             self.comb_ear_l.setCurrentIndex(idx_l[0])
         idx_r = [i for i, x in enumerate(cols_lower) if x.endswith("_r")]
-        if len(idx_r) > 0:  
+        if len(idx_r) > 0:
             self.comb_ear_r.setCurrentIndex(idx_r[0])
 
     def select_column_left(self, index: int) -> None:
+        """
+        Selects the left column of the data frame based on the given index.
+        
+        Args:
+            index (int): The index of the column to select.
+        
+        Returns:
+            None
+        """
         if self.data_frame is None or self.data_frame_columns is None:
             return
         
@@ -336,6 +375,15 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         self.disable_export()
 
     def select_column_right(self, index: int) -> None:
+        """
+        Selects the column at the given index from the data frame and updates the plot.
+
+        Args:
+            index (int): The index of the column to select.
+
+        Returns:
+            None
+        """
         if self.data_frame is None or self.data_frame_columns is None:
             return
         self.raw_ear_r = self.data_frame[self.data_frame_columns[index]].to_numpy()
@@ -344,6 +392,16 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         self.disable_export()
 
     def update_plot_raw(self) -> None:
+        """
+        Update the raw plot curves with new data.
+
+        Clears the existing plot curves for left and right eye EAR values,
+        and then sets the data for the plot curves based on the raw EAR values
+        if they are available. Finally, it computes the graph axis.
+
+        Returns:
+            None
+        """
         self.plot_curve_ear_l.clear()
         self.plot_curve_ear_r.clear()
 
@@ -355,6 +413,16 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         self.compute_graph_axis()
 
     def compute_graph_axis(self) -> None:
+        """
+        Compute the graph axis for the eye blinking extraction UI.
+
+        This method sets the x-axis and y-axis limits for the graph, as well as the labels and ticks.
+        If the 'as_time' flag is True, the x-axis is labeled as time in MM:SS format, otherwise it is labeled as frames.
+        The y-axis is always labeled as "EAR Score".
+
+        Returns:
+            None
+        """
         logger.info("Compute graph x-axis")
         ds_factor = 1 if not self.get("vis_downsample") else DOWNSAMPLE_FACTOR
 
@@ -371,11 +439,11 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
 
         if self.get("as_time"):
             x_axis.setLabel("Time (MM:SS)")
-            fps = 30 if self.radio_30.isChecked() else 240 # TODO make more general in the future
+            fps = 30 if self.radio_30.isChecked() else 240  # TODO make more general in the future
             x_ticks = np.arange(0, self.x_lim_max, fps)
             x_ticks_lab = [str(to_MM_SS(x // fps)) for x in x_ticks]
 
-            # TODO add some miliseconds to the ticks
+            # TODO add some milliseconds to the ticks
             x_axis.setTicks(
                 [
                     [(x, xl) for x, xl in zip(x_ticks[::60], x_ticks_lab[::60])],
@@ -398,6 +466,12 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
 
     # extraction of the blinks
     def extract_blinks(self) -> None:
+        """
+        Extracts eye blinks from the data and updates the UI accordingly.
+
+        Returns:
+            None
+        """
         self.progress.setRange(0, 100)
 
         self.progress.setValue(0)
@@ -423,12 +497,25 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         self.tab_widget_results.setCurrentIndex(0)
 
     def compute_intervals(self) -> None:
+        """
+        Computes the intervals for eye blinking extraction based on the provided settings.
+
+        Returns:
+            None
+
+        Raises:
+            AssertionError: If the data frame or data frame columns are None.
+            AssertionError: If the raw ear right or raw ear left are None.
+            ValueError: If the same column is selected for both eyes.
+            ValueError: If the blinking data frames cannot be matched.
+
+        """
         assert self.data_frame is not None, "Somehow the data frame is None"
         assert self.data_frame_columns is not None, "Somehow the data frame columns are None"
 
         assert self.raw_ear_r is not None, "Somehow the raw ear right is None"
         assert self.raw_ear_l is not None, "Somehow the raw ear left is None"
-        
+
         # check if the column selection index are not the same
         if self.comb_ear_l.currentIndex() == self.comb_ear_r.currentIndex():
             dialog = QtWidgets.QMessageBox()
@@ -441,7 +528,6 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
             return False
 
         kwargs = {}
-        # kwargs["fps"] = self.get("fps")
         kwargs["minimum_distance"] = self.get("min_dist")
         kwargs["minimum_prominence"] = self.get("min_prominence")
         kwargs["minimum_internal_width"] = self.get("min_width")
@@ -450,7 +536,7 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         do_smoothing: bool = self.get("smooth") or False
         smooth_size: int = self.get("smooth_size") or 91
         smooth_poly: int = self.get("smooth_poly") or 5
-        
+
         self.ear_l = blinking.smooth(self.raw_ear_l, smooth_size, smooth_poly) if do_smoothing else self.raw_ear_l
         self.ear_r = blinking.smooth(self.raw_ear_r, smooth_size, smooth_poly) if do_smoothing else self.raw_ear_r
 
@@ -477,6 +563,12 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         return True
 
     def plot_intervals(self) -> bool:
+        """
+        Plot the intervals of eye blinking.
+
+        Returns:
+            bool: True if the plotting is successful, False otherwise.
+        """
         if self.blinking_l is None or self.blinking_r is None:
             return False
         
@@ -495,6 +587,9 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         return True
 
     def clear_on_new_file(self) -> None:
+        """
+        Clears the variables and UI elements when a new file is loaded.
+        """
         self.raw_ear_l = None
         self.raw_ear_r = None
         self.blinking_l = None
@@ -520,6 +615,12 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         self.disable_export()
 
     def highlight_blink(self, index: int) -> None:
+        """
+        Highlights the blink at the specified index.
+
+        Args:
+            index (int): The index of the blink to highlight.
+        """
         if self.blinking_l is None or self.blinking_r is None:
             return
         if self.blinking_matched is None:
@@ -543,6 +644,10 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
 
     # summary of the results
     def compute_summary(self) -> None:
+        """
+        Computes the summary of blinking data and updates the UI with the results.
+        """
+        
         fps = 30 if self.radio_30.isChecked() else 240 # TODO make more general in the future        
         
         self.summary_df = blinking.summarize(self.blinking_matched, fps=fps)
@@ -557,6 +662,16 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
 
     # saving of the results
     def save_results(self) -> None:
+        """
+        Save the blinking results to a file.
+
+        This method saves the blinking results to a file in either CSV or Excel format.
+        The blinking results are obtained from the data frame and the annotations from the table.
+        The saved file includes the matched blinking results, summary (if available), and separate sheets for left and right blinking.
+
+        Returns:
+            None
+        """
         if self.data_frame is None or self.file is None:
             return
         
@@ -600,10 +715,30 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
     
     ## general widget functions
     def shut_down(self) -> None:
+        """
+        Shuts down the widget.
+
+        This method is responsible for shutting down the widget and performing any necessary cleanup operations.
+
+        Parameters:
+            None
+
+        Returns:
+            None
+        """
         # this widget doesn't have any shut down requirements
         self.save()
 
     def dragEnterEvent(self, event: QtGui.QDropEvent):
+        """
+        Handles the drag enter event for the widget.
+
+        Parameters:
+        - event (QtGui.QDropEvent): The drag enter event.
+
+        Returns:
+        None
+        """
         logger.info("User started dragging event", widget=self)
         if event.mimeData().hasUrls():
             event.accept()
@@ -613,6 +748,15 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
             logger.info("User started dragging event with invalid mime file", widget=self)
 
     def dropEvent(self, event: QtGui.QDropEvent):
+        """
+        Handle the drop event when files are dropped onto the widget.
+
+        Args:
+            event (QtGui.QDropEvent): The drop event object.
+
+        Returns:
+            None
+        """
         files = [u.toLocalFile() for u in event.mimeData().urls()]
 
         if len(files) == 0:
