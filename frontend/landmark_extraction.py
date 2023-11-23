@@ -122,6 +122,8 @@ class JeFaPaToSignalThread(QtCore.QThread):
         while True:
             if self.stopped:
                 return
+            self.msleep(100)
+
     def stop(self):
         self.stopped = True
 
