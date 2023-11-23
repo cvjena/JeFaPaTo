@@ -82,8 +82,10 @@ class JBlinkingTable(QWidget):
         self.table_blinking.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         # get the colums from the left and right eye and combine them
         
-        header = [f"{self.split_and_capitalize(c[1])} [{c[0][0]}]" for c in blinking_matched.columns]
+        header = [f"{self.split_and_capitalize(c[1])} [{c[0][0].upper()}]" for c in blinking_matched.columns]
         self.model_blinking_type.setHorizontalHeaderLabels(["Eyelid Closure Type"] + header)
         
+        # resize the columns such that the headers are visible
+        self.table_blinking.resizeColumnsToContents() 
     def split_and_capitalize(self, text: str) -> str:
-        return " ".join([word.capitalize() for word in text.split("_")])
+        return "\n".join([word.capitalize() for word in text.split("_")])
