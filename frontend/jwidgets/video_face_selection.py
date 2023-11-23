@@ -214,7 +214,7 @@ class JVideoFaceSelection(QWidget):
         """
         handle_attr = getattr(self, handle, None)
         if handle_attr is None:
-            logger.warning("ROI Handle does not exist", handle=handle)
+            # logger.warning("ROI Handle does not exist", handle=handle)
             return
         try:
             self.roi.removeHandle(handle_attr)
