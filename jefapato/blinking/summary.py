@@ -20,6 +20,23 @@ def summarize(
     matched_blinks: pd.DataFrame,
     fps: int = 240,
 ) -> pd.DataFrame:
+    """
+    Summarizes the matched blinks data by computing statistics for each minute.
+    Based on the requirements of the medical study, the statistics are computed for the width and height of the blinks.
+    
+    Possible extensions:
+        - compute the statistics for the distance between the left and right eye
+        - compute the statistics for the duration of the blinks
+        - compute the statistics for the velocity of the blinks
+        - compute the statistics for the acceleration of the blinks    
+
+    Parameters:
+        matched_blinks (pd.DataFrame): DataFrame containing the matched blinks data.
+        fps (int): Frames per second. Default is 240.
+
+    Returns:
+        pd.DataFrame: DataFrame containing the summarized statistics for each minute.
+    """
     df = pd.DataFrame(matched_blinks, copy=True)
     
     def _compute_statistics(df_i: pd.DataFrame, df_o: pd.DataFrame, side: str):
