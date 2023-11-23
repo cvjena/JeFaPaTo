@@ -9,8 +9,8 @@ from PyQt6 import QtGui
 from PyQt6.QtWidgets import QMainWindow, QTabWidget, QProgressBar
 
 from frontend import config
-from .landmark_extraction import LandmarkExtraction
-from .eye_blinking_freq import EyeBlinkingFreq
+from .landmark_extraction import FacialFeatureExtraction
+from .eye_blinking_freq import EyeBlinkingExtraction
 
 logger = structlog.get_logger()
 
@@ -38,15 +38,14 @@ class JeFaPaTo(QMainWindow, config.Config):
         self.progress_bar = QProgressBar()
 
         start = time.time()
-        self.tab_eye_blinking = LandmarkExtraction(self)
-        logger.info("Start Time LandmarkExtraction", time=time.time() - start)
+        self.tab_facial_feature_extraction = FacialFeatureExtraction(self)
+        self.central_widget.addTab(self.tab_facial_feature_extraction, "Facial Feature Extraction")
+        logger.info("Start-up time", time=time.time() - start, widget=self.tab_facial_feature_extraction.__class__.__name__)
 
         start = time.time()
-        self.tab_eye_blinking_freq = EyeBlinkingFreq(self)
-        logger.info("Start Time WidgetEyeBlinkingFreq", time=time.time() - start)
-
-        self.central_widget.addTab(self.tab_eye_blinking, "Landmark Extraction")
-        self.central_widget.addTab(self.tab_eye_blinking_freq, "Blinking Detection")
+        self.tab_eye_blinking_extraction = EyeBlinkingExtraction(self)
+        self.central_widget.addTab(self.tab_eye_blinking_extraction, "Eye Blinking Extraction")
+        logger.info("Start-up time", time=time.time() - start, widget=self.tab_eye_blinking_extraction.__class__.__name__)
 
         tab_idx = args.start_tab
         if tab_idx > self.central_widget.count():
@@ -59,8 +58,8 @@ class JeFaPaTo(QMainWindow, config.Config):
         logger.info("Close Event Detected", widget=self)
         logger.info("Shut Down Processes in each Tab")
 
-        self.tab_eye_blinking.shut_down()
-        self.tab_eye_blinking_freq.shut_down()
+        self.tab_facial_feature_extraction.shut_down()
+        self.tab_eye_blinking_extraction.shut_down()
         logger.info("Shut Down Processes in each Tab complete", widget=self)
         logger.info("Save Config")
         self.save()

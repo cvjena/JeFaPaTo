@@ -1,4 +1,4 @@
-__all__ = ["LandmarkExtraction"]
+__all__ = ["FacialFeatureExtraction"]
 
 import sys
 from collections import OrderedDict
@@ -153,7 +153,7 @@ class JeFaPaToSignalThread(QtCore.QThread):
     def finished(self) -> None:
         self.sig_finished.emit()
 
-class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
+class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
     updated = pyqtSignal(int) 
 
     def __init__(self, parent):

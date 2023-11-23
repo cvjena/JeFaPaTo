@@ -27,7 +27,7 @@ def sec_to_min(seconds: float) -> str:
 
 
 # TODO just make this a normal widget and not a splitter
-class EyeBlinkingFreq(QtWidgets.QSplitter, config.Config):
+class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
     updated = pyqtSignal(int)
     def __init__(self, parent):
         config.Config.__init__(self, prefix="ear")
