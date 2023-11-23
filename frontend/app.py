@@ -16,6 +16,15 @@ logger = structlog.get_logger()
 
 class JeFaPaTo(QMainWindow, config.Config):
     def __init__(self, args: argparse.Namespace) -> None:
+        """
+        Initializes the main application window.
+
+        Args:
+            args (argparse.Namespace): Command-line arguments.
+
+        Returns:
+            None
+        """
         config.Config.__init__(self, "jefapato")
         QMainWindow.__init__(self)
         
