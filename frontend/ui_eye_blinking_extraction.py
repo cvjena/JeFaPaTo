@@ -731,10 +731,8 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
             logger.error("No matched blinking results to save", widget=self)
             return
 
-        # get the annotations from the table
-        annotations = self.blinking_table.get_annotations()
         # add the annotations to the data frame
-        self.blinking_matched["annotation"] = annotations
+        self.blinking_matched["annotation"] = self.blinking_table.get_annotations()
 
         if self.format_export.currentText() == "CSV":
             self.blinking_matched.to_csv(self.file.parent / (self.file.stem + "_blinking.csv"), index=False, na_rep="NaN")
