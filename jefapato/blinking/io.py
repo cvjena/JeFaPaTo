@@ -61,7 +61,10 @@ def save_results(
 ):
     if isinstance(filename, str):
         filename = Path(filename)
-        
+  
+    if blinking_l is None and blinking_r is None and blinking_matched is None and blinking_summary is None:
+        raise RuntimeError("No data to save.")
+      
     if format == "excel":
         excel_file = filename.parent / (filename.stem + "_blinking.xlsx")
         
@@ -84,20 +87,20 @@ def save_results(
                 blinking_summary.to_excel(writer, sheet_name="Summary")
         return
     elif format == "csv":
-        csv_file = filename.parent / (filename.stem + "_left.csv")
-        if blinking_l is not None and exists_ok:
+        csv_file = filename.parent / (filename.stem + "_left.csv")        
+        if blinking_l is not None and (not csv_file.exists() or (csv_file.exists() and exists_ok)):
             blinking_l.to_csv(csv_file)
 
         csv_file = filename.parent / (filename.stem + "_right.csv")
-        if blinking_r is not None and exists_ok:
+        if blinking_r is not None and (not csv_file.exists() or (csv_file.exists() and exists_ok)):
             blinking_r.to_csv(csv_file)
             
         csv_file = filename.parent / (filename.stem + "_matched.csv")
-        if blinking_matched is not None and exists_ok:
+        if blinking_matched is not None and (not csv_file.exists() or (csv_file.exists() and exists_ok)):
             blinking_matched.to_csv(csv_file)
 
         csv_file = filename.parent / (filename.stem + "_summary.csv")
-        if blinking_summary is not None and exists_ok:
+        if blinking_summary is not None and (not csv_file.exists() or (csv_file.exists() and exists_ok)):
             blinking_summary.to_csv(csv_file)
             
         return
