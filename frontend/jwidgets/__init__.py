@@ -2,7 +2,7 @@ __all__ = [
     "JHLine", 
     "JVLine", 
     "JCollapsibleBox", 
-    "JBlinkingTable", 
+    "JTableBlinking", 
     "JVideoFacePreview", 
     "JGraph", 
     "JImageBox", 
@@ -10,7 +10,7 @@ __all__ = [
     "JDialogWarn",
 ]
 
-from frontend.jwidgets.blinkingtable import JBlinkingTable
+from frontend.jwidgets.table_blinking import JTableBlinking
 from frontend.jwidgets.collapsiblebox import JCollapsibleBox
 from frontend.jwidgets.graph import JGraph
 from frontend.jwidgets.hline import JHLine

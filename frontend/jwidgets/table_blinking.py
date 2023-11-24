@@ -1,4 +1,4 @@
-__all__ = ["JBlinkingTable"]
+__all__ = ["JTableBlinking"]
 
 import pandas as pd
 from PyQt6.QtCore import Qt, pyqtSignal
@@ -29,7 +29,7 @@ def create_blinking_combobox() -> QComboBox:
     combobox.setCurrentIndex(2)
     return combobox
 
-class JBlinkingTable(QWidget):
+class JTableBlinking(QWidget):
     selection_changed = pyqtSignal(int)
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

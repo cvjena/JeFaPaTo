@@ -141,7 +141,7 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         # upper main content is a tab widget with the tables and text information
         # first tabe is the tables with the results
 
-        self.blinking_table = jwidgets.JBlinkingTable()
+        self.blinking_table = jwidgets.JTableBlinking()
         self.blinking_table.selection_changed.connect(self.highlight_blink)
 
         # second tab is the text information
