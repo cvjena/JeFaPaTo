@@ -34,12 +34,8 @@ class JTableBlinking(QWidget):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.table_layout = QHBoxLayout()
-        self.setLayout(self.table_layout)
-
-        self.table_blinking = QTableView()
-        self.table_layout.addWidget(self.table_blinking, stretch=1)
         # # set the model such that the whole list is selected when a row is selected
+        self.table_blinking = QTableView()
         self.table_blinking.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
         self.table_blinking.setSelectionMode(QTableView.SelectionMode.SingleSelection)
         self.table_blinking.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
@@ -52,6 +48,9 @@ class JTableBlinking(QWidget):
         self.table_blinking.selectionModel().selectionChanged.connect(
             lambda selected, _: self.selection_changed.emit(selected.indexes()[0].row())
         )
+
+        self.setLayout(QHBoxLayout())
+        self.layout().addWidget(self.table_blinking, stretch=1)
         
     def reset(self):
         self.model_blinking_type.clear()
@@ -87,5 +86,7 @@ class JTableBlinking(QWidget):
         
         # resize the columns such that the headers are visible
         self.table_blinking.resizeColumnsToContents() 
+        self.table_blinking.resizeRowsToContents()
+
     def split_and_capitalize(self, text: str) -> str:
         return "\n".join([word.capitalize() for word in text.split("_")])
