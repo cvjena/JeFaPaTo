@@ -1,4 +1,4 @@
-__all__ = ["EAR2D6", "EAR_Data", "EAR3D6"]
+__all__ = ["EAR2D6", "EAR_Data", "EAR3D6", "ear_score"]
 
 import dataclasses
 from typing import Any, Dict, List
@@ -13,26 +13,52 @@ from .abstract_feature import Feature, FeatureData
 logger = structlog.get_logger()
 
 def ear_score(eye: np.ndarray) -> float:
-    """Compute the EAR Score for eye landmarks
+    """
+    Compute the EAR Score for eye landmarks
 
+    The EAR score is calculated using the formula:
+    ear = (|p1 - p5| + |p2 - p4| )/ 2|p0 - p3|
+    where p1, p2, p3, p4, p5, p6 are the coordinates of the 6 landmarks of the eye.
+    
+         p1  p2 
+         |   | 
+    p0 --------- p3
+         |   |
+         p6  p4
+    
+    based on:
     Soukupová and Čech 2016: Real-Time Eye Blink Detection using Facial Landmarks
     http://vision.fe.uni-lj.si/cvww2016/proceedings/papers/05.pdf
 
-    ear = (|p2 - p6| + |p3 - p5| )/ 2|p1 - p4|
-                A           B           C
-
     Args:
-        eye (np.ndarray): the coordinates of the 6 landmarks
+        eye (np.ndarray): The coordinates of the 6 landmarks of the eye.
 
     Returns:
-        float: computed EAR score
+        float: The computed EAR score, which should be between 0 and 1
     """
-
+    if eye is None:
+        raise ValueError("eye must not be None")
+    
+    if not isinstance(eye, np.ndarray):
+        raise TypeError(f"eye must be a numpy array, but got {type(eye)}")
+    
+    if eye.shape != (6, 2) and eye.shape != (6, 3): # allow for 3D landmarks
+        raise ValueError(f"eye must be a 6x2 array, but got {eye.shape}")
+    
+    # check that no value is negative
+    if np.any(eye < 0):
+        raise ValueError(f"eye must not contain negative values, but got {eye}")
+    
     # dont forget the 0-index
     A = distance.euclidean(eye[1], eye[5])
     B = distance.euclidean(eye[2], eye[4])
     C = distance.euclidean(eye[0], eye[3])
-    return (A + B) / (2.0 * C)
+    
+    ratio = (A + B) / (2.0 * C)
+    if ratio > 1.002: # allow for some rounding errors
+        raise ValueError(f"EAR score must be between 0 and 1, but got {ratio}, check your landmarks order")
+    
+    return ratio
 
 
 @dataclasses.dataclass

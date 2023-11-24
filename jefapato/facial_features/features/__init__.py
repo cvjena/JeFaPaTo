@@ -11,11 +11,11 @@ __all__ = [
     "BlendshapeValidData",
     "Landmarks478",
     "Landmarks68",    
+    "ear_score",
 ]
 
-
 from jefapato.facial_features.features.abstract_feature import Feature, FeatureData
-from jefapato.facial_features.features.ear_feature import EAR_Data, EAR2D6, EAR3D6
+from jefapato.facial_features.features.ear_feature import EAR_Data, EAR2D6, EAR3D6, ear_score
 from jefapato.facial_features.features.blendshape_feature import Blendshape, BlendshapeData
 from jefapato.facial_features.features.landmarks import Landmarks478, Landmarks68
 

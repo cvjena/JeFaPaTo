@@ -59,7 +59,6 @@ class VideoDataLoader(threading.Thread):
                 # assume that only the current frame is broken and we can
                 # continue 
                 if not grabbed and frame_id < self.data_amount:
-                    # TODO: log this
                     logger.warning("Failed to grab frame", frame_id=frame_id)
                     frame = np.zeros((h, w, 3), dtype=np.uint8)
                 # this is the last frame, we can stop
@@ -74,4 +73,4 @@ class VideoDataLoader(threading.Thread):
                 # the main thread somehow
                 time.sleep(0.1)
 
-        logger.info("Loader Thread", state="finished", object=self)
+        logger.info("Loader Thread", state="finished")

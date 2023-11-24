@@ -12,44 +12,47 @@ def group_std(group: pd.DataFrame, col: str, precision: int = 1) -> pd.Series:
     std = group.std(numeric_only=True)[col].round(precision)
     return std
     
+def calculate_statistics(summary_df, group, col, precision=1):
+    summary_df[f"{col}_avg"] = group_avg(group, col, precision)
+    summary_df[f"{col}_std"] = group_std(group, col, precision)
+    
 def summarize(
-    merged_blinking: pd.DataFrame,
+    matched_blinks: pd.DataFrame,
     fps: int = 240,
 ) -> pd.DataFrame:
-    df = pd.DataFrame(merged_blinking, copy=True)
-    # group the dataframe by the minutes
-    # then count the number of blinks per minute
+    """
+    Summarizes the matched blinks data by computing statistics for each minute.
+    Based on the requirements of the medical study, the statistics are computed for the width and height of the blinks.
     
-    # 1. convert the frame_og to minutes based on the fps
-    df[("left",  "minute")] = df[("left",  "frame_og")]  / fps / 60
-    df[("right", "minute")] = df[("right", "frame_og")]  / fps / 60
-    
-    # 2. convert the minutes to datetime
-    times_l = pd.to_datetime(df[("left",  "minute")], unit='m', errors="ignore")
-    times_r = pd.to_datetime(df[("right", "minute")], unit='m', errors="ignore")
+    Possible extensions:
+        - compute the statistics for the distance between the left and right eye
+        - compute the statistics for the duration of the blinks
+        - compute the statistics for the velocity of the blinks
+        - compute the statistics for the acceleration of the blinks    
 
-    # 3. group the dataframe by the minutes
-    group_l = df.groupby(times_l.dt.minute)
-    group_r = df.groupby(times_r.dt.minute)
-    
-    # 4. create a summary dataframe
-    summary_df = pd.DataFrame()
-    
-    summary_df["blinks_l"] = group_l.count()[("left", "minute")]
-    summary_df["blinks_r"] = group_r.count()[("right", "minute")]
+    Parameters:
+        matched_blinks (pd.DataFrame): DataFrame containing the matched blinks data.
+        fps (int): Frames per second. Default is 240.
 
-    summary_df["width_l_avg [#]"] = group_avg(group_l, ("left", "width"))
-    summary_df["width_l_std [#]"] = group_std(group_l, ("left", "width"))
+    Returns:
+        pd.DataFrame: DataFrame containing the summarized statistics for each minute.
+    """
+    def _compute_statistics(df_i: pd.DataFrame):
+        out_df = pd.DataFrame()
+        df_i["minute"] = df_i["apex_frame_og"]  / fps / 60
+        times_l = pd.to_datetime(df_i["minute"], unit='m', errors="ignore")
+        group_l = df_i.groupby(times_l.dt.minute)
+        out_df["blinks"] = group_l.count()["minute"]
+        calculate_statistics(out_df, group_l, "peak_internal_width")
+        calculate_statistics(out_df, group_l, "peak_height", precision=2)
+        return out_df
+
+    # summary_df = pd.DataFrame()
+    temp_l = _compute_statistics(pd.DataFrame(matched_blinks["left"]))
+    temp_r = _compute_statistics(pd.DataFrame(matched_blinks["right"]))
     
-    summary_df["width_r_avg [#]"] = group_avg(group_r, ("right", "width"))
-    summary_df["width_r_std [#]"] = group_std(group_r, ("right", "width"))
-    
-    summary_df["height_l_avg [#]"] = group_avg(group_l, ("left", "height"), precision=2)
-    summary_df["height_l_std [#]"] = group_std(group_l, ("left", "height"), precision=2)
-    
-    summary_df["height_r_avg [#]"] = group_avg(group_r, ("right", "height"), precision=2)
-    summary_df["height_r_std [#]"] = group_std(group_r, ("right", "height"), precision=2)
-    
+    # combine the left and right eye statistics
+    summary_df = pd.concat([temp_l, temp_r], axis=1, keys=["left", "right"])
     summary_df.index.name = "minute"
     return summary_df
 
@@ -58,22 +61,37 @@ def visualize(
     fps: int = 240,
     rolling_mean: int = 5,
 ) -> np.ndarray:
+    """
+    Visualizes the data from the matched_df DataFrame by creating a scatter plot
+    of the time difference between left and right frames, along with rolling average
+    and standard deviation. It also generates a histogram of the time differences
+    and a bar chart showing the number of blinks per minute.
+
+    Parameters:
+        matched_df (pd.DataFrame): DataFrame containing the matched data.
+        fps (int): Frames per second of the video. Default is 240.
+        rolling_mean (int): Number of data points to use for computing rolling average
+            and standard deviation. Default is 5.
+
+    Returns:
+        np.ndarray: RGBA array representing the generated plot.
+    """
     df = pd.DataFrame(matched_df, copy=True)
-    # drop all rows that are true in the "signle" column
+    # drop all rows that are true in the "single" column
     if df[(("left", "single"))].dtype != bool:
-        df[("left", "single")] = df[("left", "single")].astype(bool)
+        df[("left",  "single")] = df[("left",  "single")].astype(bool)
         df[("right", "single")] = df[("right", "single")].astype(bool)
     
     df = df[~df[("left", "single")]]
     df = df[~df[("right", "single")]]
     
     # compute the middle between left and right
-    df["timestep"] = (df[("left", "frame_og")] + df[("right", "frame_og")] ) / 2
+    df["timestep"] = (df[("left", "apex_frame_og")] + df[("right", "apex_frame_og")] ) / 2
     df["timestep_ms"]  = df["timestep"] / fps * 1000   # convert to ms
     df["timestep_min"] = df["timestep_ms"] / 1000 / 60 # convert to min
     
     # compute the distance between left and right, and convert to ms
-    df["distance"] = df[("left", "frame_og")] - df[("right", "frame_og")]
+    df["distance"] = df[("left", "apex_frame_og")] - df[("right", "apex_frame_og")]
     df["distance_ms"]  = df["distance"] / fps * 1000   # convert to ms
     df["distance_min"] = df["distance_ms"] / 1000 / 60 # convert to min
     
@@ -129,28 +147,28 @@ def visualize(
     axis_devi.set_yticks([-outer, avg-3*std, avg-2*std, avg-std, avg, avg+std, avg+2*std, avg+3*std, outer])
     axis_devi.set_yticklabels(["", "-3o", "-2o", "-o", "mean", "+o", "+2o", "+3o", ""])
     
-    # Add a new axis for the histogram
-    axis_hist = fig.add_subplot(gs[1, 1])
-    
     # group the dataframe by stds and count the number of blinks
     group_index = np.array([avg-outer, avg-3*std, avg-2*std, avg-std, avg, avg+std, avg+2*std, avg+3*std, avg+outer])
-    groups = df.groupby(pd.cut(df["distance_ms"], group_index))
-    groups_count = groups.count()
-
-    # make the bins based on the stds
-    # axis_hist.hist(df["distance_ms"], bins="sqrt", color="k", orientation="horizontal")
-    bars = axis_hist.barh(group_index[:-1]+std/2, groups_count["distance_ms"], color="k", height=std*0.9)
-    axis_hist.bar_label(bars, fmt="%d", label_type="center", color="w")
-    # shift the ticks slightly higher to correct the bin centering
-    axis_hist.yaxis.set_ticks_position("right")
-    axis_hist.set_ylim(ylims)
-    axis_hist.yaxis.set_visible(False)
-    axis_hist.set_title("Histogram")
-    
+    # check that the group_index is monotonically increasing
+    if np.all(np.diff(group_index) > 0):
+        # Add a new axis for the histogram
+        axis_hist = fig.add_subplot(gs[1, 1])
+        groups = df.groupby(pd.cut(df["distance_ms"], group_index))
+        groups_count = groups.count()
+        # make the bins based on the stds
+        # axis_hist.hist(df["distance_ms"], bins="sqrt", color="k", orientation="horizontal")
+        bars = axis_hist.barh(group_index[:-1]+std/2, groups_count["distance_ms"], color="k", height=std*0.9)
+        axis_hist.bar_label(bars, fmt="%d", label_type="center", color="w")
+        # shift the ticks slightly higher to correct the bin centering
+        axis_hist.yaxis.set_ticks_position("right")
+        axis_hist.set_ylim(ylims)
+        axis_hist.yaxis.set_visible(False)
+        axis_hist.set_title("Histogram")
+        
     # Add a new axis for the time histogram
     # 1. convert the frame_og to minutes based on the fps
-    df[("left",  "minute")] = df[("left",  "frame_og")]  / fps / 60
-    df[("right", "minute")] = df[("right", "frame_og")]  / fps / 60
+    df[("left",  "minute")] = df[("left",  "apex_frame_og")]  / fps / 60
+    df[("right", "minute")] = df[("right", "apex_frame_og")]  / fps / 60
     
     # 2. convert the minutes to datetime
     times_l = pd.to_datetime(df[("left",  "minute")], unit='m', errors="ignore")

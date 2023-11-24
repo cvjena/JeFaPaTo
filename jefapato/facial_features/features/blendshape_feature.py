@@ -79,7 +79,7 @@ class Blendshape(Feature):
         List[str]
             The header for the feature including the valid and all the landmarks
         """
-        return [f"{self.__class__.__name__}_value"]
+        return [f"{self.__class__.__name__}"]
 
     def as_row(self, data: BlendshapeData) -> list[str]:
         """Return the data as a row as in the same order as the header"""

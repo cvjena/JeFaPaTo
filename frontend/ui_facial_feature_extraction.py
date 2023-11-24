@@ -1,9 +1,7 @@
-__all__ = ["LandmarkExtraction"]
+__all__ = ["FacialFeatureExtraction"]
 
-import csv
-import datetime
-from pathlib import Path
 import sys
+from pathlib import Path
 from typing import Any, Callable, Type
 
 import numpy as np
@@ -14,11 +12,11 @@ from PyQt6.QtCore import pyqtSignal
 from qtpy import QtCore, QtGui, QtWidgets
 
 from frontend import config, jwidgets
+from frontend.gui_interface import JeFaPaToGUISignalThread
 from jefapato import facial_features
 from jefapato.facial_features import features
 
 logger = structlog.get_logger()
-
 
 class FeatureCheckBox(QtWidgets.QCheckBox):
     def __init__(self, feature_class: Type[features.Feature], **kwargs):
@@ -104,20 +102,19 @@ class BlendShapeFeatureGroupBox(QtWidgets.QGroupBox):
         return self.features_left.get_features() + self.features_right.get_features() + self.features_whole.get_features()
 
 
-class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
+class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
     updated = pyqtSignal(int) 
 
     def __init__(self, parent):
         config.Config.__init__(self, prefix="landmarks")
         QtWidgets.QSplitter.__init__(self, parent=parent)
 
-        self.used_features_classes: list[Type[features.Feature]] = [features.BS_Valid]
+        self.used_features_classes: list[Type[features.Feature]] = []
         self.video_resource: Path | int | None = None
         self.plot_item = {}
         self.plot_data = {}
         self.chunk_size = 1000
         self.ea = facial_features.FaceAnalyzer()
-        self.ea.register_hooks(self)
 
         # UI elements
         self.setAcceptDrops(True)
@@ -230,7 +227,19 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.setStretchFactor(1, 4)
 
         self.set_features()
-
+        
+        self.jefapato_signal_thread = JeFaPaToGUISignalThread(self)
+        self.ea.register_hooks(self.jefapato_signal_thread)
+        
+        self.jefapato_signal_thread.sig_updated_display.connect(self.sig_updated_display)
+        self.jefapato_signal_thread.sig_updated_feature.connect(self.sig_updated_feature)
+        self.jefapato_signal_thread.sig_processed_percentage.connect(self.sig_processed_percentage)
+        self.jefapato_signal_thread.sig_started.connect(self.sig_started)
+        self.jefapato_signal_thread.sig_paused.connect(self.sig_paused)
+        self.jefapato_signal_thread.sig_resumed.connect(self.sig_resumed)
+        self.jefapato_signal_thread.sig_finished.connect(self.sig_finished)
+        self.jefapato_signal_thread.start()
+        
     def setup_graph(self) -> None:
         logger.info("Setup graph for all features to plot", features=len(self.used_features_classes))
         self.widget_graph.clear()
@@ -276,13 +285,14 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.ea.set_features(self.used_features_classes)
         
         rect = self.widget_frame.get_roi_rect() if self.use_bbox.isChecked() else None        
-        self.ea.start(rect)
+        self.ea.clean_start(rect)
 
     def stop(self) -> None:
         self.ea.stop()
+        self.jefapato_signal_thread.stop()
+        self.jefapato_signal_thread.wait()
 
-    @facial_features.FaceAnalyzer.hookimpl
-    def started(self):
+    def sig_started(self):
         self.button_video_open.setDisabled(True)
         self.button_webcam_open.setDisabled(True)
 
@@ -295,18 +305,15 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         self.setAcceptDrops(False)
         self.widget_frame.set_interactive(False)
 
-    @facial_features.FaceAnalyzer.hookimpl
-    def paused(self):
+    def sig_paused(self):
         self.bt_pause_resume.setText("Resume")
         self.bt_pause_resume.setIcon(qta.icon("ph.play-light"))
 
-    @facial_features.FaceAnalyzer.hookimpl
-    def resumed(self):
+    def sig_resumed(self):
         self.bt_pause_resume.setText("Pause")
         self.bt_pause_resume.setIcon(qta.icon("ph.pause-light"))
 
-    @facial_features.FaceAnalyzer.hookimpl
-    def finished(self):
+    def sig_finished(self):
         self.save_results()
 
         self.button_video_open.setDisabled(False)
@@ -335,20 +342,16 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
         except Exception as e:
             logger.error("Failed to send notification", error=e, os=sys.platform)
 
-    @facial_features.FaceAnalyzer.hookimpl
-    def updated_display(self, image: np.ndarray):
-        self.widget_frame.set_image(image)
+    def sig_updated_display(self, image: np.ndarray):
+        self.widget_frame.update_image(image)
 
-    @facial_features.FaceAnalyzer.hookimpl
-    def processed_percentage(self, percentage: int):
-        self.pb_anal.setValue(percentage)
-
+    def sig_processed_percentage(self, percentage: int):
+        self.pb_anal.setValue(int(percentage))
         data_input, data_proce = self.ea.get_throughput()
         self.la_input.setText(f"Input: {data_input: 3d} frames/s")
         self.la_proce.setText(f"Processed: {data_proce: 3d} frames/s")
 
-    @facial_features.FaceAnalyzer.hookimpl
-    def updated_feature(self, feature_data: dict[str, Any]) -> None:
+    def sig_updated_feature(self, feature_data: dict[str, Any]) -> None:
         self.update_count += 1
         for feature_class in self.used_features_classes:
             if feature_class.__name__ not in feature_data:
@@ -409,36 +412,24 @@ class LandmarkExtraction(QtWidgets.QSplitter, config.Config):
 
 
     def save_results(self) -> None:
-        logger.info("Save Results Dialog", widget=self)
-        ts = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        logger.info("Start saving procedure", widget=self)
 
         if isinstance(self.video_resource, Path) and self.auto_save.isChecked():
             parent = self.video_resource.parent
-            file_name = self.video_resource.stem
         else:
             # open save dialog for folder
-            parent = QtWidgets.QFileDialog.getExistingDirectory(parent=self, caption="Select Directory",directory=str(Path.home()))
+            parent = QtWidgets.QFileDialog.getExistingDirectory(parent=self, caption="Select Directory", directory=str(Path.home()))
             if parent == "":
                 logger.info("Save Results Dialog canceled")
                 return
 
-            parent = Path(parent)
-            if isinstance(self.video_resource, int):
-                file_name = "jefapato_webcam"
-            elif isinstance(self.video_resource, Path):
-                file_name = self.video_resource.stem
-            else:
-                raise ValueError("Invalid video resource")
-
-        result_path = parent / (file_name + f"_{ts}.csv")
-        with open(result_path, "w", newline="") as csvfile:
-            writer = csv.writer(csvfile)
-
-            header = self.ea.get_header()
-            writer.writerow(header)
-            writer.writerows(self.ea)
-
-        logger.info("Results saved", file_name=result_path)
+        succ = self.ea.save_results(folder=parent)
+        if succ:
+            logger.info("Results saved successfully", folder=parent)
+        else:
+            logger.error("Failed to save results", folder=parent)
+            # TODO show error message dialog 
+            
 
     def shut_down(self) -> None:
         logger.info("Shutdown", state="starting", widget=self)
