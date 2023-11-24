@@ -8,9 +8,10 @@ __all__ = [
     "JImageBox", 
     "JVideoFaceSelection",
     "JDialogWarn",
+    "JTableSummary",
 ]
 
-from frontend.jwidgets.table_blinking import JTableBlinking
+from frontend.jwidgets.tables import JTableBlinking, JTableSummary
 from frontend.jwidgets.collapsiblebox import JCollapsibleBox
 from frontend.jwidgets.graph import JGraph
 from frontend.jwidgets.hline import JHLine

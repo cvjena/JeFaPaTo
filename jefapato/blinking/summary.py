@@ -13,8 +13,8 @@ def group_std(group: pd.DataFrame, col: str, precision: int = 1) -> pd.Series:
     return std
     
 def calculate_statistics(summary_df, group, col, precision=1):
-    summary_df[f"{col}_avg [#]"] = group_avg(group, col, precision)
-    summary_df[f"{col}_std [#]"] = group_std(group, col, precision)
+    summary_df[f"{col}_avg"] = group_avg(group, col, precision)
+    summary_df[f"{col}_std"] = group_std(group, col, precision)
     
 def summarize(
     matched_blinks: pd.DataFrame,
@@ -37,19 +37,22 @@ def summarize(
     Returns:
         pd.DataFrame: DataFrame containing the summarized statistics for each minute.
     """
-    df = pd.DataFrame(matched_blinks, copy=True)
-    
-    def _compute_statistics(df_i: pd.DataFrame, df_o: pd.DataFrame, side: str):
-        df_i[(side,  "minute")] = df_i[(side,  "apex_frame_og")]  / fps / 60
-        times_l = pd.to_datetime(df_i[(side,  "minute")], unit='m', errors="ignore")
+    def _compute_statistics(df_i: pd.DataFrame):
+        out_df = pd.DataFrame()
+        df_i["minute"] = df_i["apex_frame_og"]  / fps / 60
+        times_l = pd.to_datetime(df_i["minute"], unit='m', errors="ignore")
         group_l = df_i.groupby(times_l.dt.minute)
-        df_o["blinks"] = group_l.count()[(side, "minute")]
-        calculate_statistics(df_o, group_l, (side,  "peak_internal_width"))
-        calculate_statistics(df_o, group_l, (side,  "peak_height"), precision=2)
-        
-    summary_df = pd.DataFrame()
-    _compute_statistics(df, summary_df, "left")
-    _compute_statistics(df, summary_df, "right")
+        out_df["blinks"] = group_l.count()["minute"]
+        calculate_statistics(out_df, group_l, "peak_internal_width")
+        calculate_statistics(out_df, group_l, "peak_height", precision=2)
+        return out_df
+
+    # summary_df = pd.DataFrame()
+    temp_l = _compute_statistics(pd.DataFrame(matched_blinks["left"]))
+    temp_r = _compute_statistics(pd.DataFrame(matched_blinks["right"]))
+    
+    # combine the left and right eye statistics
+    summary_df = pd.concat([temp_l, temp_r], axis=1, keys=["left", "right"])
     summary_df.index.name = "minute"
     return summary_df
 

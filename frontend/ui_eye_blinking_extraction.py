@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 import qtawesome as qta
 import structlog
-import tabulate
 import pyqtgraph as pg
 from qtpy import QtCore, QtGui, QtWidgets
 
@@ -141,22 +140,21 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         # upper main content is a tab widget with the tables and text information
         # first tabe is the tables with the results
 
-        self.blinking_table = jwidgets.JTableBlinking()
-        self.blinking_table.selection_changed.connect(self.highlight_blink)
+        self.table_matched = jwidgets.JTableBlinking()
+        self.table_matched.selection_changed.connect(self.highlight_blink)
 
         # second tab is the text information
-        self.te_results_g = QtWidgets.QTextEdit()
-        self.te_results_g.setFontFamily("mono")
-        self.te_results_g.setLineWrapMode(QtWidgets.QTextEdit.LineWrapMode.NoWrap)
+        self.table_summary = jwidgets.JTableSummary()
         
-        self.summary_visual_widget = pg.GraphicsLayoutWidget()
+        self.graph_summary_visual = pg.GraphicsLayoutWidget()
         self.summary_visual = pg.ViewBox(invertY=True, lockAspect=True, enableMenu=True, enableMouse=True)
         self.summary_visual_image = pg.ImageItem()
         self.summary_visual.addItem(self.summary_visual_image)
-        self.summary_visual_widget.addItem(self.summary_visual)
-        self.tab_widget_results.addTab(self.blinking_table, "Blinking Table")
-        self.tab_widget_results.addTab(self.te_results_g,   "Summary")
-        self.tab_widget_results.addTab(self.summary_visual_widget,  "Visual Summary")
+        self.graph_summary_visual.addItem(self.summary_visual)
+
+        self.tab_widget_results.addTab(self.table_matched, "Table Blinking")
+        self.tab_widget_results.addTab(self.table_summary, "Table Summary")
+        self.tab_widget_results.addTab(self.graph_summary_visual, "Visual Summary")
 
         # lower main content/ is a graph
         vb = self.graph.getViewBox()
@@ -535,7 +533,7 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
             logger.error("Somehow the matched blinking data frame is None")
             return
 
-        self.blinking_table.set_data(self.blinking_matched)
+        self.table_matched.set_data(self.blinking_matched)
         self.progress.setValue(100)
 
         self.enable_export()
@@ -656,15 +654,15 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         self.comb_ear_l.clear()
         self.comb_ear_r.clear()
 
-        self.blinking_table.reset()
+        self.table_matched.reset()
 
         self.plot_curve_ear_l.clear()
         self.plot_curve_ear_r.clear()
         self.plot_scatter_blinks_l.clear()
         self.plot_scatter_blinks_r.clear()
 
-        self.te_results_g.setText("")
-
+        self.table_summary.reset()
+        
         self.disable_column_selection()
         self.disable_algorithm()
         self.disable_export()
@@ -703,14 +701,14 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         """
         fps = self.get_selected_fps()
         self.blinking_summary = blinking.summarize(self.blinking_matched, fps=fps)
-        self.te_results_g.setText(tabulate.tabulate(self.blinking_summary, headers="keys", tablefmt="github"))
+        self.table_summary.set_data(self.blinking_summary)
         logger.info("Summary computed")
         
         image = blinking.visualize(self.blinking_matched, fps=fps)
         self.summary_visual_image.setImage(image)
         logger.info("Visual summary computed")
         
-        self.tab_widget_results.setCurrentIndex(2)
+        self.tab_widget_results.setCurrentIndex(1)
 
     # saving of the results
     def save_results(self) -> None:
@@ -731,7 +729,7 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         # add the annotations to the data frame
         # TODO this should later be done in the backend and not here!!!
         if self.blinking_matched is None:
-            self.blinking_matched["annotation"] = self.blinking_table.get_annotations()
+            self.blinking_matched["annotation"] = self.table_matched.get_annotations()
         
         try:
             blinking.save_results(
