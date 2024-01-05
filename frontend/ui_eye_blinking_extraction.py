@@ -725,7 +725,14 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         Computes the summary of blinking data and updates the UI with the results.
         """
         fps = self.get_selected_fps()
-        self.blinking_summary = blinking.summarize(self.blinking_matched, fps=fps)
+        self.blinking_summary = blinking.summarize(
+            ear_l=self.ear_l,
+            ear_r=self.ear_r,
+            matched_blinks=self.blinking_matched,
+            fps=fps,
+            partial_threshold_l=self.comp_partial_threshold_l,
+            partial_threshold_r=self.comp_partial_threshold_r
+        )
         self.table_summary.set_data(self.blinking_summary)
         logger.info("Summary computed")
         

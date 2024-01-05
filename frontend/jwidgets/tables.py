@@ -9,13 +9,15 @@ from PyQt6.QtGui import QStandardItem, QStandardItemModel, QColor
 from PyQt6.QtWidgets import QHeaderView, QTableView, QWidget, QHBoxLayout, QComboBox
 
 class JNumberItem(QStandardItem):
-    def __init__(self, text: str):
+    def __init__(self, text: str, precision: int = 4):
         super().__init__(text)
         self.setTextAlignment(Qt.AlignmentFlag.AlignRight)
         self.setEditable(False)
+        if str.isnumeric(text.replace(".", "")):
+            self.setData(round(float(text), precision), Qt.ItemDataRole.DisplayRole)
 
-def to_qt_row(row: pd.Series) -> list:
-    return [JNumberItem(str(row[c])) for c in row.index]
+def to_qt_row(row: pd.Series, precision: int = 4) -> list:
+    return [JNumberItem(str(row[c]), precision=precision) for c in row.index]
 
 def create_blinking_combobox(row_id: int, mode: str, blink_type: str | None = None, connection: Callable | None = None) -> QComboBox:
     combobox = QComboBox()
@@ -150,14 +152,9 @@ class JTableSummary(JTable):
         for _, row in blinking_summary.iterrows():
             self.model.appendRow(to_qt_row(row))
 
-        self.view.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.view.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.model.setHorizontalHeaderLabels(self.__parse_header(blinking_summary.columns))
-        
-        # resize the columns such that the headers are visible
-        self.view.resizeColumnsToContents() 
-        self.view.resizeRowsToContents()
-        
         self.view.horizontalHeader().setDefaultAlignment(Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap | Qt.AlignmentFlag.AlignTop)
         
     def __parse_header(self, header: list) -> list:
-        return [f"[{c[0][0].upper()}]\n {split_and_capitalize(c[1])}" for c in header]
+        return [split_and_capitalize(c) for c in header]
