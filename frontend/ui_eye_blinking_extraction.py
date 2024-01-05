@@ -753,9 +753,6 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
 
         # add the annotations to the data frame
         # TODO this should later be done in the backend and not here!!!
-        if self.blinking_matched is None:
-            self.blinking_matched["annotation"] = self.table_matched.get_annotations()
-        
         try:
             blinking.save_results(
                 self.file,
