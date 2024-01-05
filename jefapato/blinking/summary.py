@@ -1,8 +1,11 @@
 __all__ = ["summarize", "visualize"]
 
-import pandas as pd
-import numpy as np
+import math
+
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
 
 def group_avg(group: pd.DataFrame, col: str, precision: int=1) -> pd.Series:
     mean = group.mean(numeric_only=True)[col].round(precision)
@@ -16,8 +19,29 @@ def calculate_statistics(summary_df, group, col, precision=1):
     summary_df[f"{col}_avg"] = group_avg(group, col, precision)
     summary_df[f"{col}_std"] = group_std(group, col, precision)
     
+def get_blink_start(df: pd.DataFrame, blink_id: int) -> int:
+    """
+    Find the frame number of the start of the blink based on the blink_id.
+    """
+    # first remove all nan rows
+    temp_df = df.dropna(how="any", inplace=False) # do not modify the original DataFrame!
+    temp_df = temp_df.reset_index(drop=True)
+    # find the row with the blink_id
+    if blink_id >= len(temp_df):
+        raise ValueError(f"blink_id {blink_id} is outside the range of the DataFrame (0-{len(temp_df)-1})")
+    row = temp_df.iloc[blink_id]
+    
+    # get the apex frame and the width
+    start_value = row["apex_frame_og"] - row["peak_internal_width"] // 2
+    start_value = int(start_value)
+    return start_value
+    
 def summarize(
+    ear_l: np.ndarray,
+    ear_r: np.ndarray,
     matched_blinks: pd.DataFrame,
+    partial_threshold_l: float,
+    partial_threshold_r: float,
     fps: int = 240,
 ) -> pd.DataFrame:
     """
@@ -30,12 +54,24 @@ def summarize(
         - compute the statistics for the velocity of the blinks
         - compute the statistics for the acceleration of the blinks    
 
-    Parameters:
-        matched_blinks (pd.DataFrame): DataFrame containing the matched blinks data.
-        fps (int): Frames per second. Default is 240.
-
-    Returns:
-        pd.DataFrame: DataFrame containing the summarized statistics for each minute.
+    Parameters
+    ----------
+    ear_l (np.ndarray):
+        Array containing the left eye EAR values.
+    ear_r (np.ndarray):
+        Array containing the right eye EAR values.
+    matched_blinks (pd.DataFrame):
+        DataFrame containing the matched blinks data.
+    fps (int):
+        Frames per second. Default is 240.
+    partial_threshold_l (float):
+        Threshold for the left eye. If the EAR value is below this threshold, the blink is considered partial.
+    partial_threshold_r (float):
+        Threshold for the right eye. If the EAR value is below this threshold, the blink is considered partial.
+        
+    Returns
+    --------
+        pd.DataFrame: DataFrame containing the summarized statistics
     """
     def _compute_statistics(df_i: pd.DataFrame):
         out_df = pd.DataFrame()
@@ -46,15 +82,128 @@ def summarize(
         calculate_statistics(out_df, group_l, "peak_internal_width")
         calculate_statistics(out_df, group_l, "peak_height", precision=2)
         return out_df
-
-    # summary_df = pd.DataFrame()
-    temp_l = _compute_statistics(pd.DataFrame(matched_blinks["left"]))
-    temp_r = _compute_statistics(pd.DataFrame(matched_blinks["right"]))
     
-    # combine the left and right eye statistics
-    summary_df = pd.concat([temp_l, temp_r], axis=1, keys=["left", "right"])
-    summary_df.index.name = "minute"
-    return summary_df
+    # compute the statistics which the medical partners are interested in
+    length_l_min = len(ear_l) / fps / 60
+    length_r_min = len(ear_r) / fps / 60
+    statistics = {}
+    
+    # average ear score 3 seconds before the first blink
+    end_l = get_blink_start(matched_blinks["left"], 0) # call it end even though it is the start, because it is the end of the 3 seconds
+    end_r = get_blink_start(matched_blinks["right"], 0)
+    start_l = max(end_l - 3 * fps, 0)
+    start_r = max(end_r - 3 * fps, 0)
+    statistics["EAR_Before_Blink_left_avg"]  = np.nanmean(ear_l[start_l:end_l])
+    statistics["EAR_Before_Blink_right_avg"] = np.nanmean(ear_r[start_r:end_r])
+    
+    statistics["EAR_left_min"]  = np.nanmin(ear_l)
+    statistics["EAR_right_min"] = np.nanmin(ear_r)
+    statistics["EAR_left_max"]  = np.nanmax(ear_l)
+    statistics["EAR_right_max"] = np.nanmax(ear_r)
+    
+    statistics["Partial_Blink_threshold_left"]  = partial_threshold_l
+    statistics["Partial_Blink_threshold_right"] = partial_threshold_r
+    
+    # get all prominances 
+    prom_l = matched_blinks["left"]["prominance"]
+    prom_r = matched_blinks["right"]["prominance"]
+    prom = np.concatenate([prom_l, prom_r])
+    
+    statistics["Prominance_min"] = np.nanmin(prom)
+    statistics["Prominance_max"] = np.nanmax(prom)
+    statistics["Prominance_avg"] = np.nanmean(prom)
+    
+    # get all widths
+    width_l = matched_blinks["left"]["peak_internal_width"]
+    width_r = matched_blinks["right"]["peak_internal_width"]
+    width = np.concatenate([width_l, width_r])
+    
+    statistics["Width_min"] = np.nanmin(width)
+    statistics["Width_max"] = np.nanmax(width)
+    statistics["Width_avg"] = np.nanmean(width)
+    
+    # get all heights
+    height_l = matched_blinks["left"]["peak_height"]
+    height_r = matched_blinks["right"]["peak_height"]
+    height = np.concatenate([height_l, height_r])
+    
+    statistics["Height_min"] = np.nanmin(height)
+    statistics["Height_max"] = np.nanmax(height)
+    statistics["Height_avg"] = np.nanmean(height)
+    
+    # partial blinks counting 
+    partial_l = matched_blinks["left"][matched_blinks["left"]["blink_type"] == "partial"]
+    partial_r = matched_blinks["right"][matched_blinks["right"]["blink_type"] == "partial"]
+    
+    statistics["Partial_Blink_Total_left"]  = len(partial_l)
+    statistics["Partial_Blink_Total_right"] = len(partial_r)
+    statistics["Partial_Frequency_left_bpm"]  = statistics["Partial_Blink_Total_left"] / length_l_min
+    statistics["Partial_Frequency_right_bpm"] = statistics["Partial_Blink_Total_right"] / length_r_min
+    
+    # blink lengths in ms
+    blink_lengths_l_ms = matched_blinks["left"]["peak_internal_width"] * 1000 / fps # in ms
+    blink_lengths_r_ms = matched_blinks["right"]["peak_internal_width"] * 1000 / fps # in ms
+    
+    statistics["Blink_Length_left_ms_avg"] = np.nanmean(blink_lengths_l_ms)
+    statistics["Blink_Length_left_ms_std"] = np.nanstd(blink_lengths_l_ms) 
+    statistics["Blink_Length_right_ms_avg"] = np.nanmean(blink_lengths_r_ms)
+    statistics["Blink_Length_right_ms_std"] = np.nanstd(blink_lengths_r_ms)
+    
+    partial_l["minute"] = partial_l["apex_frame_og"]  / fps / 60
+    partial_times_l = pd.to_datetime(partial_l["minute"], unit='m', errors="ignore")
+    partial_group_l = partial_l.groupby(partial_times_l.dt.minute)
+    
+    for i, row in enumerate(partial_group_l.count()["minute"], start=1):
+        statistics[f"Partial_Blinks_min{i:02d}_left"] = row
+    while i <= math.ceil(length_l_min):
+        statistics[f"Partial_Blinks_min{i:02d}_left"] = 0
+        i += 1
+        
+    partial_r["minute"] = partial_r["apex_frame_og"]  / fps / 60
+    partial_times_r = pd.to_datetime(partial_r["minute"], unit='m', errors="ignore")
+    partial_group_r = partial_r.groupby(partial_times_r.dt.minute)
+    
+    for i, row in enumerate(partial_group_r.count()["minute"], start=1):
+        statistics[f"Partial_Blinks_min{i:02d}_right"] = row
+    while i <= math.ceil(length_r_min):
+        statistics[f"Partial_Blinks_min{i:02d}_right"] = 0
+        i += 1
+    
+    # complete blinks counting
+    complete_l = matched_blinks["left"][matched_blinks["left"]["blink_type"] == "complete"]
+    complete_r = matched_blinks["right"][matched_blinks["right"]["blink_type"] == "complete"]
+    
+    statistics["Complete_Blink_Total_left"]  = len(complete_l)
+    statistics["Complete_Blink_Total_right"] = len(complete_r)
+    statistics["Complete_Frequency_left_bpm"]  = statistics["Complete_Blink_Total_left"] / length_l_min
+    statistics["Complete_Frequency_right_bpm"] = statistics["Complete_Blink_Total_right"] / length_r_min
+    
+    complete_l["minute"] = complete_l["apex_frame_og"]  / fps / 60
+    complete_times_l = pd.to_datetime(complete_l["minute"], unit='m', errors="ignore")
+    complete_group_l = complete_l.groupby(complete_times_l.dt.minute)
+
+    for i, row in enumerate(complete_group_l.count()["minute"], start=1):
+        statistics[f"Complete_Blinks_min{i:02d}_left"] = row
+    while i <= math.ceil(length_l_min):
+        statistics[f"Complete_Blinks_min{i:02d}_left"] = 0
+        i += 1
+        
+    complete_r["minute"] = complete_r["apex_frame_og"]  / fps / 60
+    complete_times_r = pd.to_datetime(complete_r["minute"], unit='m', errors="ignore")
+    complete_group_r = complete_r.groupby(complete_times_r.dt.minute)
+    
+    for i, row in enumerate(complete_group_r.count()["minute"], start=1):
+        statistics[f"Complete_Blinks_min{i:02d}_right"] = row
+    while i <= math.ceil(length_l_min):
+        statistics[f"Complete_Blinks_min{i:02d}_right"] = 0
+        i += 1
+    
+    out_df = pd.DataFrame.from_dict(statistics, orient="index")
+    # make the index a column
+    out_df.reset_index(inplace=True)
+    out_df.columns = ["statistics", "value"]
+    # compute the statistics for the left eye
+    return out_df
 
 def visualize(
     matched_df: pd.DataFrame,
