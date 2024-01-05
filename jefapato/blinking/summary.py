@@ -83,6 +83,8 @@ def summarize(
         calculate_statistics(out_df, group_l, "peak_height", precision=2)
         return out_df
     
+    matched_blinks = pd.DataFrame(matched_blinks, copy=True)
+    matched_blinks.dropna(subset=[("left", "blink_type"), ("right", "blink_type")], inplace=True)
     # compute the statistics which the medical partners are interested in
     length_l_min = len(ear_l) / fps / 60
     length_r_min = len(ear_r) / fps / 60
@@ -209,6 +211,7 @@ def visualize(
     matched_df: pd.DataFrame,
     fps: int = 240,
     rolling_mean: int = 5,
+    mode: str = "complete",
 ) -> np.ndarray:
     """
     Visualizes the data from the matched_df DataFrame by creating a scatter plot
@@ -225,7 +228,14 @@ def visualize(
     Returns:
         np.ndarray: RGBA array representing the generated plot.
     """
+    if mode not in ["complete", "partial"]:
+        raise ValueError(f"mode must be either 'complete' or 'partial', but got '{mode}'")
+    
     df = pd.DataFrame(matched_df, copy=True)
+    
+    df = df[df[("left", "blink_type")] == mode]
+    df = df[df[("right", "blink_type")] == mode]
+    
     # drop all rows that are true in the "single" column
     if df[(("left", "single"))].dtype != bool:
         df[("left",  "single")] = df[("left",  "single")].astype(bool)
@@ -347,6 +357,8 @@ def visualize(
     axis_main.xaxis.grid(True, which="major")
     axis_main.set_xlim(-0.8)
     axis_time.set_xlim(axis_main.get_xlim())
+
+    fig.suptitle(f"Time difference between left and right eye for {mode} matched blinks")
 
     # canvas = FigureCanvasAgg(fig)
     fig.canvas.draw()
