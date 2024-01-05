@@ -2,6 +2,7 @@ __all__ = ["JTableBlinking", "JTableSummary"]
 
 import abc
 from typing import Callable
+import numpy as np
 import pandas as pd
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QStandardItem, QStandardItemModel, QColor
@@ -111,6 +112,10 @@ class JTableBlinking(JTable):
         type = widget.currentText().lower()
         print(f"Setting {row_id}, {mode} to {type}")
         # the data should be a reference to the origial data frame (and not a copy)
+        
+        # TODO this could be done a bit smoother everywhere for handling this label
+        if type == "none":
+            type = np.nan
         self.data.loc[row_id, (mode, "blink_type")] = type
 
     def set_data(self, blinking_matched: pd.DataFrame):
