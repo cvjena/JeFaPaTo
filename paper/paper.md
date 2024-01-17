@@ -78,6 +78,7 @@ Hence, the correct localization of facial landmarks is of high importance and th
 Once a user provides a video in the GUI, the tool performs an automatic face detection, and the user can adapt the bounding box if necessary.
 Due to the usage of `mediapipe` [@lugaresiMediaPipeFrameworkBuilding2019;@kartynnikRealtimeFacialSurface2019a], the tool can extract 468 facial landmarks and an additional 52 blend shape features.
 To describe the state of the eye, we use the Eye-Aspect-Ratio (EAR) [@soukupovaRealTimeEyeBlink2016], a standard measure for blinking behavior computed based on the 2D coordinates of the landmarks.
+The ratio ranges between 0 and 1, where 0 indicates a fully closed eye and higher values indicate an open eye, whereas most people have an EAR score between 0.2 and 0.4.  
 This measure describes the ratio between the vertical and horizontal distance between the landmarks, resulting in a detailed motion approximation of the upper and lower eyelids.
 Please note that all connotations for the left and right eye are based on the subject's viewing perspective.
 
@@ -90,23 +91,79 @@ However, the first experiments indicated that the 2D approach is sufficient to a
 
 `JeFaPaTo` optimizes io-read by utilizing several queues for loading and processing the video, assuring adequate RAM usage.
 The processing pipeline extracts the landmarks and facial features, such as the `EAR` score for each frame, and includes a validity check ensuring that the eyes have been visible.
-On completion, all values are stored in a CSV file for either external tools or inside `JeFaPaTo` to obtain insights into the blinking behavior of a person, shown in \autoref{fig:summary}.
+On completion, all values are stored in a CSV file for either external tools or for further processing `JeFaPaTo` to obtain insights into the blinking behavior of a person, shown in \autoref{fig:summary}.
 The blinking detection and extraction employ the `scipy.signal.find_peaks` algorithm [@virtanenSciPyFundamentalAlgorithms2020], and the time series can be smoothed if necessary.
-In \autoref{fig:timeseries}, we show the time series of the `EAR` score for the left and right eye during a video with 240 FPS.
-The dots indicate the detection of a blink, and are the basis for the blinking extraction and matching.
-`JeFaPaTo` will automatically match the left and right eye blinks and provide the statistics for both eyes based on the moment of high closure.
+We automatically match the left and right eye blinks based on the time of apex closure.
+Additionally, we use the prominence of the blink to distinguish between `complete` and `partial` blinks, based on a user provided threshold (for each eye) or an automatic threshold computed using Otsu's method [@otsu].
+The automatic threshold detection uses all extracted blinks for each eye individually.
+As the blinking behavior is highly individual, we provide a graphical user interface to allow the user to manually correct the blinking state, if necessary.
+We additionally provide a functions to compute the blinking statistics, such as the blinks per minute, the mean and standard deviation of the EAR score, the mean and standard deviation of the delay between blinks, and the mean and standard deviation of the blink height.
+To simplify the interaction with the `JeFaPaTo` code interface, we provide a graphical user interface, shown in \autoref{fig:ui}, to reduce the barrier for non-programmers and handle the data flow.
 
-![Eye-Aspect-Ratio values during a video for the left (blue) and right (red) eye. The dots indicate the detection of a blink.\label{fig:timeseries}](img/timeseries.png)
+![The graphical user interface for the blinking analysis based on the EAR feature. The interface is composed of four main parts.\label{fig:ui}](img/OverviewBlinking.png)
 
-After the extraction, the user can manually correct the blinking behavior in a table, e.g., labeling the blinking state as `none,` `partial,` or `full` closure.
-To simplify this process, the user can drag and drop the according video into the GUI, and `JeFaPaTo` will jump to the according frame.
-The summary statistics are computed once the blinking behavior is corrected, and the data can be exported for further analysis.
-The data can be exported as CSV files or as a single Excel file containing the time series of the `EAR` score, the blinking behavior, and the summary statistics.
-We provide a sample file for the score in the repository's `examples/` directory.
+In \autoref{fig:ui}, we show the blinking analysis graphical user interface composed of four main areas.
+We give a short overview of the functionality of each area to provide a better understanding of the tool's capabilities.
+The A-Area is the visualization of the selected EAR time series for the left (drawn as blue line) and right eye (drawn as red line) over time.
+Additionally, after successful blinking detection and extraction, the detected `complete` blinks (pupil not visible) are shown as dots and `partial` blinks (pupil visible) as triangles.
+If the user selects a blink in the table in the B-Area, the graph automatically highlights and zooms into the according area to allow a detailed analysis.
+
+The B-Area contains the main table for the blinking extraction results, and the user can select the according blink to visualize the according time span in the EAR plot.
+The table contains the main properties of the blink: the EAR score at the blink apex, the prominence of the blink, the internal width in frames, the blink height, and the automatically detected blinking state (`none`, `partial`, `complete`).
+If the user provides the original video, the user can drag and drop the video into the GUI into the D-Area, and the video will jump to the according frame to manually correct the blinking state.
+The content of the table is used to compute the blinking statistics and the visual summary.
+These statistics are shown also in the B-Area at different tabs, and the user can export the data as CSV or Excel file for further analysis.
+
+The C-Area is the control area, where the user can load the extract EAR scores from a file, select the according columns for left and right eye (an automatic pre-selection is done).
+The user can select the parameters for the blinking extraction, such as the minimum prominence, the minimum distance between blinks, and the minimum width of a blink.
+Also the the decision threshold for the blinking manually set, if the `auto` mode is not sufficient.
+Once the extraction is done, the user can correct the blinking state in the table, and then the computation of the blinking statistics and the visual summary can be triggered.
+
+The D-Area shows the current video frame, if the user provides the original video.
+This area is optional but simplifies the manual correction of the blinking state, if necessary.  
 
 ## Extracted Medical Relevant Statistics
 
-TODO
+We provided a set of medical relevant statistics to support the analysis of the blinking behavior, which are of high interest for medical experts.
+The ongoing development of `JeFaPaTo` is conducted in close collaboration with medical experts to ensure the relevance of the provided statistics.
+Hence, future versions might include additional statistics, depending on the feedback of the medical experts.
+We provide a sample file for the score in the repository's `examples/` directory, such that the user can test the functionality of `JeFaPaTo` without the need to record a video.
+
+| Statistic                     | Description                                                          | Unit/Range |
+|------|-------|---:|
+| EAR_Before_Blink_left_avg     | The average left eye EAR score three seconds before the first blink             | $[0,1]$ |
+| EAR_Before_Blink_right_avg    | The average right eye EAR score three seconds before the first blink            | $[0,1]$ |
+| EAR_left_min                  | The minimum left eye EAR score of the time series                               | $[0,1]$ |
+| EAR_right_min                 | The minimum right eye EAR score of the time series                              | $[0,1]$ |
+| EAR_left_max                  | The maximum left eye EAR score of the time series                               | $[0,1]$ |
+| EAR_right_max                 | The maximum right eye EAR score of the time series                              | $[0,1]$ |
+| Partial_Blink_threshold_left  | The threshold to distinguish `partial` or `complete` state                      | $[0,1]$ |
+| Partial_Blink_threshold_right | The threshold to distinguish `partial` or `complete` state                      | $[0,1]$ |
+| Prominence_min                | The minimum prominence value of all blinks (left and right eye )                | $[0,1]$ |
+| Prominence_max                | The maximum prominence value of all blinks (left and right eye )                | $[0,1]$ |
+| Prominence_avg                | The average prominence value of all blinks (left and right eye )                | $[0,1]$ |
+| Width_min                     | The minimum width value of all blinks (left and right eye )                     | $[0,1]$ |
+| Width_max                     | The maximum width value of all blinks (left and right eye )                     | $[0,1]$ |
+| Width_avg                     | The average width value of all blinks (left and right eye )                     | $[0,1]$ |
+| Height_min                    | The minimum height value of all blinks (left and right eye)                     | $[0,1]$ |
+| Height_max                    | The maximum height value of all blinks (left and right eye)                     | $[0,1]$ |
+| Height_avg                    | The average height value of all blinks (left and right eye)                     | $[0,1]$ |
+| Partial_Blink_Total_left      | The amount of `partial` blinks for the left eye                                 | $\mathbb{N}$   |
+| Partial_Blink_Total_right     | The amount of `partial` blinks for the right eye                                | $\mathbb{N}$   |
+| Partial_Frequency_left_bpm    | The frequency per minute of `partial` left blinks through out the video         | $1/\text{min}$ |
+| Partial_Frequency_right_bpm   | The frequency per minute of `partial` right blinks through out the video        | $1/\text{min}$ |
+| Blink_Length_left_ms_avg      | The mean value of the blink length of the left eye                              | Time in $ms$ |
+| Blink_Length_left_ms_std      | The standard deviation value of the  blink length of the left eye               | Time in $ms$ |
+| Blink_Length_right_ms_avg     | The mean value of the blink length of the right eye                             | Time in $ms$ |
+| Blink_Length_right_ms_std     | The standard deviation value of the  blink length of right left eye             | Time in $ms$ |
+| Partial_Blinks_min[NN]_left   | The amount of `partial` blinks in the left eye during minute $NN$ of the video  | $\mathbb{N}$|
+| Partial_Blinks_min[NN]_right  | The amount of `partial` blinks in the right eye during minute $NN$ of the video | $\mathbb{N}$|
+| Complete_Blink_Total_left     | The amount of `complete` blinks in the left eye during minute $NN$ of the video | $\mathbb{N}$|
+| Complete_Blink_Total_right    | The amount of `complete` blinks in the right eye during minute $NN$ of the video| $\mathbb{N}$|
+| Complete_Frequency_left_bpm   | The frequency per minute of `complete` left blinks through out the video        | $1/\text{min}$ |
+| Complete_Frequency_right_bpm  | The frequency per minute of `complete` right blinks through out the video       | $1/\text{min}$ |
+| Complete_Blinks_min[NN]_left  | The amount of `complete` blinks in the left eye during minute $NN$ of the video | $\mathbb{N}$|
+| Complete_Blinks_min[NN]_left  | The amount of `complete` blinks in the right eye during minute $NN$ of the video| $\mathbb{N}$|
 
 # Platform Support
 
@@ -121,7 +178,28 @@ The authors and medical partners conduct all user interface and experience tests
 
 ## Libraries
 
-TODO
+We list the main libraries used in `JeFaPaTo` and their version used for the development, which are also listed in the `requirements.txt` file.
+
+| Library | Version | Category | Usage |
+|---|---|---|------|
+| `numpy`                  | `>=1.19`    | Processing    | Image matrices and time series |
+| `opencv-python-headless` | `>=4.5`     | Processing    | Image processing |
+| `protobuf`               | `>=3.11,<4` | Processing    | Loading of precomputed models |
+| `psutil`                 | `~=5.8`     | Processing    | Computation of RAM requirements|
+| `mediapipe`              | `=0.10.8`   | Extraction    | Facial Feature Extraction  |
+| `scipy`                  | `~=1.11`    | Extraction    | Extraction of blinks |
+| `pandas`                 | `~=1.5`     | File Handling | Loading and storing of files|
+| `openpyxl`               | `~=3.1`     | File Handling | Support for Excel Files|
+| `matplotlib`             | `~=3.7`     | Plotting      | Creation of summary graphs|
+| `qtpy`                   | `~=2.3`     | GUI           | Simplified `Qt` interface for `Python`|
+| `qtawesome`              | `~=1.1`     | GUI           | FontAwesome Icons Interface for `Qt`|
+| `PyQt6`                  | `~=1.2`     | GUI           | `Qt` Interface for Python |
+| `pyqtgraph`              | `~=0.13`    | GUI           | Graph Visualization |
+| `pyqtconfig`             | `~=0.9`     | GUI           | Saving and loading of user change settings |
+| `pluggy`                 | `~=1.0`     | GUI           | Hook configuration between `JeFaPaTo` and GUI |
+| `structlog`              | `~=21.5`    | Logging       | Structured logging of information for development|
+| `rich`                   | `~=12.0`    | Logging       | Colored logging|
+| `plyer`                  | `~=2.1`     | Notifications | Notification for the user for completed processing|
 
 # Ongoing Development
 
@@ -138,6 +216,6 @@ We plan to automatically label the blinking state in a future version to simplif
 # Acknowledgements
 
 Supported by Deutsche Forschungsgemeinschaft (DFG - German Research Foundation) project 427899908 BRIDGING THE GAP: MIMICS AND MUSCLES (DE 735/15-1 and GU 463/12-1).
-We acknowledge the helpful feedback for the user-interface development and quality-of-life requests from Lukas Schuhmann, Elisa Furche, Elisabeth Hentschel, and Yuxuan Xie.
+We acknowledge the helpful feedback for the graphical user interface development and quality-of-life requests from Lukas Schuhmann, Elisa Furche, Elisabeth Hentschel, and Yuxuan Xie.
 
 # References
