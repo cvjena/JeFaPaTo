@@ -25,20 +25,20 @@ affiliations:
    index: 1
  - name: Department of Otorhinolaryngology, Jena University Hospital, 07747 Jena, Germany
    index: 2
-date: 17 November 2023
+date: 18 Januar 2024
 bibliography: paper.bib
 
 ---
 
 # Summary
 
-Analyzing facial features and expressions is a complex task in the field of computer vision.
-The human face is intricate, with significant variations in shape, texture, and appearance.
+Analyzing facial features and expressions is a complex task in computer vision.
+The human face is intricate, with significant shape, texture, and appearance variations.
 In medical contexts, facial structures that differ from the norm, such as those affected by paralysis, are particularly important to study and require precise analysis.
-One specific area of interest is the subtle movements involved in blinking, a process that is not yet fully understood and needs high-resolution, time-specific analysis for detailed understanding.
-However, a major challenge is that many advanced computer vision techniques demand programming skills, making them less accessible to medical professionals who may not have these skills.
-To bridge this gap, the Jena Facial Palsy Toolbox (JeFaPaTo) has been developed.
-It utilizes cutting-edge computer vision algorithms and offers a user-friendly interface specifically designed for those without programming expertise.
+One area of interest is the subtle movements involved in blinking, a process that is not yet fully understood and needs high-resolution, time-specific analysis for detailed understanding.
+However, a significant challenge is that many advanced computer vision techniques demand programming skills, making them less accessible to medical professionals who may not have these skills.
+The Jena Facial Palsy Toolbox (JeFaPaTo) has been developed to bridge this gap.
+It utilizes cutting-edge computer vision algorithms and offers a user-friendly interface for those without programming expertise.
 This toolbox is designed to make advanced facial analysis more accessible to medical experts, simplifying integration into their workflow.
 
 The state of the eye closure is of high interest to medical experts, e.g., in the context of facial palsy or Parkinson's disease.
@@ -54,18 +54,18 @@ Therefore, experiments record videos with 240 FPS or higher, which results in la
 `JeFaPaTo` is a Python-based [@python] program to support medical and psychological experts in analyzing blinking and facial features for high temporal resolution video data.
 The tool splits into two main parts: An extendable programming interface and a graphical user interface (GUI) entirely written in Python.
 The programming interface enables efficient processing of temporal resolution video data, automatically extracts selected facial features, and provides a set of analysis functions specialized for blinking analysis.
-The GUI provides non-programmers an intuitive way to use the analysis functions, visualize the results, and export the data for further analysis.
+The GUI offers non-programmers an intuitive way to use the analysis functions, visualize the results, and export the data for further analysis.
 `JeFaPaTo` is designed to be extendable by additional analysis functions and facial features and is under joint development by computer vision and medical experts to ensure high usability and relevance for the target group.
 
 `JeFaPoTo` leverages the `mediapipe` library [@lugaresiMediaPipeFrameworkBuilding2019;@kartynnikRealtimeFacialSurface2019a] to extract facial landmarks and blend shape features from video data at 60 FPS (on modern hardware).
 With the landmarks, we compute the `EAR` (Eye-Aspect-Ratio) [@soukupovaRealTimeEyeBlink2016] for both eyes over the videos.
 Additionally, `JeFaPaTo` detects blinks, matches left and right eye, and computes medically relevant statistics, a visual summary for the provided video, shown in \autoref{fig:summary}, and exports the data in various formats for further independent analysis.
-The visual summary enables medical experts to quickly get an overview of the blinking behavior.
+The visual summary lets medical experts quickly get an overview of the blinking behavior.
 As shown in \autoref{fig:summary}, the blinks per minute are shown as a histogram over time in the upper axis, and the delay between blinks is shown in the right axis.
-The main plot is composed of the scatter plot of the `EAR` score for the left and right eye, and the dots indicate the detected blinks, with the rolling mean and standard deviation shown as a line plot.
+The main plot comprises the scatter plot of the `EAR` score for the left and right eye, and the dots indicate the detected blinks, with the rolling mean and standard deviation shown as a line plot.
 This summary enables a quick individualized analysis for each video, thus also patients, and can be included in medical reports.
 
-![A visual summary of the blinking behavior during a single 20 minute video recorded at 240 FPS.\label{fig:summary}](img/summary.png)
+![The plot presents a visual summary of blinking patterns captured over 20 minutes, recorded at 240 frames per second (FPS). It illustrates the temporal variation in paired blinks, quantifies the blink rate as blinks per minute, and characterizes the distribution of the time discrepancy between left and right eye closures.\label{fig:summary}](img/summary.png)
 
 We leverage `PyQt6` [@pyqt6;@qt6] and `pyqtgraph` [@pyqtgraph] to provide a GUI on any platform for easy usage.
 To support and simplify the usage of `JeFaPaTo`, we provide a standalone executable for Windows, Linux, and MacOS.
@@ -73,10 +73,10 @@ To support and simplify the usage of `JeFaPaTo`, we provide a standalone executa
 
 # Functionality and Usage
 
-`JeFaPaTo` was developed to support medical experts in extracting, analyzing, and studying the behavior of blinking.
+`JeFaPaTo` was developed to support medical experts in extracting, analyzing, and studying blinking behavior.
 Hence, the correct localization of facial landmarks is of high importance and the first step in the analysis process of each frame.
 Once a user provides a video in the GUI, the tool performs an automatic face detection, and the user can adapt the bounding box if necessary.
-Due to the usage of `mediapipe` [@lugaresiMediaPipeFrameworkBuilding2019;@kartynnikRealtimeFacialSurface2019a], the tool can extract 468 facial landmarks and an additional 52 blend shape features.
+Due to the usage of `mediapipe` [@lugaresiMediaPipeFrameworkBuilding2019;@kartynnikRealtimeFacialSurface2019a], the tool can extract 468 facial landmarks and 52 blend shape features.
 To describe the state of the eye, we use the Eye-Aspect-Ratio (EAR) [@soukupovaRealTimeEyeBlink2016], a standard measure for blinking behavior computed based on the 2D coordinates of the landmarks.
 The ratio ranges between 0 and 1, where 0 indicates a fully closed eye and higher values indicate an open eye, whereas most people have an EAR score between 0.2 and 0.4.  
 This measure describes the ratio between the vertical and horizontal distance between the landmarks, resulting in a detailed motion approximation of the upper and lower eyelids.
@@ -94,40 +94,40 @@ The processing pipeline extracts the landmarks and facial features, such as the 
 On completion, all values are stored in a CSV file for either external tools or for further processing `JeFaPaTo` to obtain insights into the blinking behavior of a person, shown in \autoref{fig:summary}.
 The blinking detection and extraction employ the `scipy.signal.find_peaks` algorithm [@virtanenSciPyFundamentalAlgorithms2020], and the time series can be smoothed if necessary.
 We automatically match the left and right eye blinks based on the time of apex closure.
-Additionally, we use the prominence of the blink to distinguish between `complete` and `partial` blinks, based on a user provided threshold (for each eye) or an automatic threshold computed using Otsu's method [@otsu].
+Additionally, we use the prominence of the blink to distinguish between `complete` and `partial` blinks based on a user-provided threshold (for each eye) or an automatic threshold computed using Otsu's method [@otsu].
 The automatic threshold detection uses all extracted blinks for each eye individually.
-As the blinking behavior is highly individual, we provide a graphical user interface to allow the user to manually correct the blinking state, if necessary.
-We additionally provide a functions to compute the blinking statistics, such as the blinks per minute, the mean and standard deviation of the EAR score, the mean and standard deviation of the delay between blinks, and the mean and standard deviation of the blink height.
-To simplify the interaction with the `JeFaPaTo` code interface, we provide a graphical user interface, shown in \autoref{fig:ui}, to reduce the barrier for non-programmers and handle the data flow.
+Considering the personalized nature of blinking behavior, a graphical user interface (GUI) is provided, enabling experts to adjust the estimated blinking state as needed manually.
+Additional functions are included in calculating blinking statistics: the blink rate (blinks per minute), the mean and standard deviation of the Eye Aspect Ratio (EAR) score, the inter-blink delay, and the blink amplitude.
+A graphical user interface (GUI) for the `JeFaPaTo` codebase is provided, as depicted in \autoref{fig:ui}, to facilitate usage by individuals with limited programming expertise and to streamline data processing.
 
-![The graphical user interface for the blinking analysis based on the EAR feature. The interface is composed of four main parts.\label{fig:ui}](img/OverviewBlinking.png)
+![The graphical user interface (GUI) designed for blinking analysis utilizes the Eye Aspect Ratio (EAR) metric. This interface comprises four primary components.\label{fig:ui}](img/OverviewBlinking.png)
 
 In \autoref{fig:ui}, we show the blinking analysis graphical user interface composed of four main areas.
 We give a short overview of the functionality of each area to provide a better understanding of the tool's capabilities.
-The A-Area is the visualization of the selected EAR time series for the left (drawn as blue line) and right eye (drawn as red line) over time.
-Additionally, after successful blinking detection and extraction, the detected `complete` blinks (pupil not visible) are shown as dots and `partial` blinks (pupil visible) as triangles.
+The A-Area is the visualization of the selected EAR time series for the left (drawn as a blue line) and right eye (drawn as a red line) over time.
+Additionally, after successful blinking detection and extraction, the detected `complete` blinks (pupil not visible) are shown as dots, and `partial` blinks (pupil visible) as triangles.
 If the user selects a blink in the table in the B-Area, the graph automatically highlights and zooms into the according area to allow a detailed analysis.
 
-The B-Area contains the main table for the blinking extraction results, and the user can select the according blink to visualize the according time span in the EAR plot.
+The B-Area contains the main table for the blinking extraction results, and the user can select the according blink to visualize the according period in the EAR plot.
 The table contains the main properties of the blink: the EAR score at the blink apex, the prominence of the blink, the internal width in frames, the blink height, and the automatically detected blinking state (`none`, `partial`, `complete`).
 If the user provides the original video, the user can drag and drop the video into the GUI into the D-Area, and the video will jump to the according frame to manually correct the blinking state.
 The content of the table is used to compute the blinking statistics and the visual summary.
-These statistics are shown also in the B-Area at different tabs, and the user can export the data as CSV or Excel file for further analysis.
+These statistics are also shown in the B-Area at different tabs, and the user can export the data as a CSV or Excel file for further analysis.
 
-The C-Area is the control area, where the user can load the extract EAR scores from a file, select the according columns for left and right eye (an automatic pre-selection is done).
-The user can select the parameters for the blinking extraction, such as the minimum prominence, the minimum distance between blinks, and the minimum width of a blink.
-Also the the decision threshold for the blinking manually set, if the `auto` mode is not sufficient.
-Once the extraction is done, the user can correct the blinking state in the table, and then the computation of the blinking statistics and the visual summary can be triggered.
+The C-Area is the control area, where the user can load the extracted EAR scores from a file and select the corresponding columns for the left and right eye (an automatic pre-selection is done).
+The user can choose the parameters for the blinking extraction, such as the minimum prominence, distance between blinks, and the minimum blink width.
+Additionally, users can define the decision threshold for estimating 'partial' blinks should the 'auto' mode prove inadequate.
+Upon data extraction, corrections to the blinking state can be made directly within the table, following which the computation of blinking statistics and the generation of the visual summary can be initiated.
 
-The D-Area shows the current video frame, if the user provides the original video.
-This area is optional but simplifies the manual correction of the blinking state, if necessary.  
+The D-Area displays the current video frame, given that the user supplies the original video.
+While this feature is optional, it helps manually correct the blinking state when required.
 
 ## Extracted Medical Relevant Statistics
 
-We provided a set of medical relevant statistics to support the analysis of the blinking behavior, which are of high interest for medical experts.
-The ongoing development of `JeFaPaTo` is conducted in close collaboration with medical experts to ensure the relevance of the provided statistics.
-Hence, future versions might include additional statistics, depending on the feedback of the medical experts.
-We provide a sample file for the score in the repository's `examples/` directory, such that the user can test the functionality of `JeFaPaTo` without the need to record a video.
+We provided a set of relevant statistics for medical analysis of blinking behavior, which are valuable to healthcare experts.
+The `JeFaPaTo` software is being developed in partnership with medical professionals to guarantee the included statistics are relevant.
+Future updates may incorporate new statistics based on medical expert feedback.
+A sample score file is available in the `examples/` directory within the repository, enabling users to evaluate the functionality of `JeFaPaTo` without recording a video.
 
 | Statistic                     | Description                                                          | Unit/Range |
 |------|-------|---:|
@@ -168,17 +168,17 @@ We provide a sample file for the score in the repository's `examples/` directory
 # Platform Support
 
 As `JeFaPaTo` is written in Python, it can be used on any platform that supports Python and the underlying libraries.
-We recommend the usage of `anaconda` [@anaconda] for creating encapsulated Python environments to reduce the interference of already installed libraries and version mismatches.
+We recommend the usage of `anaconda` [@anaconda] to create encapsulated Python environments to reduce the interference of already installed libraries and possible version mismatches.
 The script `dev_init.sh` automatically creates the custom environment with all dependencies with the `main.py` as the entry point for running the `JeFaPaTo`.
-The user can also use the `requirements.txt` file to install the dependencies manually, even though we recommend alteast the usage of virtual environments.
-As `JeFaPaTo` is intended to be used by non-programmers, we support the most common platforms.
-We provide each release a standalone executable for Windows 10, Linux (Ubuntu 22.04), and MacOS (version 13+ for Apple Silicon and Intel).
-We offer a separate branch for MacOS version pre 13 (Intel), which does not contain blend shape extraction, to support older hardware.
+The user can also use the `requirements.txt` file to install the dependencies manually, even though we recommend creating a virtual environment at the very least.
+As `JeFaPaTo` is designed to be used by medical experts, we provide a graphical user interface (GUI) to simplify usage during clinical studies and routine analysis.
+We give each release a standalone executable for Windows 10, Linux (Ubuntu 22.04), and MacOS (version 13+ for Apple Silicon and Intel).
+We offer a separate branch for MacOS version pre-13 (Intel), which does not contain blend shape extraction, to support older hardware.
 The authors and medical partners conduct all user interface and experience tests on `Windows 10` and `MacOS 13+ (Apple Silicon)`.
 
 ## Libraries
 
-We list the main libraries used in `JeFaPaTo` and their version used for the development, which are also listed in the `requirements.txt` file.
+We list the main libraries used in `JeFaPaTo` and their version used for the development.
 
 | Library | Version | Category | Usage |
 |---|---|---|------|
@@ -204,14 +204,12 @@ We list the main libraries used in `JeFaPaTo` and their version used for the dev
 # Ongoing Development
 
 `JeFaPaTo` finished the first stable release and will continue to be developed to support the analysis of facial features and expressions.
-As high temporal resolution video data might open new insights into facial movements, we plan to implement standard 2D measurement-based features.
-A common side effect of facial palsy is synkinesis, which is the involuntary movement of facial muscles during intended movement of other facial muscles.
-It is often observed that the eye closes when the patient smiles or, vice versa.
+Given the potential of high temporal resolution video data to yield novel insights into facial movements, we aim to incorporate standard 2D measurement-based features into our analysis.
+An issue frequently associated with facial palsy is synkinesis, characterized by involuntary facial muscle movements concurrent with voluntary movements of other facial muscles, such as the eye closing involuntarily when the patient smiles.
 Hence, a joint analysis of the blinking pattern and mouth movement could help better understand the underlying processes.
 The EAR is sensitive to head rotation.
 Careful setting up the experiment can reduce the influence of head rotation, but it is not always possible.
 To support the analysis of facial palsy patients, we plan to implement a 3D head pose estimation to correct the future EAR score for head rotation.
-We plan to automatically label the blinking state in a future version to simplify the analyzing process further.
 
 # Acknowledgements
 
