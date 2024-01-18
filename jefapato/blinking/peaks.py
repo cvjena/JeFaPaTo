@@ -68,7 +68,33 @@ def peaks(
         - If the thresholding parameter is not a string or tuple. 
     
     """
-     # check thresholding parameter
+    if not isinstance(time_series, np.ndarray):
+        raise TypeError("Time series is not a numpy array.")
+    if time_series.ndim != 1:
+        raise ValueError("Time series is not one-dimensional.")
+    if np.isnan(time_series).any():
+        raise ValueError("Time series contains NaN values.")
+    
+    if not isinstance(minimum_distance, int):
+        raise TypeError("Minimum distance is not an integer.")
+    if minimum_distance < 0:
+        raise ValueError("Minimum distance is negative.")
+    if not isinstance(minimum_prominence, float):
+        raise TypeError("Minimum prominence is not a float.")
+    if minimum_prominence < 0:
+        raise ValueError("Minimum prominence is negative.")
+    if not isinstance(minimum_internal_width, int):
+        raise TypeError("Minimum internal width is not an integer.")
+    if minimum_internal_width < 0:
+        raise ValueError("Minimum internal width is negative.")
+    if not isinstance(maximum_internal_width, int):
+        raise TypeError("Maximum internal width is not an integer.")
+    if maximum_internal_width < 0:
+        raise ValueError("Maximum internal width is negative.")
+    if maximum_internal_width < minimum_internal_width:
+        raise ValueError("Maximum internal width is smaller than minimum internal width.")
+
+    # check thresholding parameter
     if not (isinstance(partial_threshold, str) or isinstance(partial_threshold, float)):
         raise TypeError("Thresholding parameter is not a string or tuple.")
     if isinstance(partial_threshold, str):
