@@ -120,7 +120,7 @@ def peaks(
     df = pd.DataFrame(blinks, columns=list(blinks.keys()), index=blinks["index"]).reset_index(drop=True)
     
     prominance = df["prominance"].to_numpy()
-    th = otsu_thresholding(prominance) if partial_threshold == "auto" else partial_threshold[0]
+    th = otsu_thresholding(prominance) if partial_threshold == "auto" else partial_threshold
     df["blink_type"] = "none"
     for index, row in df.iterrows():
         if row["prominance"] > th:
