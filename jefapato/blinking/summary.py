@@ -6,19 +6,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-
-def group_avg(group: pd.DataFrame, col: str, precision: int=1) -> pd.Series:
-    mean = group.mean(numeric_only=True)[col].round(precision)
-    return mean
-
-def group_std(group: pd.DataFrame, col: str, precision: int = 1) -> pd.Series:
-    std = group.std(numeric_only=True)[col].round(precision)
-    return std
-    
-def calculate_statistics(summary_df, group, col, precision=1):
-    summary_df[f"{col}_avg"] = group_avg(group, col, precision)
-    summary_df[f"{col}_std"] = group_std(group, col, precision)
-    
 def get_blink_start(df: pd.DataFrame, blink_id: int) -> int:
     """
     Find the frame number of the start of the blink based on the blink_id.
@@ -73,16 +60,6 @@ def summarize(
     --------
         pd.DataFrame: DataFrame containing the summarized statistics
     """
-    def _compute_statistics(df_i: pd.DataFrame):
-        out_df = pd.DataFrame()
-        df_i["minute"] = df_i["apex_frame_og"]  / fps / 60
-        times_l = pd.to_datetime(df_i["minute"], unit='m', errors="ignore")
-        group_l = df_i.groupby(times_l.dt.minute)
-        out_df["blinks"] = group_l.count()["minute"]
-        calculate_statistics(out_df, group_l, "peak_internal_width")
-        calculate_statistics(out_df, group_l, "peak_height", precision=2)
-        return out_df
-    
     matched_blinks = pd.DataFrame(matched_blinks, copy=True)
     matched_blinks.dropna(subset=[("left", "blink_type"), ("right", "blink_type")], inplace=True)
     # compute the statistics which the medical partners are interested in
