@@ -103,10 +103,12 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         self.data_frame_columns: list[str] = []
 
         self.graph = jwidgets.JGraph(x_lim_max=self.x_lim_max)
-        self.plot_curve_ear_l = self.graph.add_curve({"color": "#00F", "width": 2}) # TODO add correct colors...
-        self.plot_curve_ear_r = self.graph.add_curve({"color": "#F00", "width": 2}) # TODO add correct colors...
-        self.plot_scatter_blinks_l = self.graph.add_scatter()
-        self.plot_scatter_blinks_r = self.graph.add_scatter()
+        self.curve_l = self.graph.add_curve({"color": "#00F", "width": 2}) # TODO add correct colors...
+        self.curve_r = self.graph.add_curve({"color": "#F00", "width": 2}) # TODO add correct colors...
+        self.scatter_l_comp = self.graph.add_scatter()
+        self.scatter_r_comp = self.graph.add_scatter()
+        self.scatter_l_part = self.graph.add_scatter()
+        self.scatter_r_part = self.graph.add_scatter()
 
         # UI elements 
         self.setOrientation(QtCore.Qt.Orientation.Horizontal)
@@ -202,16 +204,6 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         int_validator = QtGui.QIntValidator()
         int_validator.setBottom(0)
         int_validator.setLocale(local)
-        
-        le_threshold_left = QtWidgets.QLineEdit()
-        le_threshold_left.setValidator(doulbe_validator)
-        self.add_handler("threshold_l", le_threshold_left, mapper=F2S, default=0.16)
-        self.set_algo.addRow("Threshold Left", le_threshold_left)
-        
-        le_threshold_right = QtWidgets.QLineEdit()
-        le_threshold_right.setValidator(doulbe_validator)
-        self.add_handler("threshold_r", le_threshold_right, mapper=F2S, default=0.16)
-        self.set_algo.addRow("Threshold Right", le_threshold_right)
 
         le_minimum_distance = QtWidgets.QLineEdit()
         le_minimum_distance.setValidator(int_validator)
@@ -237,7 +229,14 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         le_maximum_matching_dist.setValidator(int_validator)
         self.add_handler("maximum_matching_dist", le_maximum_matching_dist, mapper=I2S, default=30)
         self.set_algo.addRow("Maximum Matching Distance", le_maximum_matching_dist)
-        
+
+        le_partial_threshold_left = QtWidgets.QLineEdit()
+        self.add_handler("partial_threshold_l", le_partial_threshold_left, default="auto")
+        self.set_algo.addRow("Partial Threshold Left", le_partial_threshold_left)
+        le_partial_threshold_right = QtWidgets.QLineEdit()
+        self.add_handler("partial_threshold_r", le_partial_threshold_right, default="auto")
+        self.set_algo.addRow("Partial Threshold Right", le_partial_threshold_right)
+
         # TODO this value is not saved in the config!
         self.cb_video_fps = QtWidgets.QComboBox()
         self.cb_video_fps.addItems(["24", "30", "60", "120", "240"])
@@ -445,13 +444,13 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         Returns:
             None
         """
-        self.plot_curve_ear_l.clear()
-        self.plot_curve_ear_r.clear()
+        self.curve_l.clear()
+        self.curve_r.clear()
 
         if self.raw_ear_l is not None:
-            self.plot_curve_ear_l.setData(self.raw_ear_l)
+            self.curve_l.setData(self.raw_ear_l)
         if self.raw_ear_r is not None:
-            self.plot_curve_ear_r.setData(self.raw_ear_r)
+            self.curve_r.setData(self.raw_ear_r)
 
         self.compute_graph_axis()
 
@@ -568,10 +567,10 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
             jwidgets.JDialogWarn("Blinking Extraction Error", "Both EAR columns are the same!", "Please select different columns and try again",)
             return False
         
-        succ, threshold_l = validate_setting("threshold_l")
+        succ, partial_threshold_l = validate_setting("partial_threshold_l")
         if not succ:
             return False
-        succ, threshold_r = validate_setting("threshold_r")
+        succ, partial_threshold_r = validate_setting("partial_threshold_r")
         if not succ:
             return False
         succ, minimum_distance = validate_setting("min_dist")
@@ -601,12 +600,21 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
 
         self.progress.setValue(40)
 
-        threshold_l = self.get("threshold_l")
-        threshold_r = self.get("threshold_r")
-
-        self.blinking_l = blinking.peaks(self.ear_l, threshold_l, minimum_distance, minimum_prominence, minimum_internal_width, maximum_internal_width)
-        self.blinking_r = blinking.peaks(self.ear_r, threshold_r, minimum_distance, minimum_prominence, minimum_internal_width, maximum_internal_width)
+        # if only one is set to auto, inform the user
+        if (partial_threshold_l == "auto" and partial_threshold_r != "auto") or (partial_threshold_l != "auto" and partial_threshold_r == "auto"):
+            jwidgets.JDialogWarn(
+                "Blinking Extraction Warning",
+                "Both partial thresholds are set to 'auto'",
+                "This is not recommended, please change your settings and try again"
+            )
+            return False
         
+        partial_threshold_l = "auto" if partial_threshold_l == "auto" else float(partial_threshold_l)
+        partial_threshold_r = "auto" if partial_threshold_r == "auto" else float(partial_threshold_r)
+        
+        self.blinking_l, self.comp_partial_threshold_l = blinking.peaks(self.ear_l, minimum_distance, minimum_prominence, minimum_internal_width, maximum_internal_width, partial_threshold_l)
+        self.blinking_r, self.comp_partial_threshold_r = blinking.peaks(self.ear_r, minimum_distance, minimum_prominence, minimum_internal_width, maximum_internal_width, partial_threshold_r)
+
         try:
             self.blinking_matched = blinking.match(self.blinking_l, self.blinking_r, tolerance=maximum_matching_dist)
         except ValueError as e:
@@ -625,18 +633,33 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         if self.blinking_l is None or self.blinking_r is None:
             return False
         
-        self.plot_curve_ear_l.clear()
-        self.plot_curve_ear_r.clear()
-        self.plot_curve_ear_l.setData(self.ear_l)
-        self.plot_curve_ear_r.setData(self.ear_r)
+        self.curve_l.clear()
+        self.curve_r.clear()
+        self.curve_l.setData(self.ear_l)
+        self.curve_r.setData(self.ear_r)
 
         # TODO add some kind of settings for the colors
-        self.plot_scatter_blinks_l.clear()
-        self.plot_scatter_blinks_r.clear()
-
-        self.plot_scatter_blinks_l.setData(x=self.blinking_l["apex_frame"].to_numpy(), y=self.blinking_l["ear_score"].to_numpy(), pen={"color": "#00F", "width": 2})
-        self.plot_scatter_blinks_r.setData(x=self.blinking_r["apex_frame"].to_numpy(), y=self.blinking_r["ear_score"].to_numpy(), pen={"color": "#F00", "width": 2})
-
+        self.scatter_l_comp.clear()
+        self.scatter_r_comp.clear()
+        self.scatter_l_part.clear()
+        self.scatter_r_part.clear()
+        
+        # get where the complete blinks are
+        x = self.blinking_l[self.blinking_l["blink_type"] == "complete"]["apex_frame"].to_numpy()
+        y = self.blinking_l[self.blinking_l["blink_type"] == "complete"]["ear_score"].to_numpy()
+        self.scatter_l_comp.setData(x=x,y=y,symbol="o", pen={"color": "#00F", "width": 2})
+        x = self.blinking_r[self.blinking_r["blink_type"] == "complete"]["apex_frame"].to_numpy()
+        y = self.blinking_r[self.blinking_r["blink_type"] == "complete"]["ear_score"].to_numpy()
+        self.scatter_r_comp.setData(x=x,y=y,symbol="o", pen={"color": "#F00", "width": 2})
+        
+        # get where the partial blinks are
+        x = self.blinking_l[self.blinking_l["blink_type"] == "partial"]["apex_frame"].to_numpy()
+        y = self.blinking_l[self.blinking_l["blink_type"] == "partial"]["ear_score"].to_numpy()
+        self.scatter_l_part.setData(x=x,y=y, symbol="t", pen={"color": "#00F", "width": 2})
+        x = self.blinking_r[self.blinking_r["blink_type"] == "partial"]["apex_frame"].to_numpy()
+        y = self.blinking_r[self.blinking_r["blink_type"] == "partial"]["ear_score"].to_numpy()
+        self.scatter_r_part.setData(x=x,y=y, symbol="t", pen={"color": "#F00", "width": 2})
+        
         return True
 
     def clear_on_new_file(self) -> None:
@@ -656,10 +679,12 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
 
         self.table_matched.reset()
 
-        self.plot_curve_ear_l.clear()
-        self.plot_curve_ear_r.clear()
-        self.plot_scatter_blinks_l.clear()
-        self.plot_scatter_blinks_r.clear()
+        self.curve_l.clear()
+        self.curve_r.clear()
+        self.scatter_l_comp.clear()
+        self.scatter_r_comp.clear()
+        self.scatter_l_part.clear()
+        self.scatter_r_part.clear()
 
         self.table_summary.reset()
         
@@ -700,7 +725,14 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         Computes the summary of blinking data and updates the UI with the results.
         """
         fps = self.get_selected_fps()
-        self.blinking_summary = blinking.summarize(self.blinking_matched, fps=fps)
+        self.blinking_summary = blinking.summarize(
+            ear_l=self.ear_l,
+            ear_r=self.ear_r,
+            matched_blinks=self.blinking_matched,
+            fps=fps,
+            partial_threshold_l=self.comp_partial_threshold_l,
+            partial_threshold_r=self.comp_partial_threshold_r
+        )
         self.table_summary.set_data(self.blinking_summary)
         logger.info("Summary computed")
         
@@ -728,9 +760,6 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
 
         # add the annotations to the data frame
         # TODO this should later be done in the backend and not here!!!
-        if self.blinking_matched is None:
-            self.blinking_matched["annotation"] = self.table_matched.get_annotations()
-        
         try:
             blinking.save_results(
                 self.file,

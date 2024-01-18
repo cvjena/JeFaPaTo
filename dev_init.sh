@@ -11,6 +11,3 @@ python --version
 # wrong pip installed on the system
 python -m pip install -r requirements-dev.txt
 python -m pip install -r requirements.txt
-
-# pre-commit install
-# pre-commit autoupdate
