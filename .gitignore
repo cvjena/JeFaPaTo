@@ -77,3 +77,5 @@ venv*
 paper/paper.jats
 paper/paper.pdf
 paper/media
+
+!tests/**/*.mp4
