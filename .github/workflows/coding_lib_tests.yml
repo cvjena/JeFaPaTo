@@ -5,7 +5,9 @@ name: Coding Library Test
 
 on:
   push:
-    branches: [ "main" ]
+    branches: 
+      - "main"
+      - "pytest"
   pull_request:
     branches: [ "main" ]
   
@@ -26,16 +28,12 @@ jobs:
       with:
         python-version: "3.10"
 
-    - name: configure opengl
-      uses: openrndr/setup-opengl@v1.1
-
     - name: Install dependencies
       run: |
-        xvfb-run glxinfo
         sudo apt install build-essential libdbus-glib-1-dev libgirepository1.0-dev
         python -m pip install --upgrade pip
-        pip install pytest pytest-cov
-        pip install . 
+        pip install pytest pytest-cov xvfbwrapper
+        pip install .
 
     - name: Test with pytest
       run: |

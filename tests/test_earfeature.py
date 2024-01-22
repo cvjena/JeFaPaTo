@@ -6,6 +6,9 @@ from pytest import approx
 
 from jefapato.facial_features import features 
 
+from xvfbwrapper import Xvfb # for headless rendering
+vdisplay = Xvfb(width=512, height=512)
+vdisplay.start()
 
 def test_ear_score_inputs():
     # Test case 1: Invalid input types

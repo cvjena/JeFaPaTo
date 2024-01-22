@@ -7,6 +7,10 @@ import pytest
 from jefapato.facial_features import mediapipe_landmark_extractor
 from jefapato.facial_features import video_data_loader 
 
+from xvfbwrapper import Xvfb # for headless rendering
+vdisplay = Xvfb(width=512, height=512)
+vdisplay.start()
+
 class ExtractorHook:
     def __init__(self) -> None:
         self.triggered_handle_update = False

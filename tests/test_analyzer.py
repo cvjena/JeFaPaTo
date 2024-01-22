@@ -8,6 +8,10 @@ import pytest
 
 from jefapato import facial_features  
 
+from xvfbwrapper import Xvfb # for headless rendering
+vdisplay = Xvfb(width=512, height=512)
+vdisplay.start()
+
 def get_test_video_path() -> Path:
     return Path(__file__).parent / "files/test_10sec.mp4"
 
