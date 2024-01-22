@@ -22,10 +22,13 @@ Additionally, our software can be extended to include new methods and algorithms
 
 ## Get Started
 
-Ready to dive into the world of precise facial feature extraction and analysis? Give JeFaPaTo a try and experience the power of this tool for yourself! Download the latest version of JeFaPaTo for your operating system from the [releases page](todo) or the following links:
+Ready to dive into the world of precise facial feature extraction and analysis? Give JeFaPaTo a try and experience the power of this tool for yourself! Download the latest version of JeFaPaTo for your operating system from the [releases page](https://github.com/cvjena/JeFaPaTo/releases/tag/v1.0.0) or the following links:
 
-| Windows | Linux | MacOS |
-| :-----: | :---: | :---: |
+- [Windows 11](https://github.com/cvjena/JeFaPaTo/releases/latest/download/JeFaPaTo_windows.exe)
+- [Linux/Ubuntu 22.04](https://github.com/cvjena/JeFaPaTo/releases/latest//download/JeFaPaTo_linux)
+- [MacOS Universal2 v13+](https://github.com/cvjena/JeFaPaTo/releases/latest/download/JeFaPaTo_universal2.dmg)
+- [MacOS Intel v13+](https://github.com/cvjena/JeFaPaTo/releases/latest/download/JeFaPaTo_intel.dmg)
+- [MacOS Intel v10.15+](https://github.com/cvjena/JeFaPaTo/releases/latest/download/JeFaPaTo_intel_v10.dmg)
 
 If you want to install JeFaPaTo from source, please follow the instructions in the [installation guide](INSTALL.md).
 
@@ -52,16 +55,26 @@ If you want to install JeFaPaTo from source, please follow the instructions in t
 
 ## Citing JeFaPaTo
 
-If you use JeFaPaTo in your research, please cite it as follows:
+If you use `JeFaPaTo` in your research, please cite it as follows:
 
 ```bibtex
 unpublished yet
 ```
 
-And depending on the features you use, please also cite the following papers:
+Depending on the features you use, please also cite the following papers:
 
 ```bibtex
-mediapipe
+@article{kartynnikRealtimeFacialSurface2019a,
+  title = {Real-Time {{Facial Surface Geometry}} from {{Monocular Video}} on {{Mobile GPUs}}},
+  author = {Kartynnik, Yury and Ablavatski, Artsiom and Grishchenko, Ivan and Grundmann, Matthias},
+  year = {2019},
+  month = jul,
+  journal = {ArXiv},
+  volume = {abs/1907.06724},
+  eprint = {1907.06724},
+  primaryclass = {cs},
+  doi = {10.48550/arXiv.1907.06724},
+}
 ```
 
 ## Contributing
@@ -70,7 +83,7 @@ We are happy to receive contributions from the community. If you want to contrib
 
 ## License
 
-JeFaPaTo is licensed under the [MIT License](LICENSE).
+JeFaPaTo is licensed under the [MIT License](LICENSE.txt).
 
 ## Acknowledgements
 
