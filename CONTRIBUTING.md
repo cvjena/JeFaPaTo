@@ -15,7 +15,18 @@ We use `pytest` and `pytest-cov` for our tests. We run the following command man
 pytest -rA -vv -W ignore::DeprecationWarning --cov=jefapato --cov-report term-missing
 ```
 
-We are working on a GitHub action to run the tests automatically.
+The automatic CI/CD pipeline currently only runs the tests for parts of the coding library, as in GitHub actions no OpenGL context can be created. Therefore, the extraction of the facial features and the blink detection are not tested automatically. We are working on a solution for this problem.
+The CI/CD tests runs the following subset of the tests:
+
+```bash
+  pytest -rA -vv -W ignore::DeprecationWarning --cov=jefapato --cov-report term-missing tests/test_blinking.py tests/test_earfeature.py
+```
+
+Therefore, we would be very happy if you could run the tests locally before you create a pull request. If you are unsure, please open an issue and we will help you.
+We expect to see a coverage of a high in the coding library. If you want to contribute a new feature, please also add tests for your code and if necessary test files. A proof via an image and correct CI/CD tests is enough until we have a solution for the OpenGL context problem.
+
+Here is the current test coverage of the coding library (as of 2024-01-22):
+![Expected full test coverage](assets/test_coverage.png)
 
 ## Coding Library
 
