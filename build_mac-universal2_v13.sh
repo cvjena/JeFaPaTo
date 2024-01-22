@@ -19,13 +19,13 @@ fi
 
 # check if create-dmg is installed
 # if not install it
-# if brew ls --versions create-dmg > /dev/null; then
-#     echo "create-dmg is installed"
-# else
-#     echo "create-dmg is not installed"
-#     echo "installing create-dmg"
-#     brew install create-dmg
-# fi
+if brew ls --versions create-dmg > /dev/null; then
+    echo "create-dmg is installed"
+else
+    echo "create-dmg is not installed"
+    echo "installing create-dmg"
+    brew install create-dmg
+fi
 
 # check if python3 is installed, else prompt the user to install the UNIVERSAL installer
 # for python 3 we need at least version 3.10.11
@@ -58,10 +58,15 @@ python3 -m pip install --upgrade --force-reinstall -r requirements-dev.txt
 python3 -m pip install --upgrade --force-reinstall -r requirements.txt
 
 rm -rf build
-python3 setup.py py2app --arch=universal2
-# rename the created app
+
+pyinstaller --windowed --onefile --name JeFaPaTo --add-data frontend:frontend --add-data jefapato:jefapato --add-data examples:examples --icon "frontend/assets/icons/icon.icns" main.py
+
+# python3 setup.py py2app --arch=universal2
+# # rename the created app
 mkdir -p dist/universal2
 mv dist/JeFaPaTo.app dist/universal2/JeFaPaTo.app
+rm dist/JeFaPaTo
+rm JeFaPaTo.spec
 
 # create a dmg file, requires create-dmg from brew to be installed
 # create a folder for the dmg files

@@ -5,6 +5,6 @@ pylint
 pre-commit
 pretty_errors
 py2app ; sys_platform == 'darwin'
-pyinstaller ; sys_platform != 'darwin'
+pyinstaller 
 pytest
 pytest-cov
