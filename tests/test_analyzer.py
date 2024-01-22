@@ -1,4 +1,3 @@
-import sys
 from collections import OrderedDict
 from pathlib import Path
 from threading import Thread
@@ -7,9 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-sys.path.append("../jefapato")
-from jefapato import facial_features  # noqa: E402
-
+from jefapato import facial_features  
 
 def get_test_video_path() -> Path:
     return Path(__file__).parent / "files/test_10sec.mp4"

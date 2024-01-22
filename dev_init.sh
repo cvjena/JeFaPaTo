@@ -11,4 +11,4 @@ python --version
 # use pip as a module in the install python. this way we can avoid using the
 # wrong pip installed on the system
 python -m pip install -r requirements-dev.txt
-python -m pip install -r requirements.txt
+python -m pip install -e .

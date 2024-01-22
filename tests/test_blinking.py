@@ -1,14 +1,11 @@
 import math
-import sys
 from pathlib import Path
 import numpy as np
 import pandas as pd
 
 import pytest
 
-sys.path.append("../jefapato")
-from jefapato import blinking  # noqa: E402
-
+from jefapato import blinking  
 def get_file_short():
     return Path(__file__).parent / "files" / "blinking" / "blinking_short.csv"
 

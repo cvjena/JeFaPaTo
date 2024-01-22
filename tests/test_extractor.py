@@ -1,14 +1,11 @@
-import sys
 import time
 from pathlib import Path
 
 import cv2
 import pytest
 
-sys.path.append("../jefapato")
-from jefapato.facial_features import mediapipe_landmark_extractor # noqa: E402
-from jefapato.facial_features import video_data_loader # noqa: E402
-
+from jefapato.facial_features import mediapipe_landmark_extractor
+from jefapato.facial_features import video_data_loader 
 
 class ExtractorHook:
     def __init__(self) -> None:

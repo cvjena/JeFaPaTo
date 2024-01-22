@@ -1,17 +1,10 @@
 # add jefapato from the upper directory to the path
 
-import sys
-from collections import OrderedDict
-from pathlib import Path
-from threading import Thread
-
 import numpy as np
-import pandas as pd
 import pytest
 from pytest import approx
 
-sys.path.append("../jefapato")
-from jefapato.facial_features import features # noqa: E402
+from jefapato.facial_features import features 
 
 
 def test_ear_score_inputs():

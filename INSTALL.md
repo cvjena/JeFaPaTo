@@ -42,7 +42,7 @@ conda install libpython-static -y
 
 # Install the dependencies, including the development dependencies
 python -m pip install -r requirements-dev.txt
-python -m pip install -r requirements.txt
+python -m pip install -e .
 ```
 
 ## Usage

@@ -55,7 +55,7 @@ python3 -c "import platform; print(platform.platform())"
 # update pip else some installation scripts might fail!
 arch -x86_64 python3 -m pip install --upgrade pip setuptools wheel
 arch -x86_64 python3 -m pip install --upgrade --force-reinstall -r requirements-dev.txt 
-arch -x86_64 python3 -m pip install --upgrade --force-reinstall -r requirements.txt
+arch -x86_64 python3 -m pip install --upgrade --force-reinstall . 
 
 rm -rf build
 
