@@ -7,10 +7,6 @@ import pytest
 
 from jefapato import blinking
 
-from xvfbwrapper import Xvfb # for headless rendering
-vdisplay = Xvfb(width=512, height=512)
-vdisplay.start()
-
 def get_file_short():
     return Path(__file__).parent / "files" / "blinking" / "blinking_short.csv"
 

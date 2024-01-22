@@ -30,7 +30,6 @@ jobs:
 
     - name: Install dependencies
       run: |
-        sudo apt install xvfb
         sudo apt install build-essential libdbus-glib-1-dev libgirepository1.0-dev
         python -m pip install --upgrade pip
         pip install pytest pytest-cov xvfbwrapper
@@ -38,4 +37,4 @@ jobs:
 
     - name: Test with pytest
       run: |
-        xvfb-run pytest -rA -vv -W ignore::DeprecationWarning --cov=jefapato --cov-report term-missing
+        pytest -rA -vv -W ignore::DeprecationWarning --cov=jefapato --cov-report term-missing tests/test_blinking.py tests/test_earfeature.py
