@@ -20,16 +20,23 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    
     - name: Set up Python 3.10
       uses: actions/setup-python@v3
       with:
         python-version: "3.10"
+
+    - name: configure opengl
+      uses: openrndr/setup-opengl@v1.1
+
     - name: Install dependencies
       run: |
+        xvfb-run glxinfo
         sudo apt install build-essential libdbus-glib-1-dev libgirepository1.0-dev
         python -m pip install --upgrade pip
         pip install pytest pytest-cov
         pip install . 
+
     - name: Test with pytest
       run: |
         pytest -rA -vv -W ignore::DeprecationWarning --cov=jefapato --cov-report term-missing
