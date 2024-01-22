@@ -79,3 +79,4 @@ paper/paper.pdf
 paper/media
 
 !tests/**/*.mp4
+!tests/**/*.csv
