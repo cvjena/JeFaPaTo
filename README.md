@@ -74,4 +74,4 @@ JeFaPaTo is licensed under the [MIT License](LICENSE).
 
 ## Acknowledgements
 
-JeFaPaTo is based on the [mediapipe]() library by Google. We would like to thank the developers for their great work and the possibility to use their library. Additionally, we would like to thank the [OpenCV](https://opencv.org/) team for their great work and the possibility to use their library. Also, we thank our medical partners for their support and feedback.
+JeFaPaTo is based on the [mediapipe](https://github.com/google/mediapipe) library by Google. We would like to thank the developers for their great work and the possibility to use their library. Additionally, we would like to thank the [OpenCV](https://opencv.org/) team for their great work and the possibility to use their library. Also, we thank our medical partners for their support and feedback.
