@@ -172,9 +172,9 @@ We recommend the usage of `anaconda` [@anaconda] to create encapsulated Python e
 The script `dev_init.sh` automatically creates the custom environment with all dependencies with the `main.py` as the entry point for running the `JeFaPaTo`.
 The user can also use the `requirements.txt` file to install the dependencies manually, even though we recommend creating a virtual environment at the very least.
 As `JeFaPaTo` is designed to be used by medical experts, we provide a graphical user interface (GUI) to simplify usage during clinical studies and routine analysis.
-We give each release a standalone executable for Windows 10, Linux (Ubuntu 22.04), and MacOS (version 13+ for Apple Silicon and Intel).
+We give each release a standalone executable for Windows 11, Linux (Ubuntu 22.04), and MacOS (version 13+ for Apple Silicon and Intel).
 We offer a separate branch for MacOS version pre-13 (Intel), which does not contain blend shape extraction, to support older hardware.
-The authors and medical partners conduct all user interface and experience tests on `Windows 10` and `MacOS 13+ (Apple Silicon)`.
+The authors and medical partners conduct all user interface and experience tests on `Windows 11` and `MacOS 13+ (Apple Silicon)`.
 
 ## Libraries
 
@@ -193,7 +193,8 @@ We list the main libraries used in `JeFaPaTo` and their version used for the dev
 | `matplotlib`             | `~=3.7`     | Plotting      | Creation of summary graphs|
 | `qtpy`                   | `~=2.3`     | GUI           | Simplified `Qt` interface for `Python`|
 | `qtawesome`              | `~=1.1`     | GUI           | FontAwesome Icons Interface for `Qt`|
-| `PyQt6`                  | `~=1.2`     | GUI           | `Qt` Interface for Python |
+| `PyQt6`                  | `~=6.5.3`   | GUI           | `Qt` Interface for Python |
+| `PyQt6-Qt6`              | `~=6.5.3`   | GUI           | `Qt` Library |
 | `pyqtgraph`              | `~=0.13`    | GUI           | Graph Visualization |
 | `pyqtconfig`             | `~=0.9`     | GUI           | Saving and loading of user change settings |
 | `pluggy`                 | `~=1.0`     | GUI           | Hook configuration between `JeFaPaTo` and GUI |
