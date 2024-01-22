@@ -38,5 +38,4 @@ jobs:
 
     - name: Test with pytest
       run: |
-        pytest -rA -vv -W ignore::DeprecationWarning --cov=jefapato --cov-report term-missing
-  
+        xvfb-run pytest -rA -vv -W ignore::DeprecationWarning --cov=jefapato --cov-report term-missing
