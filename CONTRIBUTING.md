@@ -7,6 +7,16 @@ As JeFaPaTo is a research project, we are not able to pay you for your contribut
 One unique feature of JeFaPaTo is that it is split into two main parts. The first being the coding library, which is the main area of functionality and the second being the GUI, which is the main area of user interaction. This allows us to have a clear separation of concerns.
 If you want to contribute a new feature, please consider which part of the project it belongs to. If you are unsure, please open an issue and we will help you.
 
+## Testing
+
+We use `pytest` and `pytest-cov` for our tests. We run the following command manually to run the tests:
+
+```bash
+pytest -rA -vv -W ignore::DeprecationWarning --cov=jefapato --cov-report term-missing
+```
+
+We are working on a GitHub action to run the tests automatically.
+
 ## Coding Library
 
 The coding library is the main area of functionality. It contains all the code that is needed to extract the facial features and blink detection. This part should be clearly separated from the GUI and should not contain any GUI code. Basically, this part should be usable without the GUI.

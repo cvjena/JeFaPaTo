@@ -10,6 +10,12 @@ If you have issues with the `venv` installation, you can find some inspiration i
 
 JeFaPaTo utilizes only packages available through the `python package index (PyPI)`. We did our best to enforce correct versioning of the dependencies, but we cannot guarantee that the installation will work with newer versions of the packages. Also for sending notifications via `plyer` some systems need further dependencies but require we hope to got them all. Please refer to the [plyer documentation](https://plyer.readthedocs.io/en/latest/) for further instructions if you encounter any issues, and please let us know via the [issue tracker](https://github.com/cvjena/JeFaPaTo/issues/new).
 
+If your dbus is not configured correctly, you might have to install the following packages:
+
+```bash
+sudo apt install build-essential libdbus-glib-1-dev libgirepository1.0-dev
+```
+
 We currently use `Python 3.10` to develop JeFaPaTo, and older versions are not recommended as make high usage of the new typing features. We recommend using `Python 3.10` or newer, but we cannot guarantee that it will work with older versions.
 
 ## Local installation
