@@ -167,6 +167,22 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
         self.use_bbox = QtWidgets.QCheckBox("Use Bounding Box")
         self.use_bbox.setToolTip("Use the bounding box to extract the landmarks.")
 
+        self.rotate_group = QtWidgets.QGroupBox("Rotate")
+        self.rotate_group.setLayout(QtWidgets.QVBoxLayout())
+
+        self.rotate_none = QtWidgets.QRadioButton("None")
+        self.rotate_90 = QtWidgets.QRadioButton("90")
+        self.rotate_m90 = QtWidgets.QRadioButton("-90")
+        
+        self.rotate_none.setChecked(True)
+        self.rotate_group.layout().addWidget(self.rotate_none)
+        self.rotate_group.layout().addWidget(self.rotate_90)
+        self.rotate_group.layout().addWidget(self.rotate_m90)
+        self.current_rotation = "None"
+        self.rotate_none.toggled.connect(self.set_rotation)
+        self.rotate_90.toggled.connect(self.set_rotation)
+        self.rotate_m90.toggled.connect(self.set_rotation)
+
         self.add_handler("auto_save", self.auto_save, default=True)
         self.add_handler("use_bbox", self.use_bbox, default=True)
         self.add_handler("auto_find_face", self.widget_frame.cb_auto_find, default=True)
@@ -191,6 +207,8 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
         self.flayout_se.addRow(self.button_start)
         self.flayout_se.addRow(self.bt_pause_resume)
         self.flayout_se.addRow(self.button_stop)
+        self.flayout_se.addRow(self.rotate_group)
+        
         self.flayout_se.addRow(self.feature_group)
         self.flayout_se.addRow(self.blends_shape_group)
         self.flayout_se.addRow("Graph Update Delay:", self.skip_frame)
@@ -240,6 +258,15 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
         self.jefapato_signal_thread.sig_finished.connect(self.sig_finished)
         self.jefapato_signal_thread.start()
         
+    def set_rotation(self):
+        if self.rotate_none.isChecked():
+            self.current_rotation = "None"
+        elif self.rotate_90.isChecked():
+            self.current_rotation = "90"
+        elif self.rotate_m90.isChecked():
+            self.current_rotation = "-90"
+        self.set_resource(self.video_resource)
+        
     def setup_graph(self) -> None:
         logger.info("Setup graph for all features to plot", features=len(self.used_features_classes))
         self.widget_graph.clear()
@@ -285,7 +312,7 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
         self.ea.set_features(self.used_features_classes)
         
         rect = self.widget_frame.get_roi_rect() if self.use_bbox.isChecked() else None        
-        self.ea.clean_start(rect)
+        self.ea.clean_start(rect, self.current_rotation)
 
     def stop(self) -> None:
         self.ea.stop()
@@ -371,7 +398,7 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
             parent=self,
             caption="Select video file",
             directory=".",
-            filter="Video Files (*.mp4 *.flv *.ts *.mts *.avi *.mov)",
+            filter="Video Files (*.mp4 *.flv *.ts *.mts *.avi *.mov *.wmv)",
         )
 
         if fileName == "":
@@ -404,7 +431,7 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
         else:
             self.la_current_file.setText("File: Live Webcam Feed")
 
-        success, frame = self.ea.prepare_video_resource(self.video_resource)
+        success, frame = self.ea.prepare_video_resource(self.video_resource, self.current_rotation)
         if success:
             logger.info("Image was set", parent=self)
             self.widget_frame.set_selection_image(frame)
@@ -454,7 +481,7 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
         file = files[0]
 
         file = Path(file)
-        if file.suffix.lower() not in [".mp4", ".flv", ".ts", ".mts", ".avi", ".mov"]:
+        if file.suffix.lower() not in [".mp4", ".flv", ".ts", ".mts", ".avi", ".mov", ".wmv"]:
             logger.info("User dropped invalid file", widget=self)
             return
         self.set_resource(Path(file)) 

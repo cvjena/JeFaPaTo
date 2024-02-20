@@ -18,7 +18,8 @@ class VideoDataLoader(threading.Thread):
         self, 
         next_item_func: Callable, 
         data_amount: int | None = None,
-        queue_maxsize: int = (1 << 10)
+        queue_maxsize: int = (1 << 10),
+        rotation: str = "None",
     ) -> None:
         super().__init__(daemon=True)
         assert data_amount is not None, "data_amount must be set"
@@ -28,9 +29,13 @@ class VideoDataLoader(threading.Thread):
         self.data_queue: queue.Queue[InputQueueItem] = queue.Queue(maxsize=queue_maxsize)
         self.stopped = False
         self.data_amount = data_amount
-
-        self.processing_per_second: int = 0
         
+        if rotation == "None":
+            self.rotation_fc = lambda x: x
+        elif rotation == "90":
+            self.rotation_fc = lambda x: cv2.rotate(x, cv2.ROTATE_90_CLOCKWISE)
+        elif rotation == "-90":
+            self.rotation_fc = lambda x: cv2.rotate(x, cv2.ROTATE_90_COUNTERCLOCKWISE)
 
     def run(self):
         logger.info("Loader Thread", state="starting", object=self)
@@ -66,6 +71,7 @@ class VideoDataLoader(threading.Thread):
                     self.stopped = True
                     break
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                frame = self.rotation_fc(frame)
                 self.data_queue.put(InputQueueItem(frame=frame, timestamp=c_time))
                 processed_p_sec += 1
             else:

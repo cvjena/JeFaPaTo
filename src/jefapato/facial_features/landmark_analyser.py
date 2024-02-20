@@ -43,7 +43,7 @@ class FaceAnalyzer():
 
         self.pm = pluggy.PluginManager("analyser")
 
-    def analysis_setup(self, bbox_slice: tuple[int, int, int, int] | None = None) -> bool:
+    def analysis_setup(self, bbox_slice: tuple[int, int, int, int] | None = None, rotation:str="None") -> bool:
         """
         Sets up the analysis by initializing necessary components and calculating available resources.
 
@@ -73,7 +73,7 @@ class FaceAnalyzer():
         if bbox_slice is not None:
             logger.info("Bounding box slice", bbox=bbox_slice)
 
-        self.loader = VideoDataLoader(self.resource_interface.read, data_amount=self.data_amount, queue_maxsize=items_to_place)
+        self.loader = VideoDataLoader(self.resource_interface.read, data_amount=self.data_amount, queue_maxsize=items_to_place, rotation=rotation)
         self.extractor = MediapipeLandmarkExtractor(data_queue=self.loader.data_queue, data_amount=self.data_amount, bbox_slice=bbox_slice)
         self.extractor.register(self)
         return True
@@ -200,7 +200,7 @@ class FaceAnalyzer():
 
         self.extractor.toggle_pause()
 
-    def clean_start(self, bbox_slice: tuple[int, int, int, int] | None = None) -> None:
+    def clean_start(self, bbox_slice: tuple[int, int, int, int] | None = None, rotation:str = "None") -> None:
         """
         Starts the landmark analysis process.
         
@@ -217,7 +217,7 @@ class FaceAnalyzer():
         for m_name in self.feature_classes:
             self.feature_data[m_name].clear()
 
-        self.analysis_setup(bbox_slice=bbox_slice)
+        self.analysis_setup(bbox_slice=bbox_slice, rotation=rotation)
         self.analysis_start()
 
     def get_header(self) -> list[str]:
@@ -247,7 +247,7 @@ class FaceAnalyzer():
 
         return row
 
-    def prepare_video_resource(self, value: Path) -> tuple[bool, np.ndarray]:
+    def prepare_video_resource(self, value: Path, rotation: str = "None") -> tuple[bool, np.ndarray]:
         self.video_resource = value
 
         if not isinstance(self.video_resource, Path):
@@ -259,14 +259,23 @@ class FaceAnalyzer():
         if not self.video_resource.is_file():
             raise ValueError(f"File {self.video_resource} is not a file.")
 
-        if self.video_resource.suffix.lower() not in [".mp4", ".flv", ".ts", ".mts", ".avi", ".mov"]:
+        if self.video_resource.suffix.lower() not in [".mp4", ".flv", ".ts", ".mts", ".avi", ".mov", ".wmv"]:
             raise ValueError(f"File {self.video_resource} is not a video file.")
 
         self.resource_interface = cv2.VideoCapture(str(self.video_resource.absolute()))
         self.data_amount = self.resource_interface.get(cv2.CAP_PROP_FRAME_COUNT)
         
         success, image = self.resource_interface.read()
-        return success, cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        
+        if not success:
+            return success, None
+        
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        if rotation == "90":
+            image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
+        elif rotation == "-90":
+            image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        return success, image
 
     def get_fps(self) -> float:
         """
