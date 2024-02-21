@@ -29,6 +29,7 @@ class Extractor(Thread):
         self.stopped = False
         self.paused = False
         self.sleep_duration = sleep_duration
+        self.processing_per_second: int = 0
         
         self.pm = pluggy.PluginManager("Extractor")
 
