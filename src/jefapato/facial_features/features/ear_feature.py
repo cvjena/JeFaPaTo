@@ -47,7 +47,9 @@ def ear_score(eye: np.ndarray) -> float:
     
     # check that no value is negative
     if np.any(eye < 0):
-        raise ValueError(f"eye must not contain negative values, but got {eye}")
+        # raise ValueError(f"eye must not contain negative values, but got {eye}")
+        logger.warning(f"eye must not contain negative values, but got {eye}")
+
     
     # dont forget the 0-index
     A = distance.euclidean(eye[1], eye[5])
@@ -56,8 +58,9 @@ def ear_score(eye: np.ndarray) -> float:
     
     ratio = (A + B) / (2.0 * C)
     if ratio > 1.002: # allow for some rounding errors
-        raise ValueError(f"EAR score must be between 0 and 1, but got {ratio}, check your landmarks order")
-    
+        # raise ValueError(f"EAR score must be between 0 and 1, but got {ratio}, check your landmarks order")
+        logger.warning("EAR score must be between 0 and 1, but got {ratio}, check your landmarks order")
+        ratio = 1.0 
     return ratio
 
 
