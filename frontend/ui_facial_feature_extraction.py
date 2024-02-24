@@ -159,7 +159,7 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
         self.la_current_file.setWordWrap(True)
 
         self.pb_anal = self.parent().progress_bar # type: ignore # TODO: fix this as JeFaPaTo cannot be imported from here...
-        self.skip_frame = QtWidgets.QSpinBox()
+        self.update_delay = QtWidgets.QSpinBox()
 
         self.auto_save = QtWidgets.QCheckBox("Auto-Save")
         self.auto_save.setToolTip("Save the extracted data automatically after the analysis is finished.")
@@ -211,7 +211,7 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
         
         self.flayout_se.addRow(self.feature_group)
         self.flayout_se.addRow(self.blends_shape_group)
-        self.flayout_se.addRow("Graph Update Delay:", self.skip_frame)
+        self.flayout_se.addRow("Update Delay:", self.update_delay)
         self.flayout_se.addRow(self.bt_reset_graph)
         self.flayout_se.addRow(self.auto_save)
         self.flayout_se.addRow(self.use_bbox)
@@ -233,8 +233,7 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
         self.button_stop.clicked.connect(self.stop)
         self.bt_pause_resume.clicked.connect(self.ea.toggle_pause)
 
-        self.skip_frame.setRange(1, 20)
-        self.skip_frame.setValue(1)
+        self.update_delay.setRange(1, 30)
 
         # disable analyse button and check box
         self.button_start.setDisabled(True)
@@ -249,6 +248,9 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
         self.jefapato_signal_thread = JeFaPaToGUISignalThread(self)
         self.ea.register_hooks(self.jefapato_signal_thread)
         
+        self.update_delay.valueChanged.connect(self.jefapato_signal_thread.set_update_interval)
+        self.update_delay.setValue(5)
+        
         self.jefapato_signal_thread.sig_updated_display.connect(self.sig_updated_display)
         self.jefapato_signal_thread.sig_updated_feature.connect(self.sig_updated_feature)
         self.jefapato_signal_thread.sig_processed_percentage.connect(self.sig_processed_percentage)
@@ -257,7 +259,7 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
         self.jefapato_signal_thread.sig_resumed.connect(self.sig_resumed)
         self.jefapato_signal_thread.sig_finished.connect(self.sig_finished)
         self.jefapato_signal_thread.start()
-        
+ 
     def set_rotation(self):
         if self.rotate_none.isChecked():
             self.current_rotation = "None"
@@ -389,7 +391,7 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
                 self.plot_data[feature_name][:-1] = self.plot_data[feature_name][1:]
                 self.plot_data[feature_name][-1] = feature_value
 
-                if self.update_count % self.skip_frame.value() == 0:
+                if self.update_count % self.update_delay.value() == 0:
                     self.plot_item[feature_name].setData(self.plot_data[feature_name])
 
     def load_video(self):

@@ -23,6 +23,9 @@ class JeFaPaToGUISignalThread(QtCore.QThread):
         self.parent = parent
         self.stopped = False
 
+        self.update_counter = 0
+        self.update_interval = 10
+
     def run(self):
         while True:
             if self.stopped:
@@ -31,10 +34,17 @@ class JeFaPaToGUISignalThread(QtCore.QThread):
 
     def stop(self):
         self.stopped = True
+        
+    def set_update_interval(self, interval: int):
+        self.update_interval = interval
 
     @facial_features.FaceAnalyzer.hookimpl
     def updated_display(self, image: np.ndarray):
-        self.sig_updated_display.emit(image)
+        self.update_counter += 1
+        
+        if self.update_counter % self.update_interval == 0:
+            self.update_counter = 0
+            self.sig_updated_display.emit(image)
 
     @facial_features.FaceAnalyzer.hookimpl
     def updated_feature(self, feature_data: OrderedDict[str, Any]) -> None:
