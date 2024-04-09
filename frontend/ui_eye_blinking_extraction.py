@@ -615,11 +615,18 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         self.blinking_l, self.comp_partial_threshold_l = blinking.peaks(self.ear_l, minimum_distance, minimum_prominence, minimum_internal_width, maximum_internal_width, partial_threshold_l)
         self.blinking_r, self.comp_partial_threshold_r = blinking.peaks(self.ear_r, minimum_distance, minimum_prominence, minimum_internal_width, maximum_internal_width, partial_threshold_r)
 
+        if self.comp_partial_threshold_l is np.nan or self.comp_partial_threshold_r is np.nan:
+            jwidgets.JDialogWarn("Blinking Extraction Error", "No partial threshold found automatically", "Not enough blinks for stable estimation.")
+
         try:
             self.blinking_matched = blinking.match(self.blinking_l, self.blinking_r, tolerance=maximum_matching_dist)
         except ValueError as e:
             logger.error("Error while matching the blinking data frames", error=e)
-            jwidgets.JDialogWarn( "Blinking Extraction Error", "The blinking could not be matched, likely none found", "Please change your settings and try again")
+            jwidgets.JDialogWarn(
+                "Blinking Extraction Error",
+                "The blinking could not be matched, likely none found",
+                "Please change your settings and try again"
+            )
             return False
         return True
 
