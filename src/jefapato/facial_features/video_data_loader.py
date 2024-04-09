@@ -29,6 +29,7 @@ class VideoDataLoader(threading.Thread):
         self.data_queue: queue.Queue[InputQueueItem] = queue.Queue(maxsize=queue_maxsize)
         self.stopped = False
         self.data_amount = data_amount
+        self.processing_per_second: float = 0
         
         if rotation == "None":
             self.rotation_fc = lambda x: x
