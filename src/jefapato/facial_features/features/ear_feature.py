@@ -12,7 +12,7 @@ from .abstract_feature import Feature, FeatureData
 
 logger = structlog.get_logger()
 
-def ear_score(eye: np.ndarray) -> float:
+def ear_score(eye: np.ndarray) -> tuple[float, bool]:
     """
     Compute the EAR Score for eye landmarks
 
@@ -35,6 +35,7 @@ def ear_score(eye: np.ndarray) -> float:
 
     Returns:
         float: The computed EAR score, which should be between 0 and 1
+        bool: A flag indicating if the EAR score is valid
     """
     if eye is None:
         raise ValueError("eye must not be None")
@@ -43,25 +44,31 @@ def ear_score(eye: np.ndarray) -> float:
         raise TypeError(f"eye must be a numpy array, but got {type(eye)}")
     
     if eye.shape != (6, 2) and eye.shape != (6, 3): # allow for 3D landmarks
-        raise ValueError(f"eye must be a 6x2 array, but got {eye.shape}")
+        raise ValueError(f"eye must be a 6x2 or 6x3 array, but got {eye.shape}")
     
     # check that no value is negative
     if np.any(eye < 0):
-        # raise ValueError(f"eye must not contain negative values, but got {eye}")
-        logger.warning(f"eye must not contain negative values, but got {eye}")
+        # This can be the case if parts of the face are not inside the image
+        # but the predictor tries to estimate the rough location.
+        # Thus we just log a warning and continue
+        logger.warning(f"Eye landmarks must not contain negative values, but got {eye}")
 
-    
     # dont forget the 0-index
     A = distance.euclidean(eye[1], eye[5])
     B = distance.euclidean(eye[2], eye[4])
     C = distance.euclidean(eye[0], eye[3])
     
     ratio = (A + B) / (2.0 * C)
-    if ratio > 1.002: # allow for some rounding errors
-        # raise ValueError(f"EAR score must be between 0 and 1, but got {ratio}, check your landmarks order")
-        logger.warning("EAR score must be between 0 and 1, but got {ratio}, check your landmarks order")
-        ratio = 1.0 
-    return ratio
+    compute_valid = True
+    if ratio > 1.0:
+        logger.warning(f"EAR score must be between 0 and 1, but got {ratio}")
+        ratio = 1.0
+        compute_valid = False
+    if ratio < 0.0:
+        logger.warning(f"EAR score must be between 0 and 1, but got {ratio}")
+        ratio = 0.0
+        compute_valid = False
+    return ratio, compute_valid
 
 
 @dataclasses.dataclass
@@ -161,8 +168,13 @@ class EAR2D6(EAR):
             return EAR_Data(1.0, 1.0, False, lm_l, lm_r)
 
         ear_valid = not (np.allclose(np.zeros_like(lm_l), lm_l) and np.allclose(np.zeros_like(lm_r), lm_r))
-        ear_l = ear_score(lm_l) if ear_valid else 1.0
-        ear_r = ear_score(lm_r) if ear_valid else 1.0
+        ear_l, ear_l_c = ear_score(lm_l)
+        ear_r, ear_r_c = ear_score(lm_r)
+        
+        if not ear_l_c or not ear_r_c:
+            logger.warning(f"EAR score computation is not valid for left: {ear_l} and right: {ear_r}")
+        
+        ear_valid = ear_valid and ear_l_c and ear_r_c
         return EAR_Data(ear_l, ear_r, ear_valid, lm_l, lm_r)
 
 
@@ -195,6 +207,11 @@ class EAR3D6(EAR):
             return EAR_Data(1.0, 1.0, False, lm_l, lm_r)
 
         ear_valid = not (np.allclose(np.zeros_like(lm_l), lm_l) and np.allclose(np.zeros_like(lm_r), lm_r))
-        ear_l = ear_score(lm_l) if ear_valid else 1.0
-        ear_r = ear_score(lm_r) if ear_valid else 1.0
+        ear_l, ear_l_c = ear_score(lm_l)
+        ear_r, ear_r_c = ear_score(lm_r)
+        
+        if not ear_l_c or not ear_r_c:
+            logger.warning(f"EAR score computation is not valid for left: {ear_l} and right: {ear_r}")
+        
+        ear_valid = ear_valid and ear_l_c and ear_r_c
         return EAR_Data(ear_l, ear_r, ear_valid, lm_l, lm_r)
