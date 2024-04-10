@@ -25,6 +25,10 @@ def otsu_thresholding(values: np.ndarray) -> float:
     for th in th_range:
         r = np.nansum([np.mean(cls) * np.var(values, where=cls) for cls in [values>=th, values<th]])
         res.append(r)
+
+    if len(res) == 0:
+        # if the result is empty, return np.nan
+        return np.nan
     return th_range[np.argmin(res)]
 
 def peaks(

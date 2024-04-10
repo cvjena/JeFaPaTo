@@ -10,11 +10,40 @@ from qtpy import QtCore, QtGui, QtWidgets
 from qtpy.QtWidgets import QMessageBox
 from PyQt6.QtCore import pyqtSignal
 
-
 from jefapato import blinking
 from frontend import config, jwidgets
 
 logger = structlog.get_logger()
+
+#### Recommended Extracton Settings for Eye Blinking ####
+# @30 FPS
+# Minimum Distance: 10 Frames
+# Minimum Prominence: 0.1 EAR Score
+# Minimum Internal Width: 4 Frames
+# Maximum Internal Width: 20 Frames
+# Maximum Matching Distance: 15 Frames
+# Partial Threshold Left:  0.18 EAR Score
+# Partial Threshold Right: 0.18 EAR Score
+# 
+# Smoothing
+# - Window Size: 7
+# - Polynomial Degree: 3
+#
+# ---
+# 
+# @240 FPS
+# Minimum Distance: 50 Frames
+# Minimum Prominence: 0.1 EAR Score
+# Minimum Internal Width: 20 Frames
+# Maximum Internal Width: 100 Frames
+# Maximum Matching Distance: 30 Frames
+# Partial Threshold Left:  0.18 EAR Score
+# Partial Threshold Right: 0.18 EAR Score
+#
+# Smoothing
+# - Window Size: 7
+# - Polynomial Degree: 3
+
 
 DOWNSAMPLE_FACTOR = 8
 
@@ -254,12 +283,12 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
 
         le_smooth_size = QtWidgets.QLineEdit()
         le_smooth_size.setValidator(int_validator)
-        self.add_handler("smooth_size", le_smooth_size, mapper=I2S, default=91)
+        self.add_handler("smooth_size", le_smooth_size, mapper=I2S, default=7)
         box_smooth_layout.addRow("Window Size", le_smooth_size)
 
         le_smooth_poly = QtWidgets.QLineEdit()
         le_smooth_poly.setValidator(int_validator)
-        self.add_handler("smooth_poly", le_smooth_poly, mapper=I2S, default=5)
+        self.add_handler("smooth_poly", le_smooth_poly, mapper=I2S, default=3)
         box_smooth_layout.addRow("Polynomial Degree", le_smooth_poly)
 
         self.set_algo.addRow(box_smooth)
@@ -274,7 +303,7 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         self.cb_as_time.stateChanged.connect(self.compute_graph_axis)
 
         btn_reset_graph = QtWidgets.QPushButton(qta.icon("msc.refresh"), "Reset Graph Y Range")
-        btn_reset_graph.clicked.connect(lambda: self.graph.setYRange(0, 1))
+        btn_reset_graph.clicked.connect(lambda: self.graph.setYRange(-0.5, 1))
         self.set_visuals.addRow(btn_reset_graph)
 
         btn_reset_view  = QtWidgets.QPushButton(qta.icon("msc.refresh"), "View Full Graph")
@@ -635,6 +664,11 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         if self.comp_partial_threshold_l is np.nan or self.comp_partial_threshold_r is np.nan:
             QMessageBox.warning(None, "Blinking Extraction Warning", "No partial threshold could be found. Continued with default `complete` label.")
         self.progress.setValue(50)
+        
+        # check if the blinking data frames are empty
+        if self.blinking_l.empty or self.blinking_r.empty:
+            QMessageBox.warning(None, "Blinking Extraction Warning", "No blinks found in the data. Please check the data and try again.")
+            return False
 
         try:
             self.blinking_matched = blinking.match(
