@@ -202,6 +202,25 @@ We list the main libraries used in `JeFaPaTo` and their version used for the dev
 | `rich`                   | `~=12.0`    | Logging       | Colored logging|
 | `plyer`                  | `~=2.1`     | Notifications | Notification for the user for completed processing|
 
+## Extraction Parameter Recommendations
+
+The following parameters are recommended the blinking detection based on the current implementation of `JeFaPaTo`.
+We list the settings for `30 FPS` and `240 FPS` videos and the time based parameters are measured in frames.
+These settings can be adjusted in the GUI to adapt to the specific video data and the blinking behavior of the subject, if necessary.
+
+| Parameter | 30 FPS | 240 FPS |
+| --- | --- | --- |
+| Minimum Distance | 10 Frames | 50 Frames |
+| Minimum Prominence | 0.1 EAR Score | 0.1 EAR Score |
+| Minimum Internal Width | 4 Frames | 20 Frames |
+| Maximum Internal Width | 20 Frames | 100 Frames |
+| Maximum Matching Distance | 15 Frames | 30 Frames |
+| Partial Threshold Left | 0.18 EAR Score | 0.18 EAR Score |
+| Partial Threshold Right | 0.18 EAR Score | 0.18 EAR Score |
+| Smoothing Window Size | 7 | 7 |
+| Smoothing Polynomial Degree | 3 | 3 |
+
+
 # Ongoing Development
 
 `JeFaPaTo` finished the first stable release and will continue to be developed to support the analysis of facial features and expressions.
