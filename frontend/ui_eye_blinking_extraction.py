@@ -707,12 +707,12 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
             return False
             
         if self.comp_partial_threshold_l is np.nan or self.comp_partial_threshold_r is np.nan:
-            QMessageBox.warning(None, "Blinking Extraction Warning", "No partial threshold could be found. Continued with default `complete` label.")
+            QMessageBox.information(None, "Blinking Extraction Information", "We could not compute a automatic threshold based on the data. Continued with default `complete` label or run with sepecific thresholds. We recommend 0.18 for partial blinks.")
         self.progress.setValue(50)
         
         # check if the blinking data frames are empty
         if self.blinking_l.empty or self.blinking_r.empty:
-            QMessageBox.warning(None, "Blinking Extraction Warning", "No blinks found in the data. Please check the data and try again.")
+            QMessageBox.warning(None, "Blinking Extraction Warning", "No blinks found in the data. Please check the data or settings and try again.")
             return False
 
         try:
