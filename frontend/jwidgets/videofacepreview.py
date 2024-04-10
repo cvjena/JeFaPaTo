@@ -32,24 +32,24 @@ class FaceVideoContainer:
         
         return self.get_frame(0)
     
-    def in_range(self, frame_number: int) -> bool:
+    def in_range(self, frame_index: int) -> bool:
         assert self.frame_count is not None
-        return frame_number >= 0 and frame_number < self.frame_count
+        return frame_index >= 0 and frame_index < self.frame_count
 
-    def get_frame(self, frame_number: int) -> np.ndarray:
+    def get_frame(self, frame_index: int) -> np.ndarray:
         assert self.resource is not None
 
-        self.resource.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
+        self.resource.set(cv2.CAP_PROP_POS_FRAMES, frame_index)
         ret, frame = self.resource.read()
         if not ret:
-            logger.error("Could not read frame", frame_number=frame_number, file_path=self.file_path)
+            logger.error("Could not read frame", frame_index=frame_index, file_path=self.file_path)
             return np.zeros((300, 300, 3), dtype=np.uint8)
         
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         frame_g = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
         faces = self.face_finder.detectMultiScale(frame_g, 1.1, 5)
         if len(faces) == 0:
-            logger.warning("Could not find face", frame_number=frame_number, file_path=self.file_path)
+            logger.warning("Could not find face", frame_index=frame_index, file_path=self.file_path)
             return frame
 
         x, y, w, h = faces[0]

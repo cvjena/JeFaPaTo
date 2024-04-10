@@ -747,6 +747,8 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
             frame_idx = min(frame_left, frame_right)
         # show 1 second before and after the blink
         self.graph.setXRange(frame_idx - self.get_selected_fps(), frame_idx + self.get_selected_fps())
+        
+        logger.info("Highlighting blink", index=index, frame_idx=frame_idx)
         self.face_preview.set_frame(frame_idx)
 
     # summary of the results
