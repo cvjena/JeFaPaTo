@@ -50,9 +50,14 @@ Such detailed analysis could help medical experts better understand the blinking
 # Statement of need
 
 To analyze the blinking behavior in detail, medical experts often use high-speed cameras to record the blinking process.
-Therefore, experiments record videos with 240 FPS or higher, which results in large amounts of data and requires optimized algorithms for consumer hardware.
+Existing tools modeling the eye state based on the Eye-Aspect-Ratio (EAR), such as [@soukupovaRealTimeEyeBlink2016], only classify the eye state as open or closed, requiring a labeled dataset for training a suitable classifier.
+This approach neglects relevant information such as the blink intensity, duration, or partial blinks, which are crucial for a detailed analysis in a medical context.
+Moreover, this simple classification approach does not factor in high temporal resolution video data, which is essential for a thorough analysis of the blinking process as most blinks are shorter than 100 ms.
+We developed `JeFaPaTo` to go beyond the simple eye state classification and offer a method to extract complete blinking intervals for detailed analysis.
+We aim to provide a custom tool that is easy for medical experts, abstracting the complexity of the underlying computer vision algorithms and high-temporal processing and enabling them to analyze blinking behavior without requiring programming skills.
+
 `JeFaPaTo` is a Python-based [@python] program to support medical and psychological experts in analyzing blinking and facial features for high temporal resolution video data.
-The tool splits into two main parts: An extendable programming interface and a graphical user interface (GUI) entirely written in Python.
+The tool is split into two main parts: An extendable programming interface and a graphical user interface (GUI) entirely written in Python.
 The programming interface enables efficient processing of temporal resolution video data, automatically extracts selected facial features, and provides a set of analysis functions specialized for blinking analysis.
 The GUI offers non-programmers an intuitive way to use the analysis functions, visualize the results, and export the data for further analysis.
 `JeFaPaTo` is designed to be extendable by additional analysis functions and facial features and is under joint development by computer vision and medical experts to ensure high usability and relevance for the target group.
