@@ -68,7 +68,7 @@ to analyze the blinking behavior.
 
 `JeFaPaTo` is a Python-based [@python] program to support medical and psychological experts in analyzing blinking and facial features for high temporal resolution video data.
 The tool is split into two main parts: An extendable programming interface and a graphical user interface (GUI) entirely written in Python.
-The programming interface enables efficient processing of temporal resolution video data, automatically extracts selected facial features, and provides a set of analysis functions specialized for blinking analysis.
+The programming interface enables efficient processing of high temporal resolution video data, automatically extracts selected facial features, and provides a set of analysis functions specialized for blinking analysis.
 The GUI offers non-programmers an intuitive way to use the analysis functions, visualize the results, and export the data for further analysis.
 `JeFaPaTo` is designed to be extendable by additional analysis functions and facial features and is under joint development by computer vision and medical experts to ensure high usability and relevance for the target group.
 
