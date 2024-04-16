@@ -44,7 +44,7 @@ The Jena Facial Palsy Toolbox (JeFaPaTo) has been developed to bridge this gap.
 It utilizes cutting-edge computer vision algorithms and offers a user-friendly interface for those without programming expertise.
 This toolbox is designed to make advanced facial analysis more accessible to medical experts, simplifying integration into their workflow.
 
-The state of the eye closure is of high interest to medical experts, e.g., in the context of facial palsy or Parkinson's disease.
+This simple-to-use tool could enable medical professionals to quickly establish the blinking behavior of patients, providing valuable insights into their condition, especially in the context of facial palsy or Parkinson's disease [@nuuttilaDiagnosticAccuracyGlabellar2021;@vanderwerfBlinkRecoveryPatients2007].
 Due to facial nerve damage, the eye-closing process might be impaired and could lead to many undesirable side effects.
 Hence, more than a simple distinction between open and closed eyes is required for a detailed analysis.
 Factors such as duration, synchronicity, velocity, complete closure, the time between blinks, and frequency over time are highly relevant.
