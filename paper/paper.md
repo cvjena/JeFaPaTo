@@ -42,7 +42,7 @@ It is an intricate spontaneous process that is not yet fully understood and need
 However, a significant challenge is that many computer vision techniques demand programming skills for automated extraction and analysis, making them less accessible to medical professionals who may not have these skills.
 The Jena Facial Palsy Toolbox (JeFaPaTo) has been developed to bridge this gap.
 It utilizes cutting-edge computer vision algorithms and offers a user-friendly interface for those without programming expertise.
-This toolbox is designed to make advanced facial analysis more accessible to medical experts, simplifying integration into their workflow.
+This toolbox makes advanced facial analysis more accessible to medical experts, simplifying integration into their workflow.
 
 This simple-to-use tool could enable medical professionals to quickly establish the blinking behavior of patients, providing valuable insights into their condition, especially in the context of facial palsy or Parkinson's disease [@nuuttilaDiagnosticAccuracyGlabellar2021;@vanderwerfBlinkRecoveryPatients2007].
 Due to facial nerve damage, the eye-closing process might be impaired and could lead to many undesirable side effects.
@@ -58,6 +58,13 @@ This approach neglects relevant information such as the blink intensity, duratio
 Moreover, this simple classification approach does not factor in high temporal resolution video data, which is essential for a thorough analysis of the blinking process as most blinks are shorter than 100 ms.
 We developed `JeFaPaTo` to go beyond the simple eye state classification and offer a method to extract complete blinking intervals for detailed analysis.
 We aim to provide a custom tool that is easy for medical experts, abstracting the complexity of the underlying computer vision algorithms and high-temporal processing and enabling them to analyze blinking behavior without requiring programming skills.
+An existing approach [@kwonHighspeedCameraCharacterization2013] for high temporal videos uses only every frame 5 ms and requires manual measuring of the upper and lower eyelid margins.
+Other methods require additional sensors such as electromyography (EMG) or magnetic search coils to measure the eyelid movement [@vanderwerfBlinkRecoveryPatients2007;@vanderwerfEyelidMovementsBehavioral2003].
+Such sensors necessitate additional human resources and are unsuitable for routine clinical analysis.
+`JeFaPaTo` is a novel approach that combines the advantages of high temporal resolution video data [@kwonHighspeedCameraCharacterization2013] and computer vision algorithms [@soukupovaRealTimeEyeBlink2016]
+to analyze the blinking behavior.
+
+## Overview of JeFaPaTo
 
 `JeFaPaTo` is a Python-based [@python] program to support medical and psychological experts in analyzing blinking and facial features for high temporal resolution video data.
 The tool is split into two main parts: An extendable programming interface and a graphical user interface (GUI) entirely written in Python.
