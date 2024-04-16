@@ -53,12 +53,12 @@ Such detailed analysis could help medical experts better understand the blinking
 # Statement of need
 
 To analyze the blinking behavior in detail, medical experts often use high-speed cameras to record the blinking process.
-Existing tools modeling the eye state based on the Eye-Aspect-Ratio (EAR), such as [@soukupovaRealTimeEyeBlink2016], only classify the eye state as open or closed, requiring a labeled dataset for training a suitable classifier.
+Existing tools modeling the eye state based on the Eye-Aspect-Ratio (EAR), such as @soukupovaRealTimeEyeBlink2016, only classify the eye state as open or closed, requiring a labeled dataset for training a suitable classifier.
 This approach neglects relevant information such as the blink intensity, duration, or partial blinks, which are crucial for a detailed analysis in a medical context.
 Moreover, this simple classification approach does not factor in high temporal resolution video data, which is essential for a thorough analysis of the blinking process as most blinks are shorter than 100 ms.
 We developed `JeFaPaTo` to go beyond the simple eye state classification and offer a method to extract complete blinking intervals for detailed analysis.
 We aim to provide a custom tool that is easy for medical experts, abstracting the complexity of the underlying computer vision algorithms and high-temporal processing and enabling them to analyze blinking behavior without requiring programming skills.
-An existing approach [@kwonHighspeedCameraCharacterization2013] for high temporal videos uses only every frame 5 ms and requires manual measuring of the upper and lower eyelid margins.
+An existing approach by @kwonHighspeedCameraCharacterization2013 for high temporal videos uses only every frame 5 ms and requires manual measuring of the upper and lower eyelid margins.
 Other methods require additional sensors such as electromyography (EMG) or magnetic search coils to measure the eyelid movement [@vanderwerfBlinkRecoveryPatients2007;@vanderwerfEyelidMovementsBehavioral2003].
 Such sensors necessitate additional human resources and are unsuitable for routine clinical analysis.
 `JeFaPaTo` is a novel approach that combines the advantages of high temporal resolution video data [@kwonHighspeedCameraCharacterization2013] and computer vision algorithms [@soukupovaRealTimeEyeBlink2016]
