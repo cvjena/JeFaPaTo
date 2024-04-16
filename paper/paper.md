@@ -67,10 +67,12 @@ to analyze the blinking behavior.
 ## Overview of JeFaPaTo
 
 `JeFaPaTo` is a Python-based [@python] program to support medical and psychological experts in analyzing blinking and facial features for high temporal resolution video data.
-The tool is split into two main parts: An extendable programming interface and a graphical user interface (GUI) entirely written in Python.
-The programming interface enables efficient processing of high temporal resolution video data, automatically extracts selected facial features, and provides a set of analysis functions specialized for blinking analysis.
-The GUI offers non-programmers an intuitive way to use the analysis functions, visualize the results, and export the data for further analysis.
-`JeFaPaTo` is designed to be extendable by additional analysis functions and facial features and is under joint development by computer vision and medical experts to ensure high usability and relevance for the target group.
+We follow a two-way approach to encourage programmers and non-programmers to use the tool.
+On the one hand, we provide a programming interface for efficiently processing high-temporal resolution video data, automatic facial feature extraction, and specialized blinking analysis functions.
+This interface is extendable, allowing the easy addition of new or existing facial feature-based processing functions (e.g., mouth movement analysis [@hochreiterMachineLearningBasedDetectingEyelid2023] or MRD1/MRD2 [@chenSmartphoneBasedArtificialIntelligenceAssisted2021]).
+On the other hand, we offer a graphical user interface (GUI) entirely written in Python to enable non-programmers to use the full analysis functions, visualize the results, and export the data for further analysis.
+All functionalities of the programming interface are accessible through the GUI with additional input validations, making it easy for medical experts to use.
+`JeFaPaTo` is designed to be extendable and transparent and is under joint development by computer vision and medical experts to ensure high usability and relevance for the target group.
 
 `JeFaPaTo` leverages the `mediapipe` library [@lugaresiMediaPipeFrameworkBuilding2019;@kartynnikRealtimeFacialSurface2019a] to extract facial landmarks and blend shape features from video data at 60 FPS (on modern hardware).
 With the landmarks, we compute the `EAR` (Eye-Aspect-Ratio) [@soukupovaRealTimeEyeBlink2016] for both eyes over the videos.
