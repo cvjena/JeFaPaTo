@@ -39,7 +39,7 @@ Given that solely the facial muscles, innervated by the facial nerve, are respon
 
 One affected area of interest is the subtle movements involved in blinking [@vanderwerfBlinkRecoveryPatients2007;@nuuttilaDiagnosticAccuracyGlabellar2021;@vanderwerfEyelidMovementsBehavioral2003].
 It is an intricate spontaneous process that is not yet fully understood and needs high-resolution, time-specific analysis for detailed understanding [@kwonHighspeedCameraCharacterization2013;@cruzSpontaneousEyeblinkActivity2011].
-However, a significant challenge is that many advanced computer vision techniques demand programming skills, making them less accessible to medical professionals who may not have these skills.
+However, a significant challenge is that many computer vision techniques demand programming skills for automated extraction and analysis, making them less accessible to medical professionals who may not have these skills.
 The Jena Facial Palsy Toolbox (JeFaPaTo) has been developed to bridge this gap.
 It utilizes cutting-edge computer vision algorithms and offers a user-friendly interface for those without programming expertise.
 This toolbox is designed to make advanced facial analysis more accessible to medical experts, simplifying integration into their workflow.
