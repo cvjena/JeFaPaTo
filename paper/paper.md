@@ -34,14 +34,17 @@ bibliography: paper.bib
 
 Analyzing facial features and expressions is a complex task in computer vision.
 The human face is intricate, with significant shape, texture, and appearance variations.
-In medical contexts, facial structures that differ from the norm, such as those affected by paralysis, are particularly important to study and require precise analysis.
-One area of interest is the subtle movements involved in blinking, a process that is not yet fully understood and needs high-resolution, time-specific analysis for detailed understanding.
-However, a significant challenge is that many advanced computer vision techniques demand programming skills, making them less accessible to medical professionals who may not have these skills.
+In medical contexts, facial structures and movements that differ from the norm are particularly important to study and require precise analysis to understand the underlying conditions.
+Given that solely the facial muscles, innervated by the facial nerve, are responsible for facial expressions, facial palsy can lead to severe impairments in facial movements [@volkInitialSeverityMotor2017;@louReviewAutomatedFacial2020].
+
+One affected area of interest is the subtle movements involved in blinking [@vanderwerfBlinkRecoveryPatients2007;@nuuttilaDiagnosticAccuracyGlabellar2021;@vanderwerfEyelidMovementsBehavioral2003].
+It is an intricate spontaneous process that is not yet fully understood and needs high-resolution, time-specific analysis for detailed understanding [@kwonHighspeedCameraCharacterization2013;@cruzSpontaneousEyeblinkActivity2011].
+However, a significant challenge is that many computer vision techniques demand programming skills for automated extraction and analysis, making them less accessible to medical professionals who may not have these skills.
 The Jena Facial Palsy Toolbox (JeFaPaTo) has been developed to bridge this gap.
 It utilizes cutting-edge computer vision algorithms and offers a user-friendly interface for those without programming expertise.
-This toolbox is designed to make advanced facial analysis more accessible to medical experts, simplifying integration into their workflow.
+This toolbox makes advanced facial analysis more accessible to medical experts, simplifying integration into their workflow.
 
-The state of the eye closure is of high interest to medical experts, e.g., in the context of facial palsy or Parkinson's disease.
+This simple-to-use tool could enable medical professionals to quickly establish the blinking behavior of patients, providing valuable insights into their condition, especially in the context of facial palsy or Parkinson's disease [@nuuttilaDiagnosticAccuracyGlabellar2021;@vanderwerfBlinkRecoveryPatients2007].
 Due to facial nerve damage, the eye-closing process might be impaired and could lead to many undesirable side effects.
 Hence, more than a simple distinction between open and closed eyes is required for a detailed analysis.
 Factors such as duration, synchronicity, velocity, complete closure, the time between blinks, and frequency over time are highly relevant.
@@ -50,21 +53,31 @@ Such detailed analysis could help medical experts better understand the blinking
 # Statement of need
 
 To analyze the blinking behavior in detail, medical experts often use high-speed cameras to record the blinking process.
-Existing tools modeling the eye state based on the Eye-Aspect-Ratio (EAR), such as [@soukupovaRealTimeEyeBlink2016], only classify the eye state as open or closed, requiring a labeled dataset for training a suitable classifier.
+Existing tools modeling the eye state based on the Eye-Aspect-Ratio (EAR), such as @soukupovaRealTimeEyeBlink2016, only classify the eye state as open or closed, requiring a labeled dataset for training a suitable classifier.
 This approach neglects relevant information such as the blink intensity, duration, or partial blinks, which are crucial for a detailed analysis in a medical context.
 Moreover, this simple classification approach does not factor in high temporal resolution video data, which is essential for a thorough analysis of the blinking process as most blinks are shorter than 100 ms.
 We developed `JeFaPaTo` to go beyond the simple eye state classification and offer a method to extract complete blinking intervals for detailed analysis.
 We aim to provide a custom tool that is easy for medical experts, abstracting the complexity of the underlying computer vision algorithms and high-temporal processing and enabling them to analyze blinking behavior without requiring programming skills.
+An existing approach by @kwonHighspeedCameraCharacterization2013 for high temporal videos uses only every frame 5 ms and requires manual measuring of the upper and lower eyelid margins.
+Other methods require additional sensors such as electromyography (EMG) or magnetic search coils to measure the eyelid movement [@vanderwerfBlinkRecoveryPatients2007;@vanderwerfEyelidMovementsBehavioral2003].
+Such sensors necessitate additional human resources and are unsuitable for routine clinical analysis.
+`JeFaPaTo` is a novel approach that combines the advantages of high temporal resolution video data [@kwonHighspeedCameraCharacterization2013] and computer vision algorithms [@soukupovaRealTimeEyeBlink2016]
+to analyze the blinking behavior.
+
+## Overview of JeFaPaTo
 
 `JeFaPaTo` is a Python-based [@python] program to support medical and psychological experts in analyzing blinking and facial features for high temporal resolution video data.
-The tool is split into two main parts: An extendable programming interface and a graphical user interface (GUI) entirely written in Python.
-The programming interface enables efficient processing of temporal resolution video data, automatically extracts selected facial features, and provides a set of analysis functions specialized for blinking analysis.
-The GUI offers non-programmers an intuitive way to use the analysis functions, visualize the results, and export the data for further analysis.
-`JeFaPaTo` is designed to be extendable by additional analysis functions and facial features and is under joint development by computer vision and medical experts to ensure high usability and relevance for the target group.
+We follow a two-way approach to encourage programmers and non-programmers to use the tool.
+On the one hand, we provide a programming interface for efficiently processing high-temporal resolution video data, automatic facial feature extraction, and specialized blinking analysis functions.
+This interface is extendable, allowing the easy addition of new or existing facial feature-based processing functions (e.g., mouth movement analysis [@hochreiterMachineLearningBasedDetectingEyelid2023] or MRD1/MRD2 [@chenSmartphoneBasedArtificialIntelligenceAssisted2021]).
+On the other hand, we offer a graphical user interface (GUI) entirely written in Python to enable non-programmers to use the full analysis functions, visualize the results, and export the data for further analysis.
+All functionalities of the programming interface are accessible through the GUI with additional input validations, making it easy for medical experts to use.
+`JeFaPaTo` is designed to be extendable and transparent and is under joint development by computer vision and medical experts to ensure high usability and relevance for the target group.
 
 `JeFaPaTo` leverages the `mediapipe` library [@lugaresiMediaPipeFrameworkBuilding2019;@kartynnikRealtimeFacialSurface2019a] to extract facial landmarks and blend shape features from video data at 60 FPS (on modern hardware).
 With the landmarks, we compute the `EAR` (Eye-Aspect-Ratio) [@soukupovaRealTimeEyeBlink2016] for both eyes over the videos.
-Additionally, `JeFaPaTo` detects blinks, matches left and right eye, and computes medically relevant statistics, a visual summary for the provided video, shown in \autoref{fig:summary}, and exports the data in various formats for further independent analysis.
+Additionally, `JeFaPaTo` detects blinks, matches the left and right eye, and computes medically relevant statistics.
+Furthermore, a visual summary for the video is provided in the GUI, shown in \autoref{fig:summary}, and the data can be exported in various formats for further independent analysis.
 The visual summary lets medical experts quickly get an overview of the blinking behavior.
 As shown in \autoref{fig:summary}, the blinks per minute are shown as a histogram over time in the upper axis, and the delay between blinks is shown in the right axis.
 The main plot comprises the scatter plot of the `EAR` score for the left and right eye, and the dots indicate the detected blinks, with the rolling mean and standard deviation shown as a line plot.
@@ -127,7 +140,7 @@ Upon data extraction, corrections to the blinking state can be made directly wit
 The D-Area displays the current video frame, given that the user supplies the original video.
 While this feature is optional, it helps manually correct the blinking state when required.
 
-## Extracted Medical Relevant Statistics
+## Extracted Medically Relevant Statistics
 
 We provided a set of relevant statistics for medical analysis of blinking behavior, which are valuable to healthcare experts.
 The `JeFaPaTo` software is being developed in partnership with medical professionals to guarantee the included statistics are relevant.
