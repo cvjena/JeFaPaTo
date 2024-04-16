@@ -138,7 +138,7 @@ Upon data extraction, corrections to the blinking state can be made directly wit
 The D-Area displays the current video frame, given that the user supplies the original video.
 While this feature is optional, it helps manually correct the blinking state when required.
 
-## Extracted Medical Relevant Statistics
+## Extracted Medically Relevant Statistics
 
 We provided a set of relevant statistics for medical analysis of blinking behavior, which are valuable to healthcare experts.
 The `JeFaPaTo` software is being developed in partnership with medical professionals to guarantee the included statistics are relevant.
