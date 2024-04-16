@@ -74,7 +74,8 @@ The GUI offers non-programmers an intuitive way to use the analysis functions, v
 
 `JeFaPaTo` leverages the `mediapipe` library [@lugaresiMediaPipeFrameworkBuilding2019;@kartynnikRealtimeFacialSurface2019a] to extract facial landmarks and blend shape features from video data at 60 FPS (on modern hardware).
 With the landmarks, we compute the `EAR` (Eye-Aspect-Ratio) [@soukupovaRealTimeEyeBlink2016] for both eyes over the videos.
-Additionally, `JeFaPaTo` detects blinks, matches left and right eye, and computes medically relevant statistics, a visual summary for the provided video, shown in \autoref{fig:summary}, and exports the data in various formats for further independent analysis.
+Additionally, `JeFaPaTo` detects blinks, matches the left and right eye, and computes medically relevant statistics.
+Furthermore, a visual summary for the video is provided in the GUI, shown in \autoref{fig:summary}, and the data can be exported in various formats for further independent analysis.
 The visual summary lets medical experts quickly get an overview of the blinking behavior.
 As shown in \autoref{fig:summary}, the blinks per minute are shown as a histogram over time in the upper axis, and the delay between blinks is shown in the right axis.
 The main plot comprises the scatter plot of the `EAR` score for the left and right eye, and the dots indicate the detected blinks, with the rolling mean and standard deviation shown as a line plot.
