@@ -34,8 +34,11 @@ bibliography: paper.bib
 
 Analyzing facial features and expressions is a complex task in computer vision.
 The human face is intricate, with significant shape, texture, and appearance variations.
-In medical contexts, facial structures that differ from the norm, such as those affected by paralysis, are particularly important to study and require precise analysis.
-One area of interest is the subtle movements involved in blinking, a process that is not yet fully understood and needs high-resolution, time-specific analysis for detailed understanding.
+In medical contexts, facial structures and movements that differ from the norm are particularly important to study and require precise analysis to understand the underlying conditions.
+Given that solely the facial muscles, innervated by the facial nerve, are responsible for facial expressions, facial palsy can lead to severe impairments in facial movements [@volkInitialSeverityMotor2017;@louReviewAutomatedFacial2020].
+
+One affected area of interest is the subtle movements involved in blinking [@vanderwerfBlinkRecoveryPatients2007;@nuuttilaDiagnosticAccuracyGlabellar2021;@vanderwerfEyelidMovementsBehavioral2003].
+It is an intricate spontaneous process that is not yet fully understood and needs high-resolution, time-specific analysis for detailed understanding [@kwonHighspeedCameraCharacterization2013;@cruzSpontaneousEyeblinkActivity2011].
 However, a significant challenge is that many advanced computer vision techniques demand programming skills, making them less accessible to medical professionals who may not have these skills.
 The Jena Facial Palsy Toolbox (JeFaPaTo) has been developed to bridge this gap.
 It utilizes cutting-edge computer vision algorithms and offers a user-friendly interface for those without programming expertise.
