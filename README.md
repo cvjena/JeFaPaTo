@@ -20,9 +20,9 @@ Additionally, our software can be extended to include new methods and algorithms
 - **Support For High Temporal Videos**: The human blink is fast, and JeFaPaTo is designed to handle it. JeFaPaTo can process videos with any FPS but with an extraction optimized for 240 FPS.
 - **Anywhere**: JeFaPaTo is a cross-platform tool that allows you to use it on Windows, Linux, and MacOS.
 
-## Get Started
+## Getting Started
 
-Ready to dive into the world of precise facial feature extraction and analysis? Give JeFaPaTo a try and experience the power of this tool for yourself! Download the latest version of JeFaPaTo for your operating system from the [releases page](https://github.com/cvjena/JeFaPaTo/releases/tag/v1.0.0) or the following links:
+Ready to dive into the world of precise facial feature extraction and analysis? Give JeFaPaTo a try and experience the power of this tool for yourself! Download the latest version of JeFaPaTo for your operating system from the [releases page](https://github.com/cvjena/JeFaPaTo/releases) or the following links:
 
 - [Windows 11](https://github.com/cvjena/JeFaPaTo/releases/latest/download/JeFaPaTo_windows.exe)
 - [Linux/Ubuntu 22.04](https://github.com/cvjena/JeFaPaTo/releases/latest//download/JeFaPaTo_linux)
@@ -30,28 +30,11 @@ Ready to dive into the world of precise facial feature extraction and analysis? 
 - [MacOS Intel v13+](https://github.com/cvjena/JeFaPaTo/releases/latest/download/JeFaPaTo_intel.dmg)
 - [MacOS Intel v10.15+](https://github.com/cvjena/JeFaPaTo/releases/latest/download/JeFaPaTo_intel_v10.dmg)
 
-If you want to install JeFaPaTo from source, please follow the instructions in the [installation guide](INSTALL.md).
+## Tutorials
 
-## How to use JeFaPaTo
-
-### Facial Features
-
-1. Start JeFaPaTo
-2. Select the video file or drag and drop it into the indicated area
-3. The face should be found automatically; if not, adjust the bounding box
-4. Select the facial features you want to analyze in the sidebar
-5. Press the play button to start the analysis
-
-### Blinking Detection
-
-1. Start JeFaPaTo
-2. Select the feature "Blinking Detection" in the top bar
-3. Drag and drop the `.csv` file containing the EAR-Score values into the indicated area
-   - you can also drag and drop the video file into the indicated area to jump to the corresponding frame
-4. Press the `Extract Blinks` buttons to extract the blinks (in a future version, the settings are not needed anymore)
-5. In the table, you now have the option to label the blinks
-6. Press `Summarize` to get a summary of the blink behavior
-7. Press `Export` to export the data in the appropriate format
+If you want to know more about how to use `JeFaPaTo`, please refer to the [Wiki Pages](https://github.com/cvjena/JeFaPaTo/wiki).
+There, you can find a custom installation guide and two tutorials, one for the facial feature extraction and another one for the eye blink extraction.
+Additionally, we list specific background information on the usage of the tool.
 
 ## Citing JeFaPaTo
 
