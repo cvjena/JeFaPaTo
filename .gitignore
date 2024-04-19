@@ -73,6 +73,7 @@ venv*
 *.dmg
 *.spec
 !examples/*.csv
+!examples/*.mp4
 
 paper/paper.jats
 paper/paper.pdf
