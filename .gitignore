@@ -72,7 +72,8 @@ temp/
 venv*
 *.dmg
 *.spec
-!examples/ear_score.csv
+!examples/*.csv
+!examples/*.mp4
 
 paper/paper.jats
 paper/paper.pdf

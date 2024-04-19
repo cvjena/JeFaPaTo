@@ -17,7 +17,7 @@ class JGraph(QWidget):
                 
         self.plot_item.setLimits(xMin=0, xMax=x_lim_max)
         self.plot_item.setXRange(0, x_lim_max)
-        self.plot_item.setYRange(0, 1)
+        self.plot_item.setYRange(-0.05, 1)
 
         self.axis_b: pg.AxisItem = self.plot_item.getAxis("bottom")
         self.curves: list[pg.PlotDataItem] = []

@@ -132,6 +132,7 @@ def summarize(
     partial_times_l = pd.to_datetime(partial_l["minute"], unit='m', errors="ignore")
     partial_group_l = partial_l.groupby(partial_times_l.dt.minute)
     
+    i = 1
     for i, row in enumerate(partial_group_l.count()["minute"], start=1):
         statistics[f"Partial_Blinks_min{i:02d}_left"] = row
     while i <= math.ceil(length_l_min):
@@ -141,9 +142,11 @@ def summarize(
     partial_r["minute"] = partial_r["apex_frame_og"]  / fps / 60
     partial_times_r = pd.to_datetime(partial_r["minute"], unit='m', errors="ignore")
     partial_group_r = partial_r.groupby(partial_times_r.dt.minute)
-    
+   
+    i = 1 
     for i, row in enumerate(partial_group_r.count()["minute"], start=1):
         statistics[f"Partial_Blinks_min{i:02d}_right"] = row
+    
     while i <= math.ceil(length_r_min):
         statistics[f"Partial_Blinks_min{i:02d}_right"] = 0
         i += 1

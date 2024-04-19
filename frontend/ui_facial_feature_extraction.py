@@ -159,13 +159,29 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
         self.la_current_file.setWordWrap(True)
 
         self.pb_anal = self.parent().progress_bar # type: ignore # TODO: fix this as JeFaPaTo cannot be imported from here...
-        self.skip_frame = QtWidgets.QSpinBox()
+        self.update_delay = QtWidgets.QSpinBox()
 
         self.auto_save = QtWidgets.QCheckBox("Auto-Save")
         self.auto_save.setToolTip("Save the extracted data automatically after the analysis is finished.")
 
         self.use_bbox = QtWidgets.QCheckBox("Use Bounding Box")
         self.use_bbox.setToolTip("Use the bounding box to extract the landmarks.")
+
+        self.rotate_group = QtWidgets.QGroupBox("Rotate")
+        self.rotate_group.setLayout(QtWidgets.QVBoxLayout())
+
+        self.rotate_none = QtWidgets.QRadioButton("None")
+        self.rotate_90 = QtWidgets.QRadioButton("90")
+        self.rotate_m90 = QtWidgets.QRadioButton("-90")
+        
+        self.rotate_none.setChecked(True)
+        self.rotate_group.layout().addWidget(self.rotate_none)
+        self.rotate_group.layout().addWidget(self.rotate_90)
+        self.rotate_group.layout().addWidget(self.rotate_m90)
+        self.current_rotation = "None"
+        self.rotate_none.toggled.connect(self.set_rotation)
+        self.rotate_90.toggled.connect(self.set_rotation)
+        self.rotate_m90.toggled.connect(self.set_rotation)
 
         self.add_handler("auto_save", self.auto_save, default=True)
         self.add_handler("use_bbox", self.use_bbox, default=True)
@@ -191,9 +207,11 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
         self.flayout_se.addRow(self.button_start)
         self.flayout_se.addRow(self.bt_pause_resume)
         self.flayout_se.addRow(self.button_stop)
+        self.flayout_se.addRow(self.rotate_group)
+        
         self.flayout_se.addRow(self.feature_group)
         self.flayout_se.addRow(self.blends_shape_group)
-        self.flayout_se.addRow("Graph Update Delay:", self.skip_frame)
+        self.flayout_se.addRow("Update Delay:", self.update_delay)
         self.flayout_se.addRow(self.bt_reset_graph)
         self.flayout_se.addRow(self.auto_save)
         self.flayout_se.addRow(self.use_bbox)
@@ -215,8 +233,7 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
         self.button_stop.clicked.connect(self.stop)
         self.bt_pause_resume.clicked.connect(self.ea.toggle_pause)
 
-        self.skip_frame.setRange(1, 20)
-        self.skip_frame.setValue(1)
+        self.update_delay.setRange(1, 30)
 
         # disable analyse button and check box
         self.button_start.setDisabled(True)
@@ -231,6 +248,9 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
         self.jefapato_signal_thread = JeFaPaToGUISignalThread(self)
         self.ea.register_hooks(self.jefapato_signal_thread)
         
+        self.update_delay.valueChanged.connect(self.jefapato_signal_thread.set_update_interval)
+        self.update_delay.setValue(5)
+        
         self.jefapato_signal_thread.sig_updated_display.connect(self.sig_updated_display)
         self.jefapato_signal_thread.sig_updated_feature.connect(self.sig_updated_feature)
         self.jefapato_signal_thread.sig_processed_percentage.connect(self.sig_processed_percentage)
@@ -239,6 +259,15 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
         self.jefapato_signal_thread.sig_resumed.connect(self.sig_resumed)
         self.jefapato_signal_thread.sig_finished.connect(self.sig_finished)
         self.jefapato_signal_thread.start()
+ 
+    def set_rotation(self):
+        if self.rotate_none.isChecked():
+            self.current_rotation = "None"
+        elif self.rotate_90.isChecked():
+            self.current_rotation = "90"
+        elif self.rotate_m90.isChecked():
+            self.current_rotation = "-90"
+        self.set_resource(self.video_resource)
         
     def setup_graph(self) -> None:
         logger.info("Setup graph for all features to plot", features=len(self.used_features_classes))
@@ -285,7 +314,7 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
         self.ea.set_features(self.used_features_classes)
         
         rect = self.widget_frame.get_roi_rect() if self.use_bbox.isChecked() else None        
-        self.ea.clean_start(rect)
+        self.ea.clean_start(rect, self.current_rotation)
 
     def stop(self) -> None:
         self.ea.stop()
@@ -362,7 +391,7 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
                 self.plot_data[feature_name][:-1] = self.plot_data[feature_name][1:]
                 self.plot_data[feature_name][-1] = feature_value
 
-                if self.update_count % self.skip_frame.value() == 0:
+                if self.update_count % self.update_delay.value() == 0:
                     self.plot_item[feature_name].setData(self.plot_data[feature_name])
 
     def load_video(self):
@@ -371,7 +400,7 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
             parent=self,
             caption="Select video file",
             directory=".",
-            filter="Video Files (*.mp4 *.flv *.ts *.mts *.avi *.mov)",
+            filter="Video Files (*.mp4 *.flv *.ts *.mts *.avi *.mov *.wmv)",
         )
 
         if fileName == "":
@@ -404,7 +433,7 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
         else:
             self.la_current_file.setText("File: Live Webcam Feed")
 
-        success, frame = self.ea.prepare_video_resource(self.video_resource)
+        success, frame = self.ea.prepare_video_resource(self.video_resource, self.current_rotation)
         if success:
             logger.info("Image was set", parent=self)
             self.widget_frame.set_selection_image(frame)
@@ -454,7 +483,7 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
         file = files[0]
 
         file = Path(file)
-        if file.suffix.lower() not in [".mp4", ".flv", ".ts", ".mts", ".avi", ".mov"]:
+        if file.suffix.lower() not in [".mp4", ".flv", ".ts", ".mts", ".avi", ".mov", ".wmv"]:
             logger.info("User dropped invalid file", widget=self)
             return
         self.set_resource(Path(file)) 

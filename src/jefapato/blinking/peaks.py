@@ -15,11 +15,20 @@ def otsu_thresholding(values: np.ndarray) -> float:
     """
     # first remove all nans from the values
     values = values[~np.isnan(values)]
+    
+    # check that there are enough values for the calculation
+    if len(values) < 6:
+        return np.nan
+
     th_range = np.sort(np.unique(values))[3:-3] # remove the first and last 3 values to avoid errors in the calculation
     res = []
     for th in th_range:
         r = np.nansum([np.mean(cls) * np.var(values, where=cls) for cls in [values>=th, values<th]])
         res.append(r)
+
+    if len(res) == 0:
+        # if the result is empty, return np.nan
+        return np.nan
     return th_range[np.argmin(res)]
 
 def peaks(
@@ -146,12 +155,23 @@ def peaks(
     df = pd.DataFrame(blinks, columns=list(blinks.keys()), index=blinks["index"]).reset_index(drop=True)
     
     prominance = df["prominance"].to_numpy()
-    th = otsu_thresholding(prominance) if partial_threshold == "auto" else partial_threshold
     df["blink_type"] = "none"
+    
+    # either estimate the threshold or use the given value
+    th = otsu_thresholding(prominance) if partial_threshold == "auto" else partial_threshold
+    
+    # if the threshold is np.nan, then the thresholding failed
+    # so set all blinks to complete
+    if th is np.nan:
+        for index, row in df.iterrows():
+            df.loc[index, 'blink_type'] = "complete"
+        
+        return df, th
+    
+    # set the blink type based on the threshold
     for index, row in df.iterrows():
         if row["prominance"] > th:
             df.loc[index, 'blink_type'] = "complete"
         else:
             df.loc[index, 'blink_type'] = "partial"
-
     return df, th
