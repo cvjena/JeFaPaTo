@@ -59,7 +59,7 @@ arch -x86_64 python3 -m pip install --upgrade --force-reinstall .
 
 rm -rf build
 
-arch -x86_64 pyinstaller --windowed --onefile --name JeFaPaTo --add-data src/jefapato:jefapato --add-data frontend:frontend --add-data jefapato:jefapato --add-data examples:examples --icon "frontend/assets/icons/icon.icns" main.py
+arch -x86_64 pyinstaller --windowed --onefile --name JeFaPaTo --add-data src/jefapato:jefapato --add-data frontend:frontend --add-data examples:examples --icon "frontend/assets/icons/icon.icns" main.py
 
 mkdir -p dist/intel
 mv dist/JeFaPaTo.app dist/intel/JeFaPaTo.app
