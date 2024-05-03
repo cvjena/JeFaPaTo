@@ -1,0 +1,50 @@
+cff-version: "1.2.0"
+authors:
+- family-names: Büchner
+  given-names: Tim
+  orcid: "https://orcid.org/0000-0002-6879-552X"
+- family-names: Mothes
+  given-names: Oliver
+  orcid: "https://orcid.org/0000-0002-2294-3670"
+- family-names: Guntinas-Lichius
+  given-names: Orlando
+  orcid: "https://orcid.org/0000-0001-9671-0784"
+- family-names: Denzler
+  given-names: Joachim
+  orcid: "https://orcid.org/0000-0002-3193-3300"
+contact:
+- family-names: Büchner
+  given-names: Tim
+  orcid: "https://orcid.org/0000-0002-6879-552X"
+doi: 10.5281/zenodo.11085954
+message: If you use this software, please cite our article in the
+  Journal of Open Source Software.
+preferred-citation:
+  authors:
+  - family-names: Büchner
+    given-names: Tim
+    orcid: "https://orcid.org/0000-0002-6879-552X"
+  - family-names: Mothes
+    given-names: Oliver
+    orcid: "https://orcid.org/0000-0002-2294-3670"
+  - family-names: Guntinas-Lichius
+    given-names: Orlando
+    orcid: "https://orcid.org/0000-0001-9671-0784"
+  - family-names: Denzler
+    given-names: Joachim
+    orcid: "https://orcid.org/0000-0002-3193-3300"
+  date-published: 2024-05-03
+  doi: 10.21105/joss.06425
+  issn: 2475-9066
+  issue: 97
+  journal: Journal of Open Source Software
+  publisher:
+    name: Open Journals
+  start: 6425
+  title: JeFaPaTo - A joint toolbox for blinking analysis and facial
+    features extraction
+  type: article
+  url: "https://joss.theoj.org/papers/10.21105/joss.06425"
+  volume: 9
+title: JeFaPaTo - A joint toolbox for blinking analysis and facial
+  features extraction
