@@ -41,9 +41,19 @@ Additionally, we list specific background information on the usage of the tool.
 If you use `JeFaPaTo` in your research, please cite it as follows:
 
 ```bibtex
-unpublished yet
+@article{Büchner2024,
+  doi = {10.21105/joss.06425},
+  url = {https://doi.org/10.21105/joss.06425},
+  year = {2024},
+  publisher = {The Open Journal},
+  volume = {9},
+  number = {97},
+  pages = {6425},
+  author = {Tim Büchner and Oliver Mothes and Orlando Guntinas-Lichius and Joachim Denzler},
+  title = {JeFaPaTo - A joint toolbox for blinking analysis and facial features extraction},
+  journal = {Journal of Open Source Software}
+  }
 ```
-
 Depending on the features you use, please also cite the following papers:
 
 ```bibtex
