@@ -1,5 +1,9 @@
 <p align="center">
   <img width="460" height="300" src="frontend/assets/icons/icon.svg">
+  <br>
+  <a style="border-width:0" href="https://doi.org/10.21105/joss.06425">
+    <img src="https://joss.theoj.org/papers/10.21105/joss.06425/status.svg" alt="DOI badge" >
+  </a>
 </p>
 
 # JeFaPaTo - A tool for the analysis of facial features
