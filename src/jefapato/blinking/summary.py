@@ -1,16 +1,20 @@
 __all__ = ["summarize", "visualize"]
 
 import math
+from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
 
-def get_blink_start(df: pd.DataFrame, blink_id: int) -> int:
+def get_blink_start(df: pd.Series | pd.DataFrame, blink_id: int) -> int:
     """
     Find the frame number of the start of the blink based on the blink_id.
     """
+    assert isinstance(df, pd.Series) or isinstance(df, pd.DataFrame), "df must be a pandas Series or DataFrame"
+    assert isinstance(blink_id, int), "blink_id must be an integer"
+
     # first remove all nan rows
     temp_df = df.dropna(how="any", inplace=False)  # do not modify the original DataFrame!
     temp_df = temp_df.reset_index(drop=True)
@@ -63,17 +67,20 @@ def summarize(
         pd.DataFrame: DataFrame containing the summarized statistics
     """
     matched_blinks = pd.DataFrame(matched_blinks, copy=True)
-    matched_blinks.dropna(subset=[("left", "blink_type"), ("right", "blink_type")], inplace=True)
+    # matched_blinks.dropna(subset=[("left", "blink_type"), ("right", "blink_type")], inplace=True)
+
     # compute the statistics which the medical partners are interested in
     length_l_min = len(ear_l) / fps / 60
     length_r_min = len(ear_r) / fps / 60
-    statistics = {}
+
+    statistics: dict[str, Any] = {}
 
     # average ear score 3 seconds before the first blink
     end_l = get_blink_start(matched_blinks["left"], 0)  # call it end even though it is the start, because it is the end of the 3 seconds
     end_r = get_blink_start(matched_blinks["right"], 0)
     start_l = max(end_l - 3 * fps, 0)
     start_r = max(end_r - 3 * fps, 0)
+
     statistics["EAR_Before_Blink_left_avg"] = np.nanmean(ear_l[start_l:end_l])
     statistics["EAR_Before_Blink_right_avg"] = np.nanmean(ear_r[start_r:end_r])
 
@@ -130,28 +137,8 @@ def summarize(
     statistics["Blink_Length_right_ms_avg"] = np.nanmean(blink_lengths_r_ms)
     statistics["Blink_Length_right_ms_std"] = np.nanstd(blink_lengths_r_ms)
 
-    partial_l["minute"] = partial_l["apex_frame_og"] / fps / 60
-    partial_times_l = pd.to_datetime(partial_l["minute"], unit="m", errors="ignore")
-    partial_group_l = partial_l.groupby(partial_times_l.dt.minute)
-
-    i = 1
-    for i, row in enumerate(partial_group_l.count()["minute"], start=1):
-        statistics[f"Partial_Blinks_min{i:02d}_left"] = row
-    while i <= math.ceil(length_l_min):
-        statistics[f"Partial_Blinks_min{i:02d}_left"] = 0
-        i += 1
-
-    partial_r["minute"] = partial_r["apex_frame_og"] / fps / 60
-    partial_times_r = pd.to_datetime(partial_r["minute"], unit="m", errors="ignore")
-    partial_group_r = partial_r.groupby(partial_times_r.dt.minute)
-
-    i = 1
-    for i, row in enumerate(partial_group_r.count()["minute"], start=1):
-        statistics[f"Partial_Blinks_min{i:02d}_right"] = row
-
-    while i <= math.ceil(length_r_min):
-        statistics[f"Partial_Blinks_min{i:02d}_right"] = 0
-        i += 1
+    statistics.update(blinks_per_min(partial_l, length_l_min, fps, "left", "Partial"))
+    statistics.update(blinks_per_min(partial_r, length_r_min, fps, "right", "Partial"))
 
     # complete blinks counting
     complete_l = matched_blinks["left"][matched_blinks["left"]["blink_type"] == "complete"]
@@ -162,25 +149,8 @@ def summarize(
     statistics["Complete_Frequency_left_bpm"] = statistics["Complete_Blink_Total_left"] / length_l_min
     statistics["Complete_Frequency_right_bpm"] = statistics["Complete_Blink_Total_right"] / length_r_min
 
-    complete_l["minute"] = complete_l["apex_frame_og"] / fps / 60
-    complete_times_l = pd.to_datetime(complete_l["minute"], unit="m", errors="ignore")
-    complete_group_l = complete_l.groupby(complete_times_l.dt.minute)
-
-    for i, row in enumerate(complete_group_l.count()["minute"], start=1):
-        statistics[f"Complete_Blinks_min{i:02d}_left"] = row
-    while i <= math.ceil(length_l_min):
-        statistics[f"Complete_Blinks_min{i:02d}_left"] = 0
-        i += 1
-
-    complete_r["minute"] = complete_r["apex_frame_og"] / fps / 60
-    complete_times_r = pd.to_datetime(complete_r["minute"], unit="m", errors="ignore")
-    complete_group_r = complete_r.groupby(complete_times_r.dt.minute)
-
-    for i, row in enumerate(complete_group_r.count()["minute"], start=1):
-        statistics[f"Complete_Blinks_min{i:02d}_right"] = row
-    while i <= math.ceil(length_l_min):
-        statistics[f"Complete_Blinks_min{i:02d}_right"] = 0
-        i += 1
+    statistics.update(blinks_per_min(complete_l, length_l_min, fps, "left", "Complete"))
+    statistics.update(blinks_per_min(complete_r, length_r_min, fps, "right", "Complete"))
 
     out_df = pd.DataFrame.from_dict(statistics, orient="index")
     # make the index a column
@@ -188,6 +158,34 @@ def summarize(
     out_df.columns = ["statistics", "value"]
     # compute the statistics for the left eye
     return out_df
+
+
+def blinks_per_min(selection: pd.DataFrame | pd.Series, length: float, fps: int, side: str, prefix: str) -> dict[str, int]:
+    """
+    Calculate the number of blinks per minute from a given selection of blink data.
+    Args:
+        selection (pd.DataFrame | pd.Series): A pandas DataFrame or Series containing blink data. Must include the 'apex_frame_og' column.
+        length (float): The total length of the video in minutes.
+        fps (int): Frames per second of the video.
+        side (str): The side of the face being analyzed (e.g., 'left' or 'right').
+        prefix (str): A prefix to be added to the keys in the resulting dictionary.
+    Returns:
+        dict[str, int]: A dictionary where keys are formatted as '{prefix}_Blinks_min{minute}_{side}' and values are the number of blinks in each minute.
+    """
+    stat: dict[str, int] = {}
+
+    assert isinstance(selection, pd.DataFrame) or isinstance(selection, pd.Series), "selection must be a pandas DataFrame or Series"
+    assert "apex_frame_og" in selection.columns, "selection must contain the 'apex_frame_og' column"
+
+    selection["minute"] = selection["apex_frame_og"] / fps / 60
+    partial_times_l: pd.Series = pd.to_datetime(selection["minute"], unit="m", errors="ignore")  # type: ignore
+    selection_group = selection.groupby(partial_times_l.dt.minute)
+    series = selection_group.count()["minute"]
+
+    for i in range(0, math.ceil(length)):
+        stat[f"{prefix}_Blinks_min{i + 1:02d}_{side}"] = series.get(key=i, default=0)  # type: ignore
+
+    return stat
 
 
 def visualize(
