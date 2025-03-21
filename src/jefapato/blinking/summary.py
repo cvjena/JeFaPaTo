@@ -12,6 +12,25 @@ from matplotlib.figure import Figure
 def get_blink_start(df: pd.Series | pd.DataFrame, blink_id: int) -> int:
     """
     Find the frame number of the start of the blink based on the blink_id.
+
+    Parameters
+    ----------
+        df (pd.Series or pd.DataFrame): A pandas Series or DataFrame containing blink data.
+        blink_id (int): The identifier of the blink whose start frame is to be found.
+
+    Returns
+    -------
+        int: The frame number of the start of the blink.
+
+    Raises
+    ------
+        AssertionError: If df is not a pandas Series or DataFrame, or if blink_id is not an integer.
+        ValueError: If blink_id is outside the range of the DataFrame.
+
+    Notes:
+    - The function first removes all rows with NaN values from the DataFrame.
+    - The DataFrame is then reset to have a continuous index starting from 0.
+    - The start frame is calculated by subtracting half the peak internal width from the apex frame.
     """
     assert isinstance(df, pd.Series) or isinstance(df, pd.DataFrame), "df must be a pandas Series or DataFrame"
     assert isinstance(blink_id, int), "blink_id must be an integer"
@@ -297,7 +316,7 @@ def visualize(
     if np.all(np.diff(group_index) > 0):
         # Add a new axis for the histogram
         axis_hist = fig.add_subplot(gs[1, 1])
-        cut = pd.cut(df["distance_ms"], group_index)
+        cut = pd.cut(df["distance_ms"], group_index)  # type: ignore
         groups = df.groupby(cut)
         groups_count = groups.count()
         # make the bins based on the stds
