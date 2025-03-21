@@ -198,7 +198,12 @@ def blinks_per_min(selection: pd.DataFrame | pd.Series, length: float, fps: int,
     assert "apex_frame_og" in selection.columns, "selection must contain the 'apex_frame_og' column"
 
     selection["minute"] = selection["apex_frame_og"] / fps / 60
-    partial_times_l: pd.Series = pd.to_datetime(selection["minute"], unit="m", errors="ignore")  # type: ignore
+
+    try:
+        partial_times_l: pd.Series = pd.to_datetime(selection["minute"], unit="m")
+    except ValueError:
+        return stat
+
     selection_group = selection.groupby(partial_times_l.dt.minute)
     series = selection_group.count()["minute"]
 
