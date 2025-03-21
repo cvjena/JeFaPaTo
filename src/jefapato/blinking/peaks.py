@@ -4,26 +4,27 @@ import numpy as np
 import pandas as pd
 from scipy import signal
 
+
 def otsu_thresholding(values: np.ndarray) -> float:
     """
     Thresholding of the histogram values using the Otsu method.
-    
+
     Computes the best threshold for the given values using the Otsu method splitting the values into two classes.
     The threshold is the value that minimizes the within-class variance.
-    
+
     Based on https://en.wikipedia.org/wiki/Otsu%27s_method
     """
     # first remove all nans from the values
     values = values[~np.isnan(values)]
-    
+
     # check that there are enough values for the calculation
     if len(values) < 6:
         return np.nan
 
-    th_range = np.sort(np.unique(values))[3:-3] # remove the first and last 3 values to avoid errors in the calculation
+    th_range = np.sort(np.unique(values))[3:-3]  # remove the first and last 3 values to avoid errors in the calculation
     res = []
     for th in th_range:
-        r = np.nansum([np.mean(cls) * np.var(values, where=cls) for cls in [values>=th, values<th]])
+        r = np.nansum([np.mean(cls) * np.var(values, where=cls) for cls in [values >= th, values < th]])
         res.append(r)
 
     if len(res) == 0:
@@ -31,20 +32,21 @@ def otsu_thresholding(values: np.ndarray) -> float:
         return np.nan
     return th_range[np.argmin(res)]
 
+
 def peaks(
-    time_series: np.ndarray, 
+    time_series: np.ndarray,
     minimum_distance: int = 50,
     minimum_prominence: float = 0.05,
     minimum_internal_width: int = 10,
     maximum_internal_width: int = 250,
     partial_threshold: str | float = "auto",
-) -> pd.DataFrame:
+) -> tuple[pd.DataFrame, float]:
     """
     Blinks the peaks of the EAR Score time series for a single eye.
-    
+
     Args
     ----
-    time_series : np.ndarray 
+    time_series : np.ndarray
         The input time series data.
     threshold : float
         The threshold value for filtering peaks.
@@ -60,7 +62,7 @@ def peaks(
         The thresholding parameter for the partial blinks. Defaults to "auto".
         If "auto", the threshold is computed using the Otsu method.
         If a float, the threshold is set to the given value.
-    
+
     Returns
     -------
     pd.DataFrame:
@@ -74,8 +76,8 @@ def peaks(
     Value Error
         - If the thresholding parameter is a tuple, but does not have two values.
         - If the thresholding parameter is a tuple, but has negative values.
-        - If the thresholding parameter is not a string or tuple. 
-    
+        - If the thresholding parameter is not a string or tuple.
+
     """
     if not isinstance(time_series, np.ndarray):
         raise TypeError("Time series is not a numpy array.")
@@ -83,7 +85,7 @@ def peaks(
         raise ValueError("Time series is not one-dimensional.")
     if np.isnan(time_series).any():
         raise ValueError("Time series contains NaN values.")
-    
+
     if not isinstance(minimum_distance, int):
         raise TypeError("Minimum distance is not an integer.")
     if minimum_distance < 0:
@@ -112,12 +114,11 @@ def peaks(
     if isinstance(partial_threshold, float):
         if partial_threshold < 0:
             raise ValueError("Thresholding parameter is a float, but negative.")
-    
-    
+
     # Find the peaks by turning the time series upside down
     peaks, props = signal.find_peaks(
         x=-time_series,
-        distance=minimum_distance, 
+        distance=minimum_distance,
         prominence=minimum_prominence,
         width=minimum_internal_width,
     )
@@ -153,25 +154,25 @@ def peaks(
         blinks["peak_height"].append(peak_height)
 
     df = pd.DataFrame(blinks, columns=list(blinks.keys()), index=blinks["index"]).reset_index(drop=True)
-    
+
     prominance = df["prominance"].to_numpy()
     df["blink_type"] = "none"
-    
+
     # either estimate the threshold or use the given value
     th = otsu_thresholding(prominance) if partial_threshold == "auto" else partial_threshold
-    
+
     # if the threshold is np.nan, then the thresholding failed
     # so set all blinks to complete
     if th is np.nan:
         for index, row in df.iterrows():
-            df.loc[index, 'blink_type'] = "complete"
-        
+            df.loc[index, "blink_type"] = "complete"
+
         return df, th
-    
+
     # set the blink type based on the threshold
     for index, row in df.iterrows():
         if row["prominance"] > th:
-            df.loc[index, 'blink_type'] = "complete"
+            df.loc[index, "blink_type"] = "complete"
         else:
-            df.loc[index, 'blink_type'] = "partial"
+            df.loc[index, "blink_type"] = "partial"
     return df, th
