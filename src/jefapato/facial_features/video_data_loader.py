@@ -36,6 +36,7 @@ class VideoDataLoader(threading.Thread):
         """
         super().__init__(daemon=True)
         assert data_amount is not None, "data_amount must be set"
+        assert rotation in ["None", "90", "-90"], "rotation must be 'None', '90', or '-90'"
 
         self.start_time = time.time()
         self.next_item_func: Callable = next_item_func
