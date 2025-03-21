@@ -1,6 +1,16 @@
-__all__ = ["peaks", "smooth", "match", "summarize", "visualize", "load_ear_score", "save_results", "HELP_DESCRIPTION"]
+__all__ = [
+    "peaks",
+    "peaks_espbm",
+    "smooth",
+    "match",
+    "summarize",
+    "visualize",
+    "load_ear_score",
+    "save_results",
+    "HELP_DESCRIPTION",
+]
 
-from jefapato.blinking.peaks import peaks
+from jefapato.blinking.peaks import peaks, peaks_espbm
 from jefapato.blinking.smooth import smooth
 from jefapato.blinking.match import match
 from jefapato.blinking.summary import summarize, visualize

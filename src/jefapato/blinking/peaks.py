@@ -1,5 +1,6 @@
-__all__ = ["peaks"]
+__all__ = ["peaks", "peaks_espbm"]
 
+import espbm
 import numpy as np
 import pandas as pd
 from scipy import signal
@@ -176,3 +177,78 @@ def peaks(
         else:
             df.loc[index, "blink_type"] = "partial"
     return df, th
+
+
+def peaks_espbm(
+    time_series: np.ndarray,
+    minimum_prominence: float = 0.05,
+    partial_threshold: str | float = "auto",
+) -> tuple[pd.DataFrame, float]:
+    prototype, params = espbm.manual.define_prototype(return_params=True)
+    matches = espbm.match.find_prototype(time_series, prototype, max_prototype_distance=3.0)
+
+    blinks = {
+        "index": [],
+        "apex_frame": [],
+        "ear_score": [],
+        "intersection_point_lower": [],
+        "intersection_point_upper": [],
+        "prominance": [],
+        "peak_internal_width": [],
+        "peak_height": [],
+    }
+
+    time_series = time_series.round(4)
+
+    for idx, (_from, _to, _) in enumerate(matches):
+        interval = time_series[_from:_to]
+        _, o_params = espbm.match.optim(interval=interval, prototype_params=params)
+        if o_params is None:  # if the optimization failed, skip the blink
+            continue
+        props = espbm.match.interval_stats(interval, o_params)
+
+        prominance = props["prominance"]
+        if prominance < minimum_prominence:
+            continue
+
+        intersection_point_left = props["ips_left"]
+        intersection_point_right = props["ips_right"]
+        peak_height = props["heights"]
+        peak_interal_width = props["internal_width"]
+
+        blinks["index"].append(idx)
+        blinks["apex_frame"].append(props["apex_location"] + _from)
+        blinks["ear_score"].append(props["apex_score"])
+
+        blinks["intersection_point_lower"].append(intersection_point_left + _from)
+        blinks["intersection_point_upper"].append(intersection_point_right + _from)
+
+        blinks["prominance"].append(prominance)
+        blinks["peak_internal_width"].append(peak_interal_width)
+        blinks["peak_height"].append(peak_height)
+
+    df = pd.DataFrame(blinks, columns=list(blinks.keys()), index=blinks["index"]).reset_index(drop=True)
+
+    prominance = df["prominance"].to_numpy()
+    df["blink_type"] = "none"
+
+    # either estimate the threshold or use the given value
+    th = otsu_thresholding(prominance) if partial_threshold == "auto" else partial_threshold
+
+    # if the threshold is np.nan, then the thresholding failed
+    # so set all blinks to complete
+    if th is np.nan:
+        for index, row in df.iterrows():
+            df.loc[index, "blink_type"] = "complete"
+
+        return df, th
+
+    # set the blink type based on the threshold
+    for index, row in df.iterrows():
+        if row["prominance"] > th:
+            df.loc[index, "blink_type"] = "complete"
+        else:
+            df.loc[index, "blink_type"] = "partial"
+    return df, th
+
+    return matches
