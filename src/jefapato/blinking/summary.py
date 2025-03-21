@@ -6,6 +6,7 @@ from typing import Any
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.figure import Figure
 
 
 def get_blink_start(df: pd.Series | pd.DataFrame, blink_id: int) -> int:
@@ -235,18 +236,25 @@ def visualize(
     df["distance_ms"] = df["distance"] / fps * 1000  # convert to ms
     df["distance_min"] = df["distance_ms"] / 1000 / 60  # convert to min
 
-    dists_avg_roll = df["distance_ms"].rolling(rolling_mean).mean().fillna(method="bfill")
-    dists_std_roll = df["distance_ms"].rolling(rolling_mean).std().fillna(method="bfill")
+    dists_avg_roll: pd.Series[float] = df["distance_ms"].rolling(rolling_mean).mean().bfill()
+    dists_std_roll: pd.Series[float] = df["distance_ms"].rolling(rolling_mean).std().bfill()
 
     # Start with a square Figure
-    fig = plt.figure(figsize=(20, 6), dpi=300)
+    fig: Figure = plt.figure(figsize=(20, 6), dpi=300)
     gs = fig.add_gridspec(2, 2, width_ratios=(8, 1), height_ratios=(1, 4), left=0.1, right=0.9, bottom=0.1, top=0.9, wspace=0.1, hspace=0.05)
 
     axis_main = fig.add_subplot(gs[1, 0])
     axis_main.scatter(df["timestep_min"], df["distance_ms"], c="k")
 
     (roll_avg,) = axis_main.plot(df["timestep_min"], dists_avg_roll, c="b")
-    roll_std = axis_main.fill_between(df["timestep_min"], dists_avg_roll - dists_std_roll, dists_avg_roll + dists_std_roll, color="b", alpha=0.1, label=f"Rolling std [{rolling_mean}]")
+    roll_std = axis_main.fill_between(
+        x=df["timestep_min"],
+        y1=dists_avg_roll - dists_std_roll,  # type: ignore
+        y2=dists_avg_roll + dists_std_roll,  # type: ignore
+        color="b",
+        alpha=0.1,
+        label=f"Rolling std [{rolling_mean}]",
+    )
 
     # draw the mean std as area around the mean
     axis_main.set_ylabel("Time Difference [ms] @ 240Hz")
@@ -279,7 +287,7 @@ def visualize(
     axis_devi = axis_main.twinx()
     axis_devi.set_ylabel("Deviation from mean in [ms]")
     ylims = axis_main.get_ylim()
-    axis_devi.set_ylim(ylims)
+    axis_devi.set_ylim(*ylims)
     axis_devi.set_yticks([-outer, avg - 3 * std, avg - 2 * std, avg - std, avg, avg + std, avg + 2 * std, avg + 3 * std, outer])
     axis_devi.set_yticklabels(["", "-3o", "-2o", "-o", "mean", "+o", "+2o", "+3o", ""])
 
@@ -289,7 +297,8 @@ def visualize(
     if np.all(np.diff(group_index) > 0):
         # Add a new axis for the histogram
         axis_hist = fig.add_subplot(gs[1, 1])
-        groups = df.groupby(pd.cut(df["distance_ms"], group_index))
+        cut = pd.cut(df["distance_ms"], group_index)
+        groups = df.groupby(cut)
         groups_count = groups.count()
         # make the bins based on the stds
         # axis_hist.hist(df["distance_ms"], bins="sqrt", color="k", orientation="horizontal")
@@ -297,7 +306,7 @@ def visualize(
         axis_hist.bar_label(bars, fmt="%d", label_type="center", color="w")
         # shift the ticks slightly higher to correct the bin centering
         axis_hist.yaxis.set_ticks_position("right")
-        axis_hist.set_ylim(ylims)
+        axis_hist.set_ylim(*ylims)
         axis_hist.yaxis.set_visible(False)
         axis_hist.set_title("Histogram")
 
@@ -307,8 +316,8 @@ def visualize(
     df[("right", "minute")] = df[("right", "apex_frame_og")] / fps / 60
 
     # 2. convert the minutes to datetime
-    times_l = pd.to_datetime(df[("left", "minute")], unit="m", errors="ignore")
-    times_r = pd.to_datetime(df[("right", "minute")], unit="m", errors="ignore")
+    times_l = pd.to_datetime(df[("left", "minute")], unit="m", errors="coerce")
+    times_r = pd.to_datetime(df[("right", "minute")], unit="m", errors="coerce")
 
     # 3. group the dataframe by the minutes
     group_l = df.groupby(times_l.dt.minute)
@@ -339,7 +348,7 @@ def visualize(
 
     # canvas = FigureCanvasAgg(fig)
     fig.canvas.draw()
-    rgba_buf = fig.canvas.buffer_rgba()
+    rgba_buf = fig.canvas.buffer_rgba()  # type: ignore
     (w, h) = fig.canvas.get_width_height()
     rgba_arr = np.frombuffer(rgba_buf, dtype=np.uint8).reshape((h, w, 4))
     return rgba_arr
