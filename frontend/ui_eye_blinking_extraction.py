@@ -2,16 +2,15 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pyqtgraph as pg
 import qtawesome as qta
 import structlog
-import pyqtgraph as pg
-from qtpy import QtCore, QtGui, QtWidgets
-
-from qtpy.QtWidgets import QMessageBox, QLabel
 from PyQt6.QtCore import pyqtSignal
+from qtpy import QtCore, QtGui, QtWidgets
+from qtpy.QtWidgets import QLabel, QMessageBox
 
-from jefapato import blinking
 from frontend import config, jwidgets
+from jefapato import blinking
 
 logger = structlog.get_logger()
 
