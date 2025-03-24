@@ -168,16 +168,16 @@ def peaks(
     # so set all blinks to complete
     if th is np.nan:
         for index, row in df.iterrows():
-            df.loc[index, "blink_type"] = "complete"
+            df.loc[index, "blink_type"] = "complete"  # type: ignore
 
         return df, th
 
     # set the blink type based on the threshold
     for index, row in df.iterrows():
         if row["prominance"] > th:
-            df.loc[index, "blink_type"] = "complete"
+            df.loc[index, "blink_type"] = "complete"  # type: ignore
         else:
-            df.loc[index, "blink_type"] = "partial"
+            df.loc[index, "blink_type"] = "partial"  # type: ignore
     return df, th
 
 
@@ -255,16 +255,14 @@ def peaks_espbm(
     # so set all blinks to complete
     if th is np.nan:
         for index, row in df.iterrows():
-            df.loc[index, "blink_type"] = "complete"
+            df.loc[index, "blink_type"] = "complete"  # type: ignore
 
-        return df, th
+        return df, th  # type: ignore
 
     # set the blink type based on the threshold
     for index, row in df.iterrows():
         if row["prominance"] > th:
-            df.loc[index, "blink_type"] = "complete"
+            df.loc[index, "blink_type"] = "complete"  # type: ignore
         else:
-            df.loc[index, "blink_type"] = "partial"
-    return df, th
-
-    return matches
+            df.loc[index, "blink_type"] = "partial"  # type: ignore
+    return df, th  # type: ignore
