@@ -545,12 +545,12 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         if self.raw_ear_l is None or self.raw_ear_r is None:
             return False
 
-        smooth_size = self.get("smooth_size") or 7  # default values
-        smooth_poly = self.get("smooth_poly") or 3  # default values
+        smooth_size = self.geti("smooth_size", 7)
+        smooth_poly = self.geti("smooth_poly", 3)
 
         try:
-            self.ear_l = blinking.smooth(self.raw_ear_l, smooth_size=smooth_size, smooth_poly=smooth_poly) if self.get("smooth") else self.raw_ear_l
-            self.ear_r = blinking.smooth(self.raw_ear_r, smooth_size=smooth_size, smooth_poly=smooth_poly) if self.get("smooth") else self.raw_ear_r
+            self.ear_l = blinking.smooth(self.raw_ear_l, smooth_size=smooth_size, smooth_poly=smooth_poly) if self.getb("smooth") else self.raw_ear_l
+            self.ear_r = blinking.smooth(self.raw_ear_r, smooth_size=smooth_size, smooth_poly=smooth_poly) if self.getb("smooth") else self.raw_ear_r
         except Exception as e:
             logger.error("Error while smoothing the EAR data", error=e)
             QMessageBox.critical(None, "Blinking Extraction Error", f"The EAR data could not be smoothed. {e}")
@@ -565,10 +565,10 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
 
         try:
             if self.algorith_extract_tabs.currentWidget() == self.jpeaks:
-                min_dist = self.get("min_dist") or 50  # default values
-                min_prom = self.get("min_prominence") or 0.1  # default values
-                min_int_width = self.get("min_width") or 10  # default values
-                max_int_width = self.get("max_width") or 100  # default values
+                min_dist = self.geti("min_dist", 50)
+                min_prom = self.getf("min_prominence", 0.1)
+                min_int_width = self.geti("min_width", 10)
+                max_int_width = self.geti("max_width", 100)
 
                 self.blinking_l, self.comp_partial_threshold_l = blinking.peaks(
                     time_series=self.ear_l,
@@ -588,8 +588,26 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
                 )
             elif self.algorith_extract_tabs.currentWidget() == self.jespbm:
                 min_prom = self.getf("JESPBM_min_prom", 0.05)
-                self.blinking_l, self.comp_partial_threshold_l = blinking.peaks_espbm(time_series=self.ear_l, minimum_prominence=min_prom, partial_threshold=partial_threshold_l)
-                self.blinking_r, self.comp_partial_threshold_r = blinking.peaks_espbm(time_series=self.ear_r, minimum_prominence=min_prom, partial_threshold=partial_threshold_r)
+                diag_running = jwidgets.JDialogRunning()
+                diag_running.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
+
+                self.blinking_l, self.comp_partial_threshold_l = blinking.peaks_espbm(
+                    time_series=self.ear_l,
+                    minimum_prominence=min_prom,
+                    partial_threshold=partial_threshold_l,
+                    f_min=diag_running.setMinimum,
+                    f_max=diag_running.setMaximum,
+                    f_val=diag_running.setValue,
+                )
+                self.blinking_r, self.comp_partial_threshold_r = blinking.peaks_espbm(
+                    time_series=self.ear_r,
+                    minimum_prominence=min_prom,
+                    partial_threshold=partial_threshold_r,
+                    f_min=diag_running.setMinimum,
+                    f_max=diag_running.setMaximum,
+                    f_val=diag_running.setValue,
+                )
+                diag_running.close()
         except Exception as e:
             logger.error("Error while computing the intervals for eye blinking extraction", error=e)
             QMessageBox.critical(None, "Error Blinking Extraction", f"Blinking Extraction Warning Error: {e}")

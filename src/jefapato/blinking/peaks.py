@@ -1,5 +1,7 @@
 __all__ = ["peaks", "peaks_espbm"]
 
+from typing import Callable
+
 import espbm
 import numpy as np
 import pandas as pd
@@ -183,6 +185,9 @@ def peaks_espbm(
     time_series: np.ndarray,
     minimum_prominence: float = 0.05,
     partial_threshold: str | float = "auto",
+    f_min: Callable | None = None,
+    f_max: Callable | None = None,
+    f_val: Callable | None = None,
 ) -> tuple[pd.DataFrame, float]:
     prototype, params = espbm.manual.define_prototype(return_params=True)
     matches = espbm.match.find_prototype(time_series, prototype, max_prototype_distance=3.0)
@@ -200,7 +205,17 @@ def peaks_espbm(
 
     time_series = time_series.round(4)
 
+    if f_min is not None:
+        f_min(0)
+    if f_max is not None:
+        f_max(len(matches))
+    if f_val is not None:
+        f_val(0)
+
     for idx, (_from, _to, _) in enumerate(matches):
+        if f_val is not None:
+            f_val(idx)
+
         interval = time_series[_from:_to]
         _, o_params = espbm.match.optim(interval=interval, prototype_params=params)
         if o_params is None:  # if the optimization failed, skip the blink

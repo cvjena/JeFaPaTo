@@ -1,6 +1,7 @@
-__all__ = ["JDialogWarn"]
+__all__ = ["JDialogWarn", "JDialogRunning"]
 
-from PyQt6 import QtWidgets
+from PyQt6 import QtWidgets, QtCore
+
 
 class JDialogWarn(QtWidgets.QMessageBox):
     """
@@ -18,9 +19,10 @@ class JDialogWarn(QtWidgets.QMessageBox):
         __init__: Initializes the JDialogWarn instance.
 
     """
+
     def __init__(
-        self, 
-        title: str, 
+        self,
+        title: str,
         text: str,
         information: str = "",
     ):
@@ -31,3 +33,17 @@ class JDialogWarn(QtWidgets.QMessageBox):
         self.setInformativeText(information)
         self.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Ok)
         self.exec()
+
+
+class JDialogRunning(QtWidgets.QProgressDialog):
+    """
+    Custom dialog box for displaying the running status of a process.
+    """
+
+    def __init__(self, text="Running..."):
+        super().__init__()
+        self.setLabelText(text)
+        self.setCancelButton(None)
+        self.setWindowFlag(QtCore.Qt.WindowType.WindowCloseButtonHint, False)
+        self.setWindowFlag(QtCore.Qt.WindowType.WindowContextHelpButtonHint, False)
+        self.setWindowFlag(QtCore.Qt.WindowType.WindowMinimizeButtonHint, False)

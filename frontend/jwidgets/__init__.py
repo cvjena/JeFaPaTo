@@ -18,11 +18,12 @@ __all__ = [
     "JSmoothing",
     "JBlinkingAnalysis",
     "JESPBM",
+    "JDialogRunning",
 ]
 
 from frontend.jwidgets.algorithms import JPeaks, JSmoothing, JBlinkingAnalysis, JESPBM
 from frontend.jwidgets.collapsiblebox import JCollapsibleBox
-from frontend.jwidgets.dialog import JDialogWarn
+from frontend.jwidgets.dialog import JDialogWarn, JDialogRunning
 from frontend.jwidgets.graph import JGraph
 from frontend.jwidgets.hline import JHLine
 from frontend.jwidgets.imagebox import JImageBox
