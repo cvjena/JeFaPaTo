@@ -77,7 +77,7 @@ class Config(pyqtconfig.ConfigManager):
         val = self.get(key)
         if val is None:
             return default
-        return val == "True"
+        return val
 
     def gets(self, key: str, default: str = "") -> str:
         val = self.get(key)
