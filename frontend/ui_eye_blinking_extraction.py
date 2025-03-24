@@ -7,7 +7,7 @@ import qtawesome as qta
 import structlog
 from PyQt6.QtCore import pyqtSignal
 from qtpy import QtCore, QtGui, QtWidgets
-from qtpy.QtWidgets import QLabel, QMessageBox
+from qtpy.QtWidgets import QMessageBox
 
 from frontend import config, jwidgets
 from jefapato import blinking
@@ -47,42 +47,6 @@ logger = structlog.get_logger()
 DOWNSAMPLE_FACTOR = 8
 
 
-def to_float(value: str) -> float:
-    """
-    Converts a string value to a float.
-
-    Args:
-        value (str): The string value to be converted.
-
-    Returns:
-        float: The converted float value. If the conversion fails, returns 0.0.
-    """
-    try:
-        return float(value)
-    except ValueError:
-        return 0.0
-
-
-def to_int(value: str) -> int:
-    """
-    Converts a string value to an integer.
-
-    Args:
-        value (str): The string value to be converted.
-
-    Returns:
-        int: The converted integer value. If the conversion fails, returns 0.
-    """
-    try:
-        return int(value)
-    except ValueError:
-        return 0
-
-
-F2S = (lambda x: to_float(x), lambda x: str(x))
-I2S = (lambda x: to_int(x), lambda x: str(x))
-
-
 def to_MM_SS(value):
     """
     Converts a value in seconds to a string representation in the format MM:SS.
@@ -109,23 +73,6 @@ def sec_to_min(seconds: float) -> str:
     minutes = int(seconds / 60)
     seconds = int(seconds % 60)
     return f"{minutes:02d}:{seconds:02d}"
-
-
-def create_help_button(tooltip: str, win=None) -> QtWidgets.QPushButton:
-    """
-    Create a help button with the given tooltip.
-
-    Args:
-        tooltip (str): The tooltip text to be displayed when hovering over the button.
-        win (QtWidgets.QWidget, optional): The parent widget for the help button. Defaults to None.
-
-    Returns:
-        QtWidgets.QPushButton: The created help button.
-    """
-    help_btn = QtWidgets.QPushButton(qta.icon("fa5s.question-circle"), "")
-    help_btn.setToolTip(tooltip)
-    help_btn.clicked.connect(lambda: QMessageBox.information(win, "Help", tooltip))
-    return help_btn
 
 
 # TODO just make this a normal widget and not a splitter
@@ -242,108 +189,24 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         self.btn_eprt.clicked.connect(self.save_results)
 
         # algorithm settings box
-        self.box_settings = QtWidgets.QGroupBox("Algorithm Settings")
+        self.box_settings = QtWidgets.QGroupBox("Blinking Extraction Settings")
         # dont make the groupbox changeable in height
         self.box_settings.setMinimumHeight(200)
         self.set_algo = QtWidgets.QGridLayout()
 
-        local = QtCore.QLocale(QtCore.QLocale.Language.English, QtCore.QLocale.Country.UnitedStates)
-        doulbe_validator = QtGui.QDoubleValidator()
-        doulbe_validator.setBottom(0)
-        doulbe_validator.setDecimals(3)
-        doulbe_validator.setNotation(QtGui.QDoubleValidator.Notation.StandardNotation)
-        doulbe_validator.setLocale(local)
+        self.jsmooth = jwidgets.JSmoothing(self)
+        self.janalysis = jwidgets.JBlinkingAnalysis(self)
+        self.janalysis.cb_video_fps.currentIndexChanged.connect(self.compute_graph_axis)
+        self.jpeaks = jwidgets.JPeaks(self)
+        self.jespbm = jwidgets.JESPBM(self)
 
-        int_validator = QtGui.QIntValidator()
-        int_validator.setBottom(0)
-        int_validator.setLocale(local)
+        self.algorith_extract_tabs = QtWidgets.QTabWidget()
+        self.algorith_extract_tabs.addTab(self.jpeaks, "Peaks")
+        self.algorith_extract_tabs.addTab(self.jespbm, "ESPBM (Beta)")
 
-        extraction_help_button = QtWidgets.QPushButton("Eye Blinking Extraction Help Description")
-        extraction_help_button.clicked.connect(lambda: QMessageBox.information(None, "Help", blinking.HELP_DESCRIPTION))
-        self.set_algo.addWidget(extraction_help_button, 0, 0, 1, 3)
-
-        le_minimum_distance = QtWidgets.QLineEdit()
-        le_minimum_distance.setValidator(int_validator)
-        self.add_handler("min_dist", le_minimum_distance, mapper=I2S, default=50)
-
-        self.set_algo.addWidget(QLabel("Minimum Distance"), 1, 0)
-        self.set_algo.addWidget(le_minimum_distance, 1, 1)
-        self.set_algo.addWidget(create_help_button("Minimum Distance: The minimum distance between two peaks in frames. Rec: 10@30FPS, 50@240FPS"), 1, 2)
-
-        le_minimum_prominence = QtWidgets.QLineEdit()
-        le_minimum_prominence.setValidator(doulbe_validator)
-        self.add_handler("min_prominence", le_minimum_prominence, mapper=F2S, default=0.1)
-
-        self.set_algo.addWidget(QLabel("Minimum Prominence"), 2, 0)
-        self.set_algo.addWidget(le_minimum_prominence, 2, 1)
-        self.set_algo.addWidget(create_help_button("Minimum Prominence: The minimum prominence of a peak in EAR score. Rec: 0.1"), 2, 2)
-
-        le_minimum_internal_width = QtWidgets.QLineEdit()
-        le_minimum_internal_width.setValidator(int_validator)
-        self.add_handler("min_width", le_minimum_internal_width, mapper=I2S, default=10)
-
-        self.set_algo.addWidget(QLabel("Minimum Internal Width"), 3, 0)
-        self.set_algo.addWidget(le_minimum_internal_width, 3, 1)
-        self.set_algo.addWidget(create_help_button("Minimum Internal Width: The minimum width of a peak in frames. Rec: 4@30FPS, 20@240FPS"), 3, 2)
-
-        le_maximum_internal_width = QtWidgets.QLineEdit()
-        le_maximum_internal_width.setValidator(int_validator)
-        self.add_handler("max_width", le_maximum_internal_width, mapper=I2S, default=100)
-
-        self.set_algo.addWidget(QLabel("Maximum Internal Width"), 4, 0)
-        self.set_algo.addWidget(le_maximum_internal_width, 4, 1)
-        self.set_algo.addWidget(create_help_button("Maximum Internal Width: The maximum width of a peak in frames. Rec: 20@30FPS, 100@240FPS"), 4, 2)
-
-        le_maximum_matching_dist = QtWidgets.QLineEdit()
-        le_maximum_matching_dist.setValidator(int_validator)
-        self.add_handler("maximum_matching_dist", le_maximum_matching_dist, mapper=I2S, default=30)
-
-        self.set_algo.addWidget(QLabel("Maximum Matching Distance"), 5, 0)
-        self.set_algo.addWidget(le_maximum_matching_dist, 5, 1)
-        self.set_algo.addWidget(create_help_button("Maximum Matching Distance: The maximum distance between two peaks to be matched in frames. Rec: 15@30FPS, 30@240FPS"), 5, 2)
-
-        le_partial_threshold_left = QtWidgets.QLineEdit()
-        self.add_handler("partial_threshold_l", le_partial_threshold_left, default="auto")
-
-        self.set_algo.addWidget(QLabel("Partial Threshold Left"), 6, 0)
-        self.set_algo.addWidget(le_partial_threshold_left, 6, 1)
-        self.set_algo.addWidget(create_help_button("Partial Threshold Left: The threshold for a partial blink in EAR score either 'auto' or a float number. Rec: 0.18"), 6, 2)
-
-        le_partial_threshold_right = QtWidgets.QLineEdit()
-        self.add_handler("partial_threshold_r", le_partial_threshold_right, default="auto")
-
-        self.set_algo.addWidget(QLabel("Partial Threshold Right"), 7, 0)
-        self.set_algo.addWidget(le_partial_threshold_right, 7, 1)
-        self.set_algo.addWidget(create_help_button("Partial Threshold Right: The threshold for a partial blink in EAR score either 'auto' or a float number. Rec: 0.18"), 7, 2)
-
-        # TODO this value is not saved in the config!
-        self.cb_video_fps = QtWidgets.QComboBox()
-        self.cb_video_fps.addItems(["24", "30", "60", "120", "240"])
-        self.cb_video_fps.setCurrentIndex(4)
-        self.cb_video_fps.currentIndexChanged.connect(self.compute_graph_axis)
-
-        self.set_algo.addWidget(QLabel("Video FPS"), 8, 0)
-        self.set_algo.addWidget(self.cb_video_fps, 8, 1)
-        self.set_algo.addWidget(create_help_button("Video FPS: The frames per second of the video."), 8, 2)
-
-        box_smooth = QtWidgets.QGroupBox("Smoothing")
-        box_smooth.setCheckable(True)
-        self.add_handler("smooth", box_smooth)
-        box_smooth_layout = QtWidgets.QFormLayout()
-        box_smooth.setLayout(box_smooth_layout)
-
-        le_smooth_size = QtWidgets.QLineEdit()
-        le_smooth_size.setValidator(int_validator)
-        self.add_handler("smooth_size", le_smooth_size, mapper=I2S, default=7)
-        box_smooth_layout.addRow("Window Size", le_smooth_size)
-
-        le_smooth_poly = QtWidgets.QLineEdit()
-        le_smooth_poly.setValidator(int_validator)
-        self.add_handler("smooth_poly", le_smooth_poly, mapper=I2S, default=3)
-        box_smooth_layout.addRow("Polynomial Degree", le_smooth_poly)
-
-        self.set_algo.addWidget(box_smooth, 9, 0, 1, 2)
-        self.set_algo.addWidget(create_help_button("Smoothing: The smoothing of the EAR data. Rec: Window Size: 7, Polynomial Degree: 3"), 9, 2)
+        self.set_algo.addWidget(self.jsmooth, 0, 0, 1, 3)
+        self.set_algo.addWidget(self.janalysis, 1, 0, 1, 3)
+        self.set_algo.addWidget(self.algorith_extract_tabs, 2, 0, 1, 3)
 
         # Visual Settings #
         self.box_visuals = QtWidgets.QGroupBox("Graph Control")
@@ -421,7 +284,7 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         Returns:
             int: The selected frames per second (fps).
         """
-        return int(self.cb_video_fps.currentText())
+        return int(self.janalysis.cb_video_fps.currentText())
 
     # loading of the file
     def load_dialog(self) -> None:
@@ -701,27 +564,32 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         partial_threshold_r = "auto" if partial_threshold_r_value == "auto" else float(partial_threshold_r_value) if partial_threshold_r_value is not None else 0.0
 
         try:
-            min_dist = self.get("min_dist") or 50  # default values
-            min_prom = self.get("min_prominence") or 0.1  # default values
-            min_int_width = self.get("min_width") or 10  # default values
-            max_int_width = self.get("max_width") or 100  # default values
+            if self.algorith_extract_tabs.currentWidget() == self.jpeaks:
+                min_dist = self.get("min_dist") or 50  # default values
+                min_prom = self.get("min_prominence") or 0.1  # default values
+                min_int_width = self.get("min_width") or 10  # default values
+                max_int_width = self.get("max_width") or 100  # default values
 
-            self.blinking_l, self.comp_partial_threshold_l = blinking.peaks(
-                time_series=self.ear_l,
-                minimum_distance=min_dist,
-                minimum_prominence=min_prom,
-                minimum_internal_width=min_int_width,
-                maximum_internal_width=max_int_width,
-                partial_threshold=partial_threshold_l,
-            )
-            self.blinking_r, self.comp_partial_threshold_r = blinking.peaks(
-                time_series=self.ear_r,
-                minimum_distance=min_dist,
-                minimum_prominence=min_prom,
-                minimum_internal_width=min_int_width,
-                maximum_internal_width=max_int_width,
-                partial_threshold=partial_threshold_r,
-            )
+                self.blinking_l, self.comp_partial_threshold_l = blinking.peaks(
+                    time_series=self.ear_l,
+                    minimum_distance=min_dist,
+                    minimum_prominence=min_prom,
+                    minimum_internal_width=min_int_width,
+                    maximum_internal_width=max_int_width,
+                    partial_threshold=partial_threshold_l,
+                )
+                self.blinking_r, self.comp_partial_threshold_r = blinking.peaks(
+                    time_series=self.ear_r,
+                    minimum_distance=min_dist,
+                    minimum_prominence=min_prom,
+                    minimum_internal_width=min_int_width,
+                    maximum_internal_width=max_int_width,
+                    partial_threshold=partial_threshold_r,
+                )
+            elif self.algorith_extract_tabs.currentWidget() == self.jespbm:
+                min_prom = self.getf("JESPBM_min_prom", 0.05)
+                self.blinking_l, self.comp_partial_threshold_l = blinking.peaks_espbm(time_series=self.ear_l, minimum_prominence=min_prom, partial_threshold=partial_threshold_l)
+                self.blinking_r, self.comp_partial_threshold_r = blinking.peaks_espbm(time_series=self.ear_r, minimum_prominence=min_prom, partial_threshold=partial_threshold_r)
         except Exception as e:
             logger.error("Error while computing the intervals for eye blinking extraction", error=e)
             QMessageBox.critical(None, "Error Blinking Extraction", f"Blinking Extraction Warning Error: {e}")
@@ -734,6 +602,9 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
                 "We could not compute a automatic threshold based on the data. Continued with default `complete` label or run with sepecific thresholds. We recommend 0.18 for partial blinks.",
             )
         self.progress.setValue(50)
+
+        if self.blinking_l is None or self.blinking_r is None:
+            return False
 
         # check if the blinking data frames are empty
         if self.blinking_l.empty or self.blinking_r.empty:
