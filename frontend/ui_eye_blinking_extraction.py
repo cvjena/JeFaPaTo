@@ -636,7 +636,7 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
             )
             return False
 
-        def validate_setting(setting_name: str) -> tuple[bool, int | float]:
+        def validate_setting(setting_name: str) -> bool:
             try:
                 _ = self.get(setting_name)
             except ValueError:
