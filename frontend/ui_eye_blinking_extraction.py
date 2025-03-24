@@ -612,6 +612,9 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
             return
         self.progress.setValue(90)
 
+        if self.blinking_matched is None:
+            return
+
         self.table_matched.set_data(self.blinking_matched)
         self.progress.setValue(100)
 
@@ -676,9 +679,15 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         Returns:
             bool: True if the computation is successful, False otherwise.
         """
+        if self.raw_ear_l is None or self.raw_ear_r is None:
+            return False
+
+        smooth_size = self.get("smooth_size") or 7  # default values
+        smooth_poly = self.get("smooth_poly") or 3  # default values
+
         try:
-            self.ear_l = blinking.smooth(self.raw_ear_l, self.get("smooth_size"), self.get("smooth_poly")) if self.get("smooth") else self.raw_ear_l
-            self.ear_r = blinking.smooth(self.raw_ear_r, self.get("smooth_size"), self.get("smooth_poly")) if self.get("smooth") else self.raw_ear_r
+            self.ear_l = blinking.smooth(self.raw_ear_l, smooth_size=smooth_size, smooth_poly=smooth_poly) if self.get("smooth") else self.raw_ear_l
+            self.ear_r = blinking.smooth(self.raw_ear_r, smooth_size=smooth_size, smooth_poly=smooth_poly) if self.get("smooth") else self.raw_ear_r
         except Exception as e:
             logger.error("Error while smoothing the EAR data", error=e)
             QMessageBox.critical(None, "Blinking Extraction Error", f"The EAR data could not be smoothed. {e}")
@@ -686,14 +695,16 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         self.progress.setValue(40)
 
         # if only one is set to auto, inform the user
-        partial_threshold_l = "auto" if self.get("partial_threshold_l") == "auto" else float(self.get("partial_threshold_l"))
-        partial_threshold_r = "auto" if self.get("partial_threshold_r") == "auto" else float(self.get("partial_threshold_r"))
+        partial_threshold_l_value = self.get("partial_threshold_l")
+        partial_threshold_r_value = self.get("partial_threshold_r")
+        partial_threshold_l = "auto" if partial_threshold_l_value == "auto" else float(partial_threshold_l_value) if partial_threshold_l_value is not None else 0.0
+        partial_threshold_r = "auto" if partial_threshold_r_value == "auto" else float(partial_threshold_r_value) if partial_threshold_r_value is not None else 0.0
 
         try:
-            min_dist = int(self.get("min_dist"))
-            min_prom = float(self.get("min_prominence"))
-            min_int_width = int(self.get("min_width"))
-            max_int_width = int(self.get("max_width"))
+            min_dist = self.get("min_dist") or 50  # default values
+            min_prom = self.get("min_prominence") or 0.1  # default values
+            min_int_width = self.get("min_width") or 10  # default values
+            max_int_width = self.get("max_width") or 100  # default values
 
             self.blinking_l, self.comp_partial_threshold_l = blinking.peaks(
                 time_series=self.ear_l,
@@ -730,10 +741,11 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
             return False
 
         try:
-            self.blinking_matched = blinking.match(blinking_l=self.blinking_l, blinking_r=self.blinking_r, tolerance=self.get("maximum_matching_dist"))
+            tolerance = self.get("maximum_matching_dist") or 30  # default values
+            self.blinking_matched = blinking.match(blinking_l=self.blinking_l, blinking_r=self.blinking_r, tolerance=tolerance)
         except ValueError as e:
             logger.error("Error while matching the blinking data frames", error=e)
-            QMessageBox.critical("Blinking Extraction Error", "The blinking could not be matched, likely none found")
+            QMessageBox.critical(self, title="Blinking Extraction Error", text="The blinking could not be matched, likely none found")
             return False
         return True
 
@@ -845,10 +857,23 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         """
         Computes the summary of blinking data and updates the UI with the results.
         """
+        if self.blinking_matched is None:
+            return
+        if self.ear_l is None or self.ear_r is None:
+            return
+        if self.comp_partial_threshold_l is None or self.comp_partial_threshold_r is None:
+            return
+
         fps = self.get_selected_fps()
         self.blinking_summary = blinking.summarize(
-            ear_l=self.ear_l, ear_r=self.ear_r, matched_blinks=self.blinking_matched, fps=fps, partial_threshold_l=self.comp_partial_threshold_l, partial_threshold_r=self.comp_partial_threshold_r
+            ear_l=self.ear_l,
+            ear_r=self.ear_r,
+            matched_blinks=self.blinking_matched,
+            fps=fps,
+            partial_threshold_l=self.comp_partial_threshold_l,
+            partial_threshold_r=self.comp_partial_threshold_r,
         )
+
         self.table_summary.set_data(self.blinking_summary)
         logger.info("Summary computed")
 
@@ -877,6 +902,7 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         # add the annotations to the data frame
         # TODO this should later be done in the backend and not here!!!
         try:
+            overwrite = self.get("overwrite_export") or False
             blinking.save_results(
                 self.file,
                 self.blinking_l,
@@ -884,8 +910,9 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
                 self.blinking_matched,
                 self.blinking_summary,
                 format=self.format_export.currentText().lower(),
-                exists_ok=self.get("overwrite_export"),
+                exists_ok=overwrite,
             )
+
         except ValueError as e:
             logger.error("Error while saving the blinking results", error=e)
             jwidgets.JDialogWarn("Blinking Extraction Error", "The blinking results could not be saved", "Please try again")
@@ -918,7 +945,7 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         # this widget doesn't have any shut down requirements
         self.save()
 
-    def dragEnterEvent(self, event: QtGui.QDropEvent):
+    def dragEnterEvent(self, event: QtGui.QDropEvent):  # type: ignore # noqa
         """
         Handles the drag enter event for the widget.
 
@@ -929,14 +956,18 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         None
         """
         logger.info("User started dragging event", widget=self)
-        if event.mimeData().hasUrls():
+        mimedata = event.mimeData()
+        if mimedata is None:
+            return
+
+        if mimedata.hasUrls():
             event.accept()
             logger.info("User started dragging event with mime file", widget=self)
         else:
             event.ignore()
             logger.info("User started dragging event with invalid mime file", widget=self)
 
-    def dropEvent(self, event: QtGui.QDropEvent):
+    def dropEvent(self, event: QtGui.QDropEvent):  # type: ignore # noqa
         """
         Handle the drop event when files are dropped onto the widget.
 
@@ -946,7 +977,11 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         Returns:
             None
         """
-        files = [u.toLocalFile() for u in event.mimeData().urls()]
+        mimedata = event.mimeData()
+        if mimedata is None:
+            return
+
+        files = [u.toLocalFile() for u in mimedata.urls()]
 
         if len(files) == 0:
             return
