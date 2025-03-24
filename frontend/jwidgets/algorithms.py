@@ -100,7 +100,7 @@ class JPeaks(QWidget):
         self.grid.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
 
         extraction_help_button = QPushButton("Peak Algorithm Help")
-        extraction_help_button.clicked.connect(lambda: QMessageBox.information(None, "Help", blinking.HELP_DESCRIPTION))
+        extraction_help_button.clicked.connect(lambda: QMessageBox.information(None, "Help", blinking.HELP_PEAKS))
 
         self.grid.addWidget(extraction_help_button, 0, 0, 1, 3)
 
@@ -148,16 +148,24 @@ class JESPBM(QWidget):
         self.grid.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
 
         extraction_help_button = QPushButton("ESPBM Algorithm Help")
-        extraction_help_button.clicked.connect(lambda: QMessageBox.information(None, "Help", "TODO"))
+        extraction_help_button.clicked.connect(lambda: QMessageBox.information(None, "Help", blinking.HELP_ESPBM))
         self.grid.addWidget(extraction_help_button, 0, 0, 1, 3)
+
+        le_window_size = QLineEdit()
+        le_window_size.setValidator(I_VALID)
+        config_ref.add_handler("JESPBM_window_size", le_window_size, mapper=I2S, default=80)
+
+        self.grid.addWidget(QLabel("Window Size"), 1, 0)
+        self.grid.addWidget(le_window_size, 1, 1)
+        self.grid.addWidget(create_help_button("Window Size: The window size for the ESPBM algorithm. Rec: 80"), 1, 2)
 
         le_minimum_prominence = QLineEdit()
         le_minimum_prominence.setValidator(D_VALID)
-        config_ref.add_handler("JESPBM_min_prom", le_minimum_prominence, mapper=F2S, default=0.05)
+        config_ref.add_handler("JESPBM_min_prom", le_minimum_prominence, mapper=F2S, default=0.1)
 
-        self.grid.addWidget(QLabel("Minimum Prominence"), 1, 0)
-        self.grid.addWidget(le_minimum_prominence, 1, 1)
-        self.grid.addWidget(create_help_button("Minimum Prominence: The minimum prominence of a peak in EAR score. Rec: 0.1"), 1, 2)
+        self.grid.addWidget(QLabel("Minimum Prominence"), 2, 0)
+        self.grid.addWidget(le_minimum_prominence, 2, 1)
+        self.grid.addWidget(create_help_button("Minimum Prominence: The minimum prominence of a peak in EAR score. Rec: 0.1"), 2, 2)
 
         self.setLayout(self.grid)
         self.show()

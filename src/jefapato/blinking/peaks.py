@@ -184,13 +184,14 @@ def peaks(
 def peaks_espbm(
     time_series: np.ndarray,
     minimum_prominence: float = 0.05,
+    window_size: int = 60,
     partial_threshold: str | float = "auto",
     f_min: Callable | None = None,
     f_max: Callable | None = None,
     f_val: Callable | None = None,
 ) -> tuple[pd.DataFrame, float]:
-    prototype, params = espbm.manual.define_prototype(return_params=True)
-    matches = espbm.match.find_prototype(time_series, prototype, max_prototype_distance=3.0)
+    prototype, params = espbm.manual.define_prototype(return_params=True, window_size=window_size)
+    matches = espbm.match.find_prototype(time_series, prototype, max_prototype_distance=2.0)
 
     blinks = {
         "index": [],
@@ -217,7 +218,7 @@ def peaks_espbm(
             f_val(idx)
 
         interval = time_series[_from:_to]
-        _, o_params = espbm.match.optim(interval=interval, prototype_params=params)
+        _, o_params = espbm.match.optim(interval=interval, prototype_params=params, window_size=window_size)
         if o_params is None:  # if the optimization failed, skip the blink
             continue
         props = espbm.match.interval_stats(interval, o_params)

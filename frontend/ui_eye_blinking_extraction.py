@@ -588,12 +588,15 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
                 )
             elif self.algorith_extract_tabs.currentWidget() == self.jespbm:
                 min_prom = self.getf("JESPBM_min_prom", 0.05)
+                window_size = self.geti("JESPBM_window_size", 60)
+
                 diag_running = jwidgets.JDialogRunning()
                 diag_running.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
 
                 self.blinking_l, self.comp_partial_threshold_l = blinking.peaks_espbm(
                     time_series=self.ear_l,
                     minimum_prominence=min_prom,
+                    window_size=window_size,
                     partial_threshold=partial_threshold_l,
                     f_min=diag_running.setMinimum,
                     f_max=diag_running.setMaximum,
@@ -602,6 +605,7 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
                 self.blinking_r, self.comp_partial_threshold_r = blinking.peaks_espbm(
                     time_series=self.ear_r,
                     minimum_prominence=min_prom,
+                    window_size=window_size,
                     partial_threshold=partial_threshold_r,
                     f_min=diag_running.setMinimum,
                     f_max=diag_running.setMaximum,
