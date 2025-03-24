@@ -24,13 +24,13 @@ logger = structlog.get_logger()
 # Maximum Matching Distance: 15 Frames
 # Partial Threshold Left:  0.18 EAR Score
 # Partial Threshold Right: 0.18 EAR Score
-# 
+#
 # Smoothing
 # - Window Size: 7
 # - Polynomial Degree: 3
 #
 # ---
-# 
+#
 # @240 FPS
 # Minimum Distance: 50 Frames
 # Minimum Prominence: 0.1 EAR Score
@@ -47,6 +47,7 @@ logger = structlog.get_logger()
 
 DOWNSAMPLE_FACTOR = 8
 
+
 def to_float(value: str) -> float:
     """
     Converts a string value to a float.
@@ -62,35 +63,39 @@ def to_float(value: str) -> float:
     except ValueError:
         return 0.0
 
+
 def to_int(value: str) -> int:
     """
     Converts a string value to an integer.
-    
+
     Args:
         value (str): The string value to be converted.
-    
+
     Returns:
         int: The converted integer value. If the conversion fails, returns 0.
     """
     try:
         return int(value)
-    except ValueError:  
+    except ValueError:
         return 0
+
 
 F2S = (lambda x: to_float(x), lambda x: str(x))
 I2S = (lambda x: to_int(x), lambda x: str(x))
 
+
 def to_MM_SS(value):
     """
     Converts a value in seconds to a string representation in the format MM:SS.
-    
+
     Args:
         value (int): The value in seconds to be converted.
-    
+
     Returns:
         str: The string representation of the value in the format MM:SS.
     """
     return f"{int(value / 60):02d}:{int(value % 60):02d}"
+
 
 def sec_to_min(seconds: float) -> str:
     """
@@ -105,6 +110,7 @@ def sec_to_min(seconds: float) -> str:
     minutes = int(seconds / 60)
     seconds = int(seconds % 60)
     return f"{minutes:02d}:{seconds:02d}"
+
 
 def create_help_button(tooltip: str, win=None) -> QtWidgets.QPushButton:
     """
@@ -122,9 +128,11 @@ def create_help_button(tooltip: str, win=None) -> QtWidgets.QPushButton:
     help_btn.clicked.connect(lambda: QMessageBox.information(win, "Help", tooltip))
     return help_btn
 
+
 # TODO just make this a normal widget and not a splitter
 class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
     updated = pyqtSignal(int)
+
     def __init__(self, parent):
         config.Config.__init__(self, prefix="ear")
         QtWidgets.QSplitter.__init__(self, parent=parent)
@@ -149,8 +157,8 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         self.data_frame_columns: list[str] = []
 
         self.graph = jwidgets.JGraph(x_lim_max=self.x_lim_max)
-        self.curve_l = self.graph.add_curve({"color": "#00F", "width": 2}) # TODO add correct colors...
-        self.curve_r = self.graph.add_curve({"color": "#F00", "width": 2}) # TODO add correct colors...
+        self.curve_l = self.graph.add_curve({"color": "#00F", "width": 2})  # TODO add correct colors...
+        self.curve_r = self.graph.add_curve({"color": "#F00", "width": 2})  # TODO add correct colors...
         self.scatter_l_comp = self.graph.add_scatter()
         self.scatter_r_comp = self.graph.add_scatter()
         self.scatter_l_part = self.graph.add_scatter()
@@ -228,7 +236,7 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         self.comb_ear_l.currentIndexChanged.connect(self.select_column_left)
         self.comb_ear_r.currentIndexChanged.connect(self.select_column_right)
 
-        self.progress = self.parent().progress_bar # type: ignore 
+        self.progress = self.parent().progress_bar  # type: ignore
         self.btn_load.clicked.connect(self.load_dialog)
         self.btn_anal.clicked.connect(self.extract_blinks)
         self.btn_summ.clicked.connect(self.compute_summary)
@@ -240,7 +248,7 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         self.box_settings.setMinimumHeight(200)
         self.set_algo = QtWidgets.QGridLayout()
 
-        local = QtCore.QLocale(QtCore.QLocale.Language.English, QtCore.QLocale.Country.UnitedStates) 
+        local = QtCore.QLocale(QtCore.QLocale.Language.English, QtCore.QLocale.Country.UnitedStates)
         doulbe_validator = QtGui.QDoubleValidator()
         doulbe_validator.setBottom(0)
         doulbe_validator.setDecimals(3)
@@ -261,7 +269,7 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
 
         self.set_algo.addWidget(QLabel("Minimum Distance"), 1, 0)
         self.set_algo.addWidget(le_minimum_distance, 1, 1)
-        self.set_algo.addWidget(create_help_button("Minimum Distance: The minimum distance between two peaks in frames. Rec: 10@30FPS, 50@240FPS"), 1, 2)   
+        self.set_algo.addWidget(create_help_button("Minimum Distance: The minimum distance between two peaks in frames. Rec: 10@30FPS, 50@240FPS"), 1, 2)
 
         le_minimum_prominence = QtWidgets.QLineEdit()
         le_minimum_prominence.setValidator(doulbe_validator)
@@ -270,7 +278,7 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         self.set_algo.addWidget(QLabel("Minimum Prominence"), 2, 0)
         self.set_algo.addWidget(le_minimum_prominence, 2, 1)
         self.set_algo.addWidget(create_help_button("Minimum Prominence: The minimum prominence of a peak in EAR score. Rec: 0.1"), 2, 2)
-        
+
         le_minimum_internal_width = QtWidgets.QLineEdit()
         le_minimum_internal_width.setValidator(int_validator)
         self.add_handler("min_width", le_minimum_internal_width, mapper=I2S, default=10)
@@ -280,7 +288,7 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         self.set_algo.addWidget(create_help_button("Minimum Internal Width: The minimum width of a peak in frames. Rec: 4@30FPS, 20@240FPS"), 3, 2)
 
         le_maximum_internal_width = QtWidgets.QLineEdit()
-        le_maximum_internal_width.setValidator(int_validator)        
+        le_maximum_internal_width.setValidator(int_validator)
         self.add_handler("max_width", le_maximum_internal_width, mapper=I2S, default=100)
 
         self.set_algo.addWidget(QLabel("Maximum Internal Width"), 4, 0)
@@ -297,24 +305,24 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
 
         le_partial_threshold_left = QtWidgets.QLineEdit()
         self.add_handler("partial_threshold_l", le_partial_threshold_left, default="auto")
-       
+
         self.set_algo.addWidget(QLabel("Partial Threshold Left"), 6, 0)
         self.set_algo.addWidget(le_partial_threshold_left, 6, 1)
-        self.set_algo.addWidget(create_help_button("Partial Threshold Left: The threshold for a partial blink in EAR score either 'auto' or a float number. Rec: 0.18"), 6, 2) 
-        
+        self.set_algo.addWidget(create_help_button("Partial Threshold Left: The threshold for a partial blink in EAR score either 'auto' or a float number. Rec: 0.18"), 6, 2)
+
         le_partial_threshold_right = QtWidgets.QLineEdit()
         self.add_handler("partial_threshold_r", le_partial_threshold_right, default="auto")
 
         self.set_algo.addWidget(QLabel("Partial Threshold Right"), 7, 0)
         self.set_algo.addWidget(le_partial_threshold_right, 7, 1)
         self.set_algo.addWidget(create_help_button("Partial Threshold Right: The threshold for a partial blink in EAR score either 'auto' or a float number. Rec: 0.18"), 7, 2)
-        
+
         # TODO this value is not saved in the config!
         self.cb_video_fps = QtWidgets.QComboBox()
         self.cb_video_fps.addItems(["24", "30", "60", "120", "240"])
         self.cb_video_fps.setCurrentIndex(4)
         self.cb_video_fps.currentIndexChanged.connect(self.compute_graph_axis)
-        
+
         self.set_algo.addWidget(QLabel("Video FPS"), 8, 0)
         self.set_algo.addWidget(self.cb_video_fps, 8, 1)
         self.set_algo.addWidget(create_help_button("Video FPS: The frames per second of the video."), 8, 2)
@@ -351,7 +359,7 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         btn_reset_graph.clicked.connect(lambda: self.graph.setYRange(-0.5, 1))
         self.set_visuals.addRow(btn_reset_graph)
 
-        btn_reset_view  = QtWidgets.QPushButton(qta.icon("msc.refresh"), "View Full Graph")
+        btn_reset_view = QtWidgets.QPushButton(qta.icon("msc.refresh"), "View Full Graph")
         btn_reset_view.clicked.connect(lambda: self.graph.autoRange())
         self.set_visuals.addRow(btn_reset_view)
 
@@ -478,10 +486,10 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
     def select_column_left(self, index: int) -> None:
         """
         Selects the left column of the data frame based on the given index.
-        
+
         Args:
             index (int): The index of the column to select.
-        
+
         Returns:
             None
         """
@@ -592,11 +600,11 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         """
         self.progress.setRange(0, 100)
         self.progress.setValue(0)
-        
+
         if not self.validate_compute_parameters():
             return
         self.progress.setValue(30)
-                
+
         if not self.compute_intervals():
             return
         self.progress.setValue(60)
@@ -621,7 +629,11 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         # check if the column selection index are not the same
         if self.comb_ear_l.currentIndex() == self.comb_ear_r.currentIndex():
             logger.error("The same column is selected for both eyes")
-            QMessageBox.critical("Blinking Extraction Error", "Both EAR columns are the same! Please select different columns and try again",)
+            QMessageBox.critical(
+                self,
+                title="Blinking Extraction Error",
+                text="Both EAR columns are the same! Please select different columns and try again",
+            )
             return False
 
         def validate_setting(setting_name: str) -> tuple[bool, int | float]:
@@ -643,7 +655,7 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
             return False
         if not validate_setting("min_width"):
             return False
-        if not  validate_setting("maximum_matching_dist"):
+        if not validate_setting("maximum_matching_dist"):
             return False
         if not validate_setting("max_width"):
             return False
@@ -652,8 +664,7 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         if not validate_setting("smooth_poly"):
             return False
 
-        if (self.get("partial_threshold_l") == "auto" and self.get("partial_threshold_r") != "auto") or (
-            self.get("partial_threshold_l") != "auto" and self.get("partial_threshold_r") == "auto"):
+        if (self.get("partial_threshold_l") == "auto" and self.get("partial_threshold_r") != "auto") or (self.get("partial_threshold_l") != "auto" and self.get("partial_threshold_r") == "auto"):
             QMessageBox.critical(None, "Blinking Extraction Warning", "Both partial thresholds need to be set to 'auto' or a value")
             return False
 
@@ -684,43 +695,43 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
             min_prom = float(self.get("min_prominence"))
             min_int_width = int(self.get("min_width"))
             max_int_width = int(self.get("max_width"))
-            
+
             self.blinking_l, self.comp_partial_threshold_l = blinking.peaks(
-                time_series=self.ear_l, 
+                time_series=self.ear_l,
                 minimum_distance=min_dist,
-                minimum_prominence=min_prom, 
-                minimum_internal_width=min_int_width, 
-                maximum_internal_width=max_int_width, 
-                partial_threshold=partial_threshold_l
+                minimum_prominence=min_prom,
+                minimum_internal_width=min_int_width,
+                maximum_internal_width=max_int_width,
+                partial_threshold=partial_threshold_l,
             )
             self.blinking_r, self.comp_partial_threshold_r = blinking.peaks(
-                time_series=self.ear_r, 
-                minimum_distance=min_dist, 
-                minimum_prominence=min_prom, 
-                minimum_internal_width=min_int_width, 
-                maximum_internal_width=max_int_width, 
-                partial_threshold=partial_threshold_r
+                time_series=self.ear_r,
+                minimum_distance=min_dist,
+                minimum_prominence=min_prom,
+                minimum_internal_width=min_int_width,
+                maximum_internal_width=max_int_width,
+                partial_threshold=partial_threshold_r,
             )
         except Exception as e:
             logger.error("Error while computing the intervals for eye blinking extraction", error=e)
             QMessageBox.critical(None, "Error Blinking Extraction", f"Blinking Extraction Warning Error: {e}")
             return False
-            
+
         if self.comp_partial_threshold_l is np.nan or self.comp_partial_threshold_r is np.nan:
-            QMessageBox.information(None, "Blinking Extraction Information", "We could not compute a automatic threshold based on the data. Continued with default `complete` label or run with sepecific thresholds. We recommend 0.18 for partial blinks.")
+            QMessageBox.information(
+                None,
+                "Blinking Extraction Information",
+                "We could not compute a automatic threshold based on the data. Continued with default `complete` label or run with sepecific thresholds. We recommend 0.18 for partial blinks.",
+            )
         self.progress.setValue(50)
-        
+
         # check if the blinking data frames are empty
         if self.blinking_l.empty or self.blinking_r.empty:
             QMessageBox.warning(None, "Blinking Extraction Warning", "No blinks found in the data. Please check the data or settings and try again.")
             return False
 
         try:
-            self.blinking_matched = blinking.match(
-                blinking_l=self.blinking_l, 
-                blinking_r=self.blinking_r, 
-                tolerance=self.get("maximum_matching_dist")
-            )
+            self.blinking_matched = blinking.match(blinking_l=self.blinking_l, blinking_r=self.blinking_r, tolerance=self.get("maximum_matching_dist"))
         except ValueError as e:
             logger.error("Error while matching the blinking data frames", error=e)
             QMessageBox.critical("Blinking Extraction Error", "The blinking could not be matched, likely none found")
@@ -752,18 +763,18 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
             # get where the complete blinks are
             x = self.blinking_l[self.blinking_l["blink_type"] == "complete"]["apex_frame"].to_numpy()
             y = self.blinking_l[self.blinking_l["blink_type"] == "complete"]["ear_score"].to_numpy()
-            self.scatter_l_comp.setData(x=x,y=y,symbol="o", pen={"color": "#00F", "width": 2})
+            self.scatter_l_comp.setData(x=x, y=y, symbol="o", pen={"color": "#00F", "width": 2})
             x = self.blinking_r[self.blinking_r["blink_type"] == "complete"]["apex_frame"].to_numpy()
             y = self.blinking_r[self.blinking_r["blink_type"] == "complete"]["ear_score"].to_numpy()
-            self.scatter_r_comp.setData(x=x,y=y,symbol="o", pen={"color": "#F00", "width": 2})
+            self.scatter_r_comp.setData(x=x, y=y, symbol="o", pen={"color": "#F00", "width": 2})
 
             # get where the partial blinks are
             x = self.blinking_l[self.blinking_l["blink_type"] == "partial"]["apex_frame"].to_numpy()
             y = self.blinking_l[self.blinking_l["blink_type"] == "partial"]["ear_score"].to_numpy()
-            self.scatter_l_part.setData(x=x,y=y, symbol="t", pen={"color": "#00F", "width": 2})
+            self.scatter_l_part.setData(x=x, y=y, symbol="t", pen={"color": "#00F", "width": 2})
             x = self.blinking_r[self.blinking_r["blink_type"] == "partial"]["apex_frame"].to_numpy()
             y = self.blinking_r[self.blinking_r["blink_type"] == "partial"]["ear_score"].to_numpy()
-            self.scatter_r_part.setData(x=x,y=y, symbol="t", pen={"color": "#F00", "width": 2})
+            self.scatter_r_part.setData(x=x, y=y, symbol="t", pen={"color": "#F00", "width": 2})
         except Exception as e:
             logger.error("Error while plotting the blinking intervals", error=e)
             QMessageBox.critical(None, "Blinking Plotting Error", f"The blinking intervals could not be plotted. {e}")
@@ -814,7 +825,7 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
             return
 
         # TODO we already assume that blinking left and right are synced
-        frame_left  = self.blinking_matched["left"]["apex_frame_og"].iloc[index]
+        frame_left = self.blinking_matched["left"]["apex_frame_og"].iloc[index]
         frame_right = self.blinking_matched["right"]["apex_frame_og"].iloc[index]
         if np.isnan(frame_left) and np.isnan(frame_right):
             return
@@ -826,7 +837,7 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
             frame_idx = min(frame_left, frame_right)
         # show 1 second before and after the blink
         self.graph.setXRange(frame_idx - self.get_selected_fps(), frame_idx + self.get_selected_fps())
-        
+
         logger.info("Highlighting blink", index=index, frame_idx=frame_idx)
         self.face_preview.set_frame(frame_idx)
 
@@ -837,12 +848,7 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         """
         fps = self.get_selected_fps()
         self.blinking_summary = blinking.summarize(
-            ear_l=self.ear_l,
-            ear_r=self.ear_r,
-            matched_blinks=self.blinking_matched,
-            fps=fps,
-            partial_threshold_l=self.comp_partial_threshold_l,
-            partial_threshold_r=self.comp_partial_threshold_r
+            ear_l=self.ear_l, ear_r=self.ear_r, matched_blinks=self.blinking_matched, fps=fps, partial_threshold_l=self.comp_partial_threshold_l, partial_threshold_r=self.comp_partial_threshold_r
         )
         self.table_summary.set_data(self.blinking_summary)
         logger.info("Summary computed")
