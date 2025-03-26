@@ -10,17 +10,18 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 from structlog import get_logger
 
-from frontend.jwidgets.imagebox import JImageBox 
+from frontend.jwidgets.imagebox import JImageBox
 
 logger = get_logger()
+
 
 class FaceVideoContainer:
     def __init__(self) -> None:
         self.file_path: Path | None = None
-        self.resource: cv2.VideoCapture | None = None # TODO decord as alternative useful?
+        self.resource: cv2.VideoCapture | None = None  # TODO decord as alternative useful?
         self.frame_count: int | None = None
 
-        ccc_file =  Path(__file__).parent / "models" / "haarcascade_frontalface_default.xml"
+        ccc_file = Path(__file__).parent / "models" / "haarcascade_frontalface_default.xml"
         self.face_finder = cv2.CascadeClassifier(str(ccc_file))
 
     def load_file(self, file_path: Path) -> np.ndarray:
@@ -29,9 +30,9 @@ class FaceVideoContainer:
 
         self.resource = cv2.VideoCapture(str(file_path))
         self.frame_count = int(self.resource.get(cv2.CAP_PROP_FRAME_COUNT))
-        
+
         return self.get_frame(0)
-    
+
     def in_range(self, frame_index: int) -> bool:
         assert self.frame_count is not None
         return frame_index >= 0 and frame_index < self.frame_count
@@ -44,7 +45,7 @@ class FaceVideoContainer:
         if not ret:
             logger.error("Could not read frame", frame_index=frame_index, file_path=self.file_path)
             return np.zeros((300, 300, 3), dtype=np.uint8)
-        
+
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         frame_g = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
         faces = self.face_finder.detectMultiScale(frame_g, 1.1, 5)
@@ -62,9 +63,9 @@ class FaceVideoContainer:
         w = frame.shape[1] - x if x + w > frame.shape[1] else w
         h = frame.shape[0] - y if y + h > frame.shape[0] else h
 
-        frame = frame[y:y+h, x:x+w]
+        frame = frame[y : y + h, x : x + w]
         return frame
-    
+
     def is_loaded(self) -> bool:
         return self.resource is not None
 
@@ -72,10 +73,11 @@ class FaceVideoContainer:
 class JVideoFacePreview(QWidget):
     """
     This class is a Qt widget that displays a video frame with a face.
-    
+
     It contains a line edit which accepts drag and drop to load the file.
     It is also only shown during certain triggers.
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setLayout(QVBoxLayout())
@@ -90,12 +92,12 @@ class JVideoFacePreview(QWidget):
         self.icon_dragdrop = QLabel()
         self.icon_dragdrop.setPixmap(qta.icon("ri.drag-drop-line", color="gray").pixmap(100, 100))
         self.icon_dragdrop.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        
+
         self.text_dragdrop = QLabel("Drag & Drop\naccording video file here")
         self.text_dragdrop.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.text_dragdrop.setStyleSheet("color: gray;")
-        
-        self.layout().addWidget(self.icon_dragdrop)        
+
+        self.layout().addWidget(self.icon_dragdrop)
         self.layout().addWidget(self.text_dragdrop)
 
         self.glayout = pg.GraphicsLayoutWidget()
@@ -119,7 +121,7 @@ class JVideoFacePreview(QWidget):
             self.layout().addWidget(self.glayout)
 
         # then load the file
-        frame = self.face_container.load_file(file_path)        
+        frame = self.face_container.load_file(file_path)
         self.face_widget.set_image(frame)
 
     def set_frame(self, frame_idx: int) -> None:
@@ -157,10 +159,10 @@ class JVideoFacePreview(QWidget):
         if file.suffix.lower() not in [".mp4", ".flv", ".ts", ".mts", ".avi", ".mov"]:
             logger.info("User dropped invalid file", widget=self)
             return
-        
+
         self.load_file(file)
 
     def paintEvent(self, a0: QtGui.QPaintEvent) -> None:
         painter = QtGui.QPainter(self)
-        painter.drawRoundedRect(0, 0, self.width()-1, self.height()-1, 10, 10)
+        painter.drawRoundedRect(0, 0, self.width() - 1, self.height() - 1, 10, 10)
         super().paintEvent(a0)
