@@ -7,7 +7,7 @@ import numpy as np
 import pyqtgraph as pg
 import qtawesome as qta
 from PyQt6 import QtCore, QtGui, QtWidgets
-from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget, QHBoxLayout
 from structlog import get_logger
 
 from frontend.jwidgets.imagebox import JImageBox
@@ -21,6 +21,8 @@ class FaceVideoContainer:
         self.file_path: Path | None = None
         self.resource: cv2.VideoCapture | None = None  # TODO decord as alternative useful?
         self.frame_count: int | None = None
+        self.frame_current: int = 0
+        self.rotation_state = 0
 
         self.model = MediapipeFaceModel()
 
@@ -30,32 +32,44 @@ class FaceVideoContainer:
 
         self.resource = cv2.VideoCapture(str(file_path))
         self.frame_count = int(self.resource.get(cv2.CAP_PROP_FRAME_COUNT))
-
-        return self.get_frame(0)
+        return self.get_frame()
 
     def in_range(self, frame_index: int) -> bool:
         assert self.frame_count is not None
         return frame_index >= 0 and frame_index < self.frame_count
 
-    def get_frame(self, frame_index: int) -> tuple[np.ndarray, tuple[int, int, int, int]]:
+    def set_rotate_state(self, rotation_state: int) -> None:
+        self.rotation_state = rotation_state
+
+    def get_frame(self, frame_index: int | None = None) -> tuple[np.ndarray, tuple[int, int, int, int]]:
         """
         Returns the frame at the given index and the face bounding box.
         """
-
         assert self.resource is not None
 
+        self.frame_current = frame_index or self.frame_current
+
         # TODO here might be a strong offset to the actual frame index if the video is very very long
-        self.resource.set(cv2.CAP_PROP_POS_FRAMES, frame_index)
+        self.resource.set(cv2.CAP_PROP_POS_FRAMES, self.frame_current)
         ret, frame = self.resource.read()
         if not ret:
-            logger.error("Could not read frame", frame_index=frame_index, file_path=self.file_path)
+            logger.error("Could not read frame", frame_index=self.frame_current, file_path=self.file_path)
             return np.zeros((300, 300, 3), dtype=np.uint8), (0, 0, 300, 300)
 
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        # 0 -> 0°, 1 -> 90°, 2 -> 180°, 3 -> 270°
+        if self.rotation_state == 1:
+            frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+        elif self.rotation_state == 2:
+            frame = cv2.rotate(frame, cv2.ROTATE_180)
+        elif self.rotation_state == 3:
+            frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+
         landmarks, _, valid = self.model.extract(frame)
 
         if not valid:
-            logger.warning("Could not find face", frame_index=frame_index, file_path=self.file_path)
+            logger.warning("Could not find face", frame_index=self.frame_current, file_path=self.file_path)
             return frame, (0, 0, frame.shape[1], frame.shape[0])
 
         bbox = self.model.lmk_to_bbox(landmarks)
@@ -103,7 +117,47 @@ class JVideoFacePreview(QWidget):
         self.face_container = FaceVideoContainer()
         self.warn_face_container_not_loaded = False
 
+        # track the rotation state the user can select
+        # 0 -> 0°, 1 -> 90°, 2 -> 180°, 3 -> 270°
+
+        rot_wid = QWidget()
+        rot_hbox = QHBoxLayout()
+
+        self.rotation_state = 0
+        # two buttons and a label to display the current rotation state
+        self.rotation_label = QLabel("Rotation: 0°")
+        self.rotation_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.rotation_label.setStyleSheet("color: gray;")
+        self.rotation_label.setFixedHeight(30)
+        self.rotation_label.setFixedWidth(100)
+
+        self.rotation_button_l = QtWidgets.QPushButton("Rotate <-")
+        self.rotation_button_l.clicked.connect(self.rotate_left)
+        self.rotation_button_r = QtWidgets.QPushButton("Rotate ->")
+        self.rotation_button_r.clicked.connect(self.rotate_right)
+
+        rot_hbox.addWidget(self.rotation_button_l)
+        rot_hbox.addWidget(self.rotation_label)
+        rot_hbox.addWidget(self.rotation_button_r)
+
+        rot_wid.setLayout(rot_hbox)
+        self.vbox.addWidget(rot_wid)
+
         self.setLayout(self.vbox)
+
+    def rotate_left(self):
+        self.rotation_state = (self.rotation_state - 1) % 4
+        self.rotation_label.setText(f"Rotation: {self.rotation_state * 90}°")
+        self.face_container.set_rotate_state(self.rotation_state)
+        frame, bbox = self.face_container.get_frame()
+        self.face_widget.set_image_with_bbox(frame, bbox)
+
+    def rotate_right(self):
+        self.rotation_state = (self.rotation_state + 1) % 4
+        self.rotation_label.setText(f"Rotation: {self.rotation_state * 90}°")
+        self.face_container.set_rotate_state(self.rotation_state)
+        frame, bbox = self.face_container.get_frame()
+        self.face_widget.set_image_with_bbox(frame, bbox)
 
     def load_file(self, file_path: Path):
         # first do the relayouting
@@ -116,7 +170,7 @@ class JVideoFacePreview(QWidget):
             self.text_dragdrop.deleteLater()
             self.text_dragdrop = None
 
-            self.vbox.addWidget(self.glayout)
+            self.vbox.insertWidget(0, self.glayout)
 
         # then load the file
         frame, bbox = self.face_container.load_file(file_path)
