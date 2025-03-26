@@ -27,14 +27,20 @@ class FaceVideoContainer:
         self.model = MediapipeFaceModel()
 
     def load_file(self, file_path: Path) -> None:
-        assert file_path.exists()
-        assert file_path.is_file()
+        if not file_path.exists():
+            logger.error("File does not exist", file_path=file_path)
+            return
+        if not file_path.is_file():
+            logger.error("File is not a file", file_path=file_path)
+            return
 
         self.resource = cv2.VideoCapture(str(file_path))
         self.frame_count = int(self.resource.get(cv2.CAP_PROP_FRAME_COUNT))
 
     def in_range(self, frame_index: int) -> bool:
-        assert self.frame_count is not None
+        if self.frame_count is None:
+            return False
+
         return frame_index >= 0 and frame_index < self.frame_count
 
     def set_rotate_state(self, rotation_state: int) -> None:
@@ -202,7 +208,10 @@ class JVideoFacePreview(QWidget):
         self.set_frame(0)
 
     def set_frame(self, frame_idx: int) -> None:
-        assert self.face_container is not None
+        if self.face_container is None:
+            logger.error("Face container is not set", widget=self)
+            return
+
         if not self.face_container.is_loaded():
             if not self.warn_face_container_not_loaded:
                 self.warn_face_container_not_loaded = True
