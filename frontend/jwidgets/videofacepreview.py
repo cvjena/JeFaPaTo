@@ -26,13 +26,12 @@ class FaceVideoContainer:
 
         self.model = MediapipeFaceModel()
 
-    def load_file(self, file_path: Path) -> tuple[np.ndarray, tuple[int, int, int, int]]:
+    def load_file(self, file_path: Path) -> None:
         assert file_path.exists()
         assert file_path.is_file()
 
         self.resource = cv2.VideoCapture(str(file_path))
         self.frame_count = int(self.resource.get(cv2.CAP_PROP_FRAME_COUNT))
-        return self.get_frame()
 
     def in_range(self, frame_index: int) -> bool:
         assert self.frame_count is not None
@@ -41,11 +40,19 @@ class FaceVideoContainer:
     def set_rotate_state(self, rotation_state: int) -> None:
         self.rotation_state = rotation_state
 
-    def get_frame(self, frame_index: int | None = None) -> tuple[np.ndarray, tuple[int, int, int, int]]:
+    def get_frame(self, frame_index: int | None = None) -> tuple[np.ndarray, tuple[int, int, int, int], bool]:
         """
         Returns the frame at the given index and the face bounding box.
         """
-        assert self.resource is not None
+
+        def default(frame: np.ndarray | None = None) -> tuple[np.ndarray, tuple[int, int, int, int], bool]:
+            if frame is None:
+                frame = np.zeros((300, 300, 3), dtype=np.uint8)
+            return frame, (0, 0, frame.shape[1], frame.shape[0]), False
+
+        if self.resource is None:
+            logger.error("Resource is not loaded", file_path=self.file_path)
+            return default()
 
         self.frame_current = frame_index or self.frame_current
 
@@ -54,7 +61,7 @@ class FaceVideoContainer:
         ret, frame = self.resource.read()
         if not ret:
             logger.error("Could not read frame", frame_index=self.frame_current, file_path=self.file_path)
-            return np.zeros((300, 300, 3), dtype=np.uint8), (0, 0, 300, 300)
+            return default()
 
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
@@ -70,10 +77,10 @@ class FaceVideoContainer:
 
         if not valid:
             logger.warning("Could not find face", frame_index=self.frame_current, file_path=self.file_path)
-            return frame, (0, 0, frame.shape[1], frame.shape[0])
+            return default(frame)
 
         bbox = self.model.lmk_to_bbox(landmarks)
-        return frame, bbox
+        return frame, bbox, True
 
     def is_loaded(self) -> bool:
         return self.resource is not None
@@ -131,14 +138,21 @@ class JVideoFacePreview(QWidget):
         self.rotation_label.setFixedHeight(30)
         self.rotation_label.setFixedWidth(100)
 
-        self.rotation_button_l = QtWidgets.QPushButton("Rotate <-")
+        self.status_info = QLabel("Status: No file loaded")
+        self.status_info.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.status_info.setStyleSheet("color: gray;")
+        self.status_info.setFixedHeight(30)
+        self.status_info.setFixedWidth(150)
+
+        self.rotation_button_l = QtWidgets.QPushButton(icon=qta.icon("ph.arrow-arc-left", color="gray"))  # type: ignore
+        self.rotation_button_r = QtWidgets.QPushButton(icon=qta.icon("ph.arrow-arc-right", color="gray"))  # type: ignore
         self.rotation_button_l.clicked.connect(self.rotate_left)
-        self.rotation_button_r = QtWidgets.QPushButton("Rotate ->")
         self.rotation_button_r.clicked.connect(self.rotate_right)
 
         rot_hbox.addWidget(self.rotation_button_l)
         rot_hbox.addWidget(self.rotation_label)
         rot_hbox.addWidget(self.rotation_button_r)
+        rot_hbox.addWidget(self.status_info)
 
         rot_wid.setLayout(rot_hbox)
         self.vbox.addWidget(rot_wid)
@@ -149,15 +163,26 @@ class JVideoFacePreview(QWidget):
         self.rotation_state = (self.rotation_state - 1) % 4
         self.rotation_label.setText(f"Rotation: {self.rotation_state * 90}°")
         self.face_container.set_rotate_state(self.rotation_state)
-        frame, bbox = self.face_container.get_frame()
+        frame, bbox, valid = self.face_container.get_frame()
         self.face_widget.set_image_with_bbox(frame, bbox)
+        self.update_status(valid)
 
     def rotate_right(self):
         self.rotation_state = (self.rotation_state + 1) % 4
         self.rotation_label.setText(f"Rotation: {self.rotation_state * 90}°")
         self.face_container.set_rotate_state(self.rotation_state)
-        frame, bbox = self.face_container.get_frame()
+        frame, bbox, valid = self.face_container.get_frame()
         self.face_widget.set_image_with_bbox(frame, bbox)
+        self.update_status(valid)
+
+    def update_status(self, face_found: bool):
+        if face_found:
+            self.status_info.setText("Status: Face found")
+            self.status_info.setStyleSheet("color: green;")
+        else:
+            self.status_info.setText("Status: No face found")
+            self.status_info.setStyleSheet("color: red;")
+        self.status_info.update()
 
     def load_file(self, file_path: Path):
         # first do the relayouting
@@ -173,8 +198,8 @@ class JVideoFacePreview(QWidget):
             self.vbox.insertWidget(0, self.glayout)
 
         # then load the file
-        frame, bbox = self.face_container.load_file(file_path)
-        self.face_widget.set_image_with_bbox(frame, bbox)
+        self.face_container.load_file(file_path)
+        self.set_frame(0)
 
     def set_frame(self, frame_idx: int) -> None:
         assert self.face_container is not None
@@ -188,8 +213,9 @@ class JVideoFacePreview(QWidget):
             logger.error("Invalid frame index", frame_idx=frame_idx, frame_count=self.face_container.frame_count)
             return
 
-        frame, bbox = self.face_container.get_frame(frame_idx)
+        frame, bbox, valid = self.face_container.get_frame(frame_idx)
         self.face_widget.set_image_with_bbox(frame, bbox)
+        self.update_status(valid)
 
     def dragEnterEvent(self, event: QtGui.QDropEvent):  # type: ignore
         logger.info("User started dragging event", widget=self)
