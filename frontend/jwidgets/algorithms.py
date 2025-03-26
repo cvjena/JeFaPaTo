@@ -56,6 +56,8 @@ class JBlinkingAnalysis(QWidget):
         self.cb_video_fps = QComboBox()
         self.cb_video_fps.addItems(["24", "30", "60", "120", "240"])
         self.cb_video_fps.setCurrentIndex(4)
+        # disable scroll wheel
+        self.cb_video_fps.wheelEvent = lambda e: None
 
         self.grid.addWidget(QLabel("Video FPS"), 8, 0)
         self.grid.addWidget(self.cb_video_fps, 8, 1)

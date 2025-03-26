@@ -181,6 +181,9 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         self.comb_ear_r = QtWidgets.QComboBox()
         self.comb_ear_l.currentIndexChanged.connect(self.select_column_left)
         self.comb_ear_r.currentIndexChanged.connect(self.select_column_right)
+        # disable the scroll wheel
+        self.comb_ear_l.wheelEvent = lambda e: None
+        self.comb_ear_r.wheelEvent = lambda e: None
 
         self.progress = self.parent().progress_bar  # type: ignore
         self.btn_load.clicked.connect(self.load_dialog)
