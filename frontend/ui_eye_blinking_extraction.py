@@ -563,8 +563,9 @@ class EyeBlinkingExtraction(QtWidgets.QSplitter, config.Config):
         # if only one is set to auto, inform the user
         partial_threshold_l_value = self.get("partial_threshold_l")
         partial_threshold_r_value = self.get("partial_threshold_r")
-        partial_threshold_l = "auto" if partial_threshold_l_value == "auto" else float(partial_threshold_l_value) if partial_threshold_l_value is not None else 0.0
-        partial_threshold_r = "auto" if partial_threshold_r_value == "auto" else float(partial_threshold_r_value) if partial_threshold_r_value is not None else 0.0
+
+        partial_threshold_l = "auto" if partial_threshold_l_value == "auto" else float(partial_threshold_l_value) if partial_threshold_l_value is not None else 0.18
+        partial_threshold_r = "auto" if partial_threshold_r_value == "auto" else float(partial_threshold_r_value) if partial_threshold_r_value is not None else 0.18
 
         try:
             if self.algorith_extract_tabs.currentWidget() == self.jpeaks:

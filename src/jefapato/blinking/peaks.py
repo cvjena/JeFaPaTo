@@ -218,19 +218,26 @@ def peaks_espbm(
             f_val(idx)
 
         interval = time_series[_from:_to]
+        if abs(interval.max() - interval.min()) < 0.075:  # if the interval is too small, skip the blink
+            continue
+
         _, o_params = espbm.match.optim(interval=interval, prototype_params=params, window_size=window_size)
         if o_params is None:  # if the optimization failed, skip the blink
             continue
         props = espbm.match.interval_stats(interval, o_params)
 
-        prominance = props["prominance"]
+        prominance = props["heights"]  # NOTE there is a mix upin ESPBM between prominence and height
+        peak_interal_width = props["internal_width"]
+        peak_height = props["prominance"]
+
         if prominance < minimum_prominence:
+            continue
+
+        if peak_interal_width < 5:  # this a typical case where the optimization failed
             continue
 
         intersection_point_left = props["ips_left"]
         intersection_point_right = props["ips_right"]
-        peak_height = props["heights"]
-        peak_interal_width = props["internal_width"]
 
         blinks["index"].append(idx)
         blinks["apex_frame"].append(props["apex_location"] + _from)

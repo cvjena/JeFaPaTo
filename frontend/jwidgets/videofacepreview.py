@@ -19,7 +19,7 @@ logger = get_logger()
 class FaceVideoContainer:
     def __init__(self) -> None:
         self.file_path: Path | None = None
-        self.resource: cv2.VideoCapture | None = None  # TODO decord as alternative useful?
+        self.resource: cv2.VideoCapture | None = None
         self.frame_count: int | None = None
         self.frame_current: int = 0
         self.rotation_state = 0
@@ -62,7 +62,6 @@ class FaceVideoContainer:
 
         self.frame_current = frame_index or self.frame_current
 
-        # TODO here might be a strong offset to the actual frame index if the video is very very long
         self.resource.set(cv2.CAP_PROP_POS_FRAMES, self.frame_current)
         ret, frame = self.resource.read()
         if not ret:
