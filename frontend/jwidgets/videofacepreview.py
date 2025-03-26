@@ -80,12 +80,13 @@ class JVideoFacePreview(QWidget):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.setLayout(QVBoxLayout())
+        self.vbox = QVBoxLayout()
+
         self.setAcceptDrops(True)
         # expand the widget to the full size of the parent
         self.setMinimumSize(320, 320)
         self.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Expanding)
-        self.layout().setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.vbox.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
 
         # create an empty label containing a video symbol
         # it contains a video symbol to indicate that here a video frame will be displayed
@@ -97,8 +98,8 @@ class JVideoFacePreview(QWidget):
         self.text_dragdrop.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.text_dragdrop.setStyleSheet("color: gray;")
 
-        self.layout().addWidget(self.icon_dragdrop)
-        self.layout().addWidget(self.text_dragdrop)
+        self.vbox.addWidget(self.icon_dragdrop)
+        self.vbox.addWidget(self.text_dragdrop)
 
         self.glayout = pg.GraphicsLayoutWidget()
         self.face_widget = JImageBox(enableMouse=False, enableMenu=False)
@@ -107,18 +108,20 @@ class JVideoFacePreview(QWidget):
         self.face_container = FaceVideoContainer()
         self.warn_face_container_not_loaded = False
 
+        self.setLayout(self.vbox)
+
     def load_file(self, file_path: Path):
         # first do the relayouting
         if self.icon_dragdrop is not None and self.text_dragdrop is not None:
             # this can happen if the user drags & drops a file multiple times
-            self.layout().removeWidget(self.icon_dragdrop)
+            self.vbox.removeWidget(self.icon_dragdrop)
             self.icon_dragdrop.deleteLater()
             self.icon_dragdrop = None
-            self.layout().removeWidget(self.text_dragdrop)
+            self.vbox.removeWidget(self.text_dragdrop)
             self.text_dragdrop.deleteLater()
             self.text_dragdrop = None
 
-            self.layout().addWidget(self.glayout)
+            self.vbox.addWidget(self.glayout)
 
         # then load the file
         frame = self.face_container.load_file(file_path)
@@ -139,17 +142,24 @@ class JVideoFacePreview(QWidget):
         frame = self.face_container.get_frame(frame_idx)
         self.face_widget.set_image(frame)
 
-    def dragEnterEvent(self, event: QtGui.QDropEvent):
+    def dragEnterEvent(self, event: QtGui.QDropEvent):  # type: ignore
         logger.info("User started dragging event", widget=self)
-        if event.mimeData().hasUrls():
+
+        if (mime_data := event.mimeData()) is None:
+            return
+
+        if mime_data.hasUrls():
             event.accept()
             logger.info("User started dragging event with mime file", widget=self)
         else:
             event.ignore()
             logger.info("User started dragging event with invalid mime file", widget=self)
 
-    def dropEvent(self, event: QtGui.QDropEvent):
-        files = [u.toLocalFile() for u in event.mimeData().urls()]
+    def dropEvent(self, event: QtGui.QDropEvent):  # type: ignore
+        if (mime_data := event.mimeData()) is None:
+            return
+
+        files = [u.toLocalFile() for u in mime_data.urls()]
 
         if len(files) > 1:
             logger.info("User dropped multiple files", widget=self)
@@ -162,7 +172,7 @@ class JVideoFacePreview(QWidget):
 
         self.load_file(file)
 
-    def paintEvent(self, a0: QtGui.QPaintEvent) -> None:
+    def paintEvent(self, a0: QtGui.QPaintEvent) -> None:  # type: ignore
         painter = QtGui.QPainter(self)
         painter.drawRoundedRect(0, 0, self.width() - 1, self.height() - 1, 10, 10)
         super().paintEvent(a0)
