@@ -59,7 +59,7 @@ python3 -m pip install --upgrade --force-reinstall .
 
 rm -rf build
 
-pyinstaller --windowed --onefile --name JeFaPaTo --add-data frontend:frontend --add-data jefapato:jefapato --add-data examples:examples --icon "frontend/assets/icons/icon.icns" main.py
+pyinstaller --windowed --onefile --name JeFaPaTo --add-data src/jefapato:jefapato --add-data frontend:frontend --add-data examples:examples --icon "frontend/assets/icons/icon.icns" --collect-all=numba --collect-all=stumpy main.py
 
 # python3 setup.py py2app --arch=universal2
 # # rename the created app

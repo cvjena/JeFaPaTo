@@ -11,8 +11,9 @@ from PyQt6.QtWidgets import QGroupBox
 
 logger = structlog.get_logger()
 
-def load_config_folder() -> Path: 
-    """ 
+
+def load_config_folder() -> Path:
+    """
     Load the config path but respect the underlying OS.
 
     Returns:
@@ -26,8 +27,10 @@ def load_config_folder() -> Path:
 
     return base_path
 
+
 def _get_QGroupBox(self):
     return self.isChecked()
+
 
 def _set_QGroupBox(self, val):
     self.setChecked(val)
@@ -58,3 +61,26 @@ class Config(pyqtconfig.ConfigManager):
 
         self.add_hooks(QGroupBox, (_get_QGroupBox, _set_QGroupBox, _event_QGroupBox))
 
+    def geti(self, key: str, default: int = 0) -> int:
+        val = self.get(key)
+        if val is None:
+            return default
+        return int(val)
+
+    def getf(self, key: str, default: float = 0.0) -> float:
+        val = self.get(key)
+        if val is None:
+            return default
+        return float(val)
+
+    def getb(self, key: str, default: bool = False) -> bool:
+        val = self.get(key)
+        if val is None:
+            return default
+        return val
+
+    def gets(self, key: str, default: str = "") -> str:
+        val = self.get(key)
+        if val is None:
+            return default
+        return val

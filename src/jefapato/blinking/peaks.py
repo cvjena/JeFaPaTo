@@ -1,29 +1,33 @@
-__all__ = ["peaks"]
+__all__ = ["peaks", "peaks_espbm"]
 
+from typing import Callable
+
+import espbm
 import numpy as np
 import pandas as pd
 from scipy import signal
 
+
 def otsu_thresholding(values: np.ndarray) -> float:
     """
     Thresholding of the histogram values using the Otsu method.
-    
+
     Computes the best threshold for the given values using the Otsu method splitting the values into two classes.
     The threshold is the value that minimizes the within-class variance.
-    
+
     Based on https://en.wikipedia.org/wiki/Otsu%27s_method
     """
     # first remove all nans from the values
     values = values[~np.isnan(values)]
-    
+
     # check that there are enough values for the calculation
     if len(values) < 6:
         return np.nan
 
-    th_range = np.sort(np.unique(values))[3:-3] # remove the first and last 3 values to avoid errors in the calculation
+    th_range = np.sort(np.unique(values))[3:-3]  # remove the first and last 3 values to avoid errors in the calculation
     res = []
     for th in th_range:
-        r = np.nansum([np.mean(cls) * np.var(values, where=cls) for cls in [values>=th, values<th]])
+        r = np.nansum([np.mean(cls) * np.var(values, where=cls) for cls in [values >= th, values < th]])
         res.append(r)
 
     if len(res) == 0:
@@ -31,20 +35,21 @@ def otsu_thresholding(values: np.ndarray) -> float:
         return np.nan
     return th_range[np.argmin(res)]
 
+
 def peaks(
-    time_series: np.ndarray, 
+    time_series: np.ndarray,
     minimum_distance: int = 50,
     minimum_prominence: float = 0.05,
     minimum_internal_width: int = 10,
     maximum_internal_width: int = 250,
     partial_threshold: str | float = "auto",
-) -> pd.DataFrame:
+) -> tuple[pd.DataFrame, float]:
     """
     Blinks the peaks of the EAR Score time series for a single eye.
-    
+
     Args
     ----
-    time_series : np.ndarray 
+    time_series : np.ndarray
         The input time series data.
     threshold : float
         The threshold value for filtering peaks.
@@ -60,7 +65,7 @@ def peaks(
         The thresholding parameter for the partial blinks. Defaults to "auto".
         If "auto", the threshold is computed using the Otsu method.
         If a float, the threshold is set to the given value.
-    
+
     Returns
     -------
     pd.DataFrame:
@@ -74,8 +79,8 @@ def peaks(
     Value Error
         - If the thresholding parameter is a tuple, but does not have two values.
         - If the thresholding parameter is a tuple, but has negative values.
-        - If the thresholding parameter is not a string or tuple. 
-    
+        - If the thresholding parameter is not a string or tuple.
+
     """
     if not isinstance(time_series, np.ndarray):
         raise TypeError("Time series is not a numpy array.")
@@ -83,7 +88,7 @@ def peaks(
         raise ValueError("Time series is not one-dimensional.")
     if np.isnan(time_series).any():
         raise ValueError("Time series contains NaN values.")
-    
+
     if not isinstance(minimum_distance, int):
         raise TypeError("Minimum distance is not an integer.")
     if minimum_distance < 0:
@@ -112,12 +117,11 @@ def peaks(
     if isinstance(partial_threshold, float):
         if partial_threshold < 0:
             raise ValueError("Thresholding parameter is a float, but negative.")
-    
-    
+
     # Find the peaks by turning the time series upside down
     peaks, props = signal.find_peaks(
         x=-time_series,
-        distance=minimum_distance, 
+        distance=minimum_distance,
         prominence=minimum_prominence,
         width=minimum_internal_width,
     )
@@ -153,25 +157,119 @@ def peaks(
         blinks["peak_height"].append(peak_height)
 
     df = pd.DataFrame(blinks, columns=list(blinks.keys()), index=blinks["index"]).reset_index(drop=True)
-    
+
     prominance = df["prominance"].to_numpy()
     df["blink_type"] = "none"
-    
+
     # either estimate the threshold or use the given value
     th = otsu_thresholding(prominance) if partial_threshold == "auto" else partial_threshold
-    
+
     # if the threshold is np.nan, then the thresholding failed
     # so set all blinks to complete
     if th is np.nan:
         for index, row in df.iterrows():
-            df.loc[index, 'blink_type'] = "complete"
-        
+            df.loc[index, "blink_type"] = "complete"  # type: ignore
+
         return df, th
-    
+
     # set the blink type based on the threshold
     for index, row in df.iterrows():
         if row["prominance"] > th:
-            df.loc[index, 'blink_type'] = "complete"
+            df.loc[index, "blink_type"] = "complete"  # type: ignore
         else:
-            df.loc[index, 'blink_type'] = "partial"
+            df.loc[index, "blink_type"] = "partial"  # type: ignore
     return df, th
+
+
+def peaks_espbm(
+    time_series: np.ndarray,
+    minimum_prominence: float = 0.05,
+    window_size: int = 60,
+    partial_threshold: str | float = "auto",
+    f_min: Callable | None = None,
+    f_max: Callable | None = None,
+    f_val: Callable | None = None,
+) -> tuple[pd.DataFrame, float]:
+    prototype, params = espbm.manual.define_prototype(return_params=True, window_size=window_size)
+    matches = espbm.match.find_prototype(time_series, prototype, max_prototype_distance=2.0)
+
+    blinks = {
+        "index": [],
+        "apex_frame": [],
+        "ear_score": [],
+        "intersection_point_lower": [],
+        "intersection_point_upper": [],
+        "prominance": [],
+        "peak_internal_width": [],
+        "peak_height": [],
+    }
+
+    time_series = time_series.round(4)
+
+    if f_min is not None:
+        f_min(0)
+    if f_max is not None:
+        f_max(len(matches))
+    if f_val is not None:
+        f_val(0)
+
+    for idx, (_from, _to, _) in enumerate(matches):
+        if f_val is not None:
+            f_val(idx)
+
+        interval = time_series[_from:_to]
+        if abs(interval.max() - interval.min()) < 0.075:  # if the interval is too small, skip the blink
+            continue
+
+        _, o_params = espbm.match.optim(interval=interval, prototype_params=params, window_size=window_size)
+        if o_params is None:  # if the optimization failed, skip the blink
+            continue
+        props = espbm.match.interval_stats(interval, o_params)
+
+        prominance = props["heights"]  # NOTE there is a mix upin ESPBM between prominence and height
+        peak_interal_width = props["internal_width"]
+        peak_height = props["prominance"]
+
+        if prominance < minimum_prominence:
+            continue
+
+        if peak_interal_width < 5:  # this a typical case where the optimization failed
+            continue
+
+        intersection_point_left = props["ips_left"]
+        intersection_point_right = props["ips_right"]
+
+        blinks["index"].append(idx)
+        blinks["apex_frame"].append(props["apex_location"] + _from)
+        blinks["ear_score"].append(props["apex_score"])
+
+        blinks["intersection_point_lower"].append(intersection_point_left + _from)
+        blinks["intersection_point_upper"].append(intersection_point_right + _from)
+
+        blinks["prominance"].append(prominance)
+        blinks["peak_internal_width"].append(peak_interal_width)
+        blinks["peak_height"].append(peak_height)
+
+    df = pd.DataFrame(blinks, columns=list(blinks.keys()), index=blinks["index"]).reset_index(drop=True)
+
+    prominance = df["prominance"].to_numpy()
+    df["blink_type"] = "none"
+
+    # either estimate the threshold or use the given value
+    th = otsu_thresholding(prominance) if partial_threshold == "auto" else partial_threshold
+
+    # if the threshold is np.nan, then the thresholding failed
+    # so set all blinks to complete
+    if th is np.nan:
+        for index, row in df.iterrows():
+            df.loc[index, "blink_type"] = "complete"  # type: ignore
+
+        return df, th  # type: ignore
+
+    # set the blink type based on the threshold
+    for index, row in df.iterrows():
+        if row["prominance"] > th:
+            df.loc[index, "blink_type"] = "complete"  # type: ignore
+        else:
+            df.loc[index, "blink_type"] = "partial"  # type: ignore
+    return df, th  # type: ignore

@@ -18,6 +18,7 @@ from jefapato.facial_features import features
 
 logger = structlog.get_logger()
 
+
 class FeatureCheckBox(QtWidgets.QCheckBox):
     def __init__(self, feature_class: Type[features.Feature], **kwargs):
         super().__init__(**kwargs)
@@ -29,6 +30,7 @@ class FeatureCheckBox(QtWidgets.QCheckBox):
         name = name.replace("Left", "")
         name = name.replace("Right", "")
         self.setText(name)
+
 
 class FeatureGroupBox(QtWidgets.QGroupBox):
     def __init__(self, title: str, callbacks: list[Callable] | None = None, **kwargs):
@@ -55,13 +57,14 @@ class FeatureGroupBox(QtWidgets.QGroupBox):
                 check_box.clicked.connect(callback)
 
     def on_toggle(self, on: bool):
-        for box in self.sender().findChildren(QtWidgets.QCheckBox): # type: ignore
-            box = box # type: FeatureCheckBox
+        for box in self.sender().findChildren(QtWidgets.QCheckBox):  # type: ignore
+            box = box  # type: FeatureCheckBox
             box.setChecked(on)
             box.setEnabled(True)
 
     def get_features(self) -> list[FeatureCheckBox]:
         return [box for box in self.feature_checkboxes if box.isChecked()]
+
 
 class BlendShapeFeatureGroupBox(QtWidgets.QGroupBox):
     def __init__(self, callbacks: list[Callable] | None = None, **kwargs):
@@ -69,7 +72,7 @@ class BlendShapeFeatureGroupBox(QtWidgets.QGroupBox):
         self.callsbacks = callbacks or []
         self.setTitle("Blend Shape Features")
 
-        self.features_left  = FeatureGroupBox(title="Left",  callbacks=callbacks)
+        self.features_left = FeatureGroupBox(title="Left", callbacks=callbacks)
         self.features_right = FeatureGroupBox(title="Right", callbacks=callbacks)
         self.features_whole = FeatureGroupBox(title="Whole", callbacks=callbacks)
 
@@ -103,7 +106,7 @@ class BlendShapeFeatureGroupBox(QtWidgets.QGroupBox):
 
 
 class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
-    updated = pyqtSignal(int) 
+    updated = pyqtSignal(int)
 
     def __init__(self, parent):
         config.Config.__init__(self, prefix="landmarks")
@@ -118,17 +121,17 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
 
         # UI elements
         self.setAcceptDrops(True)
-        self.main_window = parent # type: QtWidgets.QMainWindow
+        self.main_window = parent  # type: QtWidgets.QMainWindow
 
         self.widget_frame = jwidgets.JVideoFaceSelection()
         self.widget_graph = jwidgets.JGraph(add_yruler=False)
-        
+
         self.widget_graph.setLimits(xMin=0, xMax=self.chunk_size, yMin=0, yMax=1)
 
         layout_activity = QtWidgets.QVBoxLayout()
         layout_activity.addWidget(self.widget_frame, stretch=1)
         layout_activity.addWidget(self.widget_graph, stretch=1)
-        
+
         widget_l = QtWidgets.QWidget()
         widget_r = QtWidgets.QWidget()
         widget_r.setFixedWidth(600)
@@ -158,8 +161,9 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
         self.la_current_file.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
         self.la_current_file.setWordWrap(True)
 
-        self.pb_anal = self.parent().progress_bar # type: ignore # TODO: fix this as JeFaPaTo cannot be imported from here...
+        self.pb_anal = self.parent().progress_bar  # type: ignore # TODO: fix this as JeFaPaTo cannot be imported from here...
         self.update_delay = QtWidgets.QSpinBox()
+        self.update_delay.wheelEvent = lambda e: None
 
         self.auto_save = QtWidgets.QCheckBox("Auto-Save")
         self.auto_save.setToolTip("Save the extracted data automatically after the analysis is finished.")
@@ -173,7 +177,7 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
         self.rotate_none = QtWidgets.QRadioButton("None")
         self.rotate_90 = QtWidgets.QRadioButton("90")
         self.rotate_m90 = QtWidgets.QRadioButton("-90")
-        
+
         self.rotate_none.setChecked(True)
         self.rotate_group.layout().addWidget(self.rotate_none)
         self.rotate_group.layout().addWidget(self.rotate_90)
@@ -208,7 +212,7 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
         self.flayout_se.addRow(self.bt_pause_resume)
         self.flayout_se.addRow(self.button_stop)
         self.flayout_se.addRow(self.rotate_group)
-        
+
         self.flayout_se.addRow(self.feature_group)
         self.flayout_se.addRow(self.blends_shape_group)
         self.flayout_se.addRow("Update Delay:", self.update_delay)
@@ -244,13 +248,13 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
         self.setStretchFactor(1, 4)
 
         self.set_features()
-        
+
         self.jefapato_signal_thread = JeFaPaToGUISignalThread(self)
         self.ea.register_hooks(self.jefapato_signal_thread)
-        
+
         self.update_delay.valueChanged.connect(self.jefapato_signal_thread.set_update_interval)
         self.update_delay.setValue(5)
-        
+
         self.jefapato_signal_thread.sig_updated_display.connect(self.sig_updated_display)
         self.jefapato_signal_thread.sig_updated_feature.connect(self.sig_updated_feature)
         self.jefapato_signal_thread.sig_processed_percentage.connect(self.sig_processed_percentage)
@@ -259,7 +263,7 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
         self.jefapato_signal_thread.sig_resumed.connect(self.sig_resumed)
         self.jefapato_signal_thread.sig_finished.connect(self.sig_finished)
         self.jefapato_signal_thread.start()
- 
+
     def set_rotation(self):
         if self.rotate_none.isChecked():
             self.current_rotation = "None"
@@ -268,7 +272,7 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
         elif self.rotate_m90.isChecked():
             self.current_rotation = "-90"
         self.set_resource(self.video_resource)
-        
+
     def setup_graph(self) -> None:
         logger.info("Setup graph for all features to plot", features=len(self.used_features_classes))
         self.widget_graph.clear()
@@ -312,8 +316,8 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
         #     self.set_resource(self.video_resource)
         self.setup_graph()
         self.ea.set_features(self.used_features_classes)
-        
-        rect = self.widget_frame.get_roi_rect() if self.use_bbox.isChecked() else None        
+
+        rect = self.widget_frame.get_roi_rect() if self.use_bbox.isChecked() else None
         self.ea.clean_start(rect, self.current_rotation)
 
     def stop(self) -> None:
@@ -360,13 +364,13 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
         self.bt_pause_resume.setText("Pause")
         self.setAcceptDrops(True)
         self.widget_frame.set_interactive(True)
-        
+
         try:
             notification.notify(
                 title="Analysis finished",
                 message="The analysis has finished and the next video can be analyzed.",
                 app_name="JeFaPaTo",
-                timeout = 10,
+                timeout=10,
             )
         except Exception as e:
             logger.error("Failed to send notification", error=e, os=sys.platform)
@@ -409,7 +413,7 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
             self.la_current_file.setText("File: None selected")
             self.video_resource = None
             return
-        
+
         logger.info("Open File Dialog selected", file=fileName)
         self.set_resource(Path(fileName))
 
@@ -439,7 +443,6 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
             self.widget_frame.set_selection_image(frame)
         return success
 
-
     def save_results(self) -> None:
         logger.info("Start saving procedure", widget=self)
 
@@ -457,8 +460,7 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
             logger.info("Results saved successfully", folder=parent)
         else:
             logger.error("Failed to save results", folder=parent)
-            # TODO show error message dialog 
-            
+            # TODO show error message dialog
 
     def shut_down(self) -> None:
         logger.info("Shutdown", state="starting", widget=self)
@@ -486,4 +488,4 @@ class FacialFeatureExtraction(QtWidgets.QSplitter, config.Config):
         if file.suffix.lower() not in [".mp4", ".flv", ".ts", ".mts", ".avi", ".mov", ".wmv"]:
             logger.info("User dropped invalid file", widget=self)
             return
-        self.set_resource(Path(file)) 
+        self.set_resource(Path(file))
