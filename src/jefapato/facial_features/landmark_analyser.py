@@ -19,31 +19,32 @@ from .queue_items import AnalyzeQueueItem
 
 logger = structlog.get_logger()
 
-class FaceAnalyzer():
+
+class FaceAnalyzer:
     hookimpl = pluggy.HookimplMarker("analyser")
     hookspec = pluggy.HookspecMarker("analyser")
-    
-    def __init__(self, max_ram_size: int = 4<<28):
+
+    def __init__(self, max_ram_size: int = 4 << 28):
         """
         Initialize the LandmarkAnalyser object.
 
         Args:
             max_ram_size (int): Maximum RAM size in bytes. Defaults to 4<<28.
         """
-        
+
         super().__init__()
         self.max_ram_size = max_ram_size
 
         self.feature_classes: OrderedDict[str, Feature] = OrderedDict()
         self.feature_data: OrderedDict[str, list[FeatureData]] = OrderedDict()
 
-        self.resource_interface: Any = None
         self.video_resource: Path | int | None = None
         self.data_amount: int = 0
 
         self.pm = pluggy.PluginManager("analyser")
+        self.pm.add_hookspecs(self.__class__)
 
-    def analysis_setup(self, bbox_slice: tuple[int, int, int, int] | None = None, rotation:str="None") -> bool:
+    def analysis_setup(self, bbox_slice: tuple[int, int, int, int] | None = None, rotation: str = "None") -> bool:
         """
         Sets up the analysis by initializing necessary components and calculating available resources.
 
@@ -81,21 +82,21 @@ class FaceAnalyzer():
     def analysis_start(self):
         """
         Starts the analysis process by initializing the loader and extractor.
-        
+
         Raises:
             RuntimeError: If the loader or extractor is not set up.
         """
-        
+
         if not hasattr(self, "loader") or not hasattr(self, "extractor"):
             logger.error("Loader or extractor not set up.")
             raise RuntimeError("Loader or extractor not set up.")
-        
+
         self.loader.start()
         logger.info("Started loader thread.", loader=self.loader)
 
         self.extractor.start()
         logger.info("Started extractor thread.", extractor=self.extractor)
-        
+
         # only trigger the started hook if there are any registered plugins
         if len(self.pm.get_plugins()) > 0:
             self.pm.hook.started()
@@ -136,10 +137,10 @@ class FaceAnalyzer():
     def set_features(self, features: list[Type[Feature]]) -> None:
         """
         Sets the features for the landmark analyser.
-        
+
         The features are stored in a dictionary with the feature name as key and the feature object as value.
         The features are automatically tracked over time and stored in a list for saving it later.
-        
+
         If the list of features is empty, the feature classes and data are cleared nevertheless.
 
         Args:
@@ -151,15 +152,15 @@ class FaceAnalyzer():
         # raise runtime error if the extractor is already running
         if hasattr(self, "extractor") and self.extractor.isRunning():
             raise RuntimeError("Cannot set features while the extractor is running.")
-  
+
         if features is None:
             logger.error("Features cannot be None.")
             raise ValueError("Features cannot be None.")
-    
+
         if not isinstance(features, list):
             # if it is not a list, we make it a list to make it easier to handle, just like a single feature
             features = [features]
-        
+
         self.feature_classes.clear()
         self.feature_data.clear()
 
@@ -167,15 +168,15 @@ class FaceAnalyzer():
             if feature is None:
                 logger.error("Feature cannot be None.")
                 raise ValueError("Feature cannot be None.")
-            
+
             if not isinstance(feature, type):
                 logger.error("Feature is not a class.", feature=feature)
                 raise ValueError(f"Feature {feature} is not a class.")
-            
+
             if not issubclass(feature, Feature):
                 logger.error("Feature is not a subclass of Feature.", feature=feature)
                 raise ValueError(f"Feature {feature} is not a subclass of Feature.")
-            
+
             self.feature_classes[feature.__name__] = feature()
             self.feature_data[feature.__name__] = []
 
@@ -188,10 +189,10 @@ class FaceAnalyzer():
     def toggle_pause(self) -> None:
         """
         Toggles the pause state of the extractor.
-        
+
         This is just a convenience function to make it easier to pause and resume the extractor,
         used in the GUI.
-        
+
         The hooks are triggered in the extractor itself!
         """
         # raise runtime error if the extractor is not running
@@ -200,10 +201,10 @@ class FaceAnalyzer():
 
         self.extractor.toggle_pause()
 
-    def clean_start(self, bbox_slice: tuple[int, int, int, int] | None = None, rotation:str = "None") -> None:
+    def clean_start(self, bbox_slice: tuple[int, int, int, int] | None = None, rotation: str = "None") -> None:
         """
         Starts the landmark analysis process.
-        
+
         This function is used to start the analysis process.
         It sets up the analysis, starts the loader and extractor threads and connects the hooks.
         The process is stopped by calling the stop() function, or paused by calling the toggle_pause() function.
@@ -255,7 +256,7 @@ class FaceAnalyzer():
 
         if not self.video_resource.exists():
             raise FileNotFoundError(f"File {self.video_resource} does not exist.")
-        
+
         if not self.video_resource.is_file():
             raise ValueError(f"File {self.video_resource} is not a file.")
 
@@ -263,13 +264,13 @@ class FaceAnalyzer():
             raise ValueError(f"File {self.video_resource} is not a video file.")
 
         self.resource_interface = cv2.VideoCapture(str(self.video_resource.absolute()))
-        self.data_amount = self.resource_interface.get(cv2.CAP_PROP_FRAME_COUNT)
-        
+        self.data_amount = int(self.resource_interface.get(cv2.CAP_PROP_FRAME_COUNT))
+
         success, image = self.resource_interface.read()
-        
+
         if not success:
-            return success, None
-        
+            return success, np.empty((0, 0, 3), dtype=np.uint8)
+
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         if rotation == "90":
             image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
@@ -299,7 +300,7 @@ class FaceAnalyzer():
         - tuple[int, int, int] | int: If in_bytes is True, returns the size in bytes.
             Otherwise, returns a tuple of width, height, and channels.
         """
-        width  = int(self.resource_interface.get(cv2.CAP_PROP_FRAME_WIDTH))
+        width = int(self.resource_interface.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(self.resource_interface.get(cv2.CAP_PROP_FRAME_HEIGHT))
         # set the number of channels to 3, because we are using RGB images
         channels = 3
@@ -329,7 +330,7 @@ class FaceAnalyzer():
 
         Raises:
             RuntimeError: If the extractor is still running.
-            
+
         Returns:
             bool: True if the data was saved successfully. False if the data could not be saved.
         """
@@ -337,16 +338,16 @@ class FaceAnalyzer():
             # if the extractor is not set up, we cannot save anything
             # the video_resource has to be set up already here else the setup fails
             raise RuntimeError("You haven't started the analysis yet.")
-        
+
         if hasattr(self, "extractor") and self.extractor.isRunning():
             raise RuntimeError("Cannot save while the extractor is running.")
-        
+
         if not isinstance(folder, Path):
             raise ValueError("Folder must be a Path.")
 
         if not folder.exists():
             folder.mkdir(parents=True)
-        
+
         ts = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         output_file = folder / f"{self.video_resource.stem}_{ts}.csv"
 
@@ -355,7 +356,7 @@ class FaceAnalyzer():
             writer.writerow(self.get_header())
             writer.writerows(self)
         return True
-    
+
     @MediapipeLandmarkExtractor.hookimpl
     def handle_update(self, item: AnalyzeQueueItem) -> None:
         # logger.debug("Handling update")
@@ -376,12 +377,12 @@ class FaceAnalyzer():
             f_class.draw(image=image, data=feature_data, x_offset=x_offset, y_offset=y_offset)
             self.feature_data[f_name].append(feature_data)
             temp_data[f_name] = feature_data
-            
+
         # connect the hooks only if there are any plugins registered
         if len(self.pm.get_plugins()) > 0:
             self.pm.hook.updated_feature(feature_data=temp_data)
             self.pm.hook.updated_display(image=image)
-            
+
     @MediapipeLandmarkExtractor.hookimpl
     def update_progress(self, perc: float) -> None:
         """
@@ -397,7 +398,7 @@ class FaceAnalyzer():
         """
         if len(self.pm.get_plugins()) > 0:
             self.pm.hook.paused()
-        
+
     @MediapipeLandmarkExtractor.hookimpl
     def handle_resume(self) -> None:
         if len(self.pm.get_plugins()) > 0:
@@ -411,7 +412,7 @@ class FaceAnalyzer():
         self.resource_interface.set(cv2.CAP_PROP_POS_FRAMES, 0)
         if len(self.pm.get_plugins()) > 0:
             self.pm.hook.finished()
-    
+
     @hookspec
     def updated_display(self, image: np.ndarray):
         """
@@ -423,31 +424,31 @@ class FaceAnalyzer():
         """
         Trigger a hook that the features were updated.
         """
-        
+
     @hookspec
     def processed_percentage(self, percentage: float) -> None:
         """
         Trigger a hook that the percentage was updated.
         """
-    
+
     @hookspec
     def started(self) -> None:
         """
         Trigger a hook that the analysis started.
         """
-    
+
     @hookspec
     def paused(self) -> None:
         """
         Trigger a hook that the analysis was paused.
         """
-    
+
     @hookspec
     def resumed(self) -> None:
         """
         Trigger a hook that the analysis was resumed.
         """
-        
+
     @hookspec
     def finished(self) -> None:
         """

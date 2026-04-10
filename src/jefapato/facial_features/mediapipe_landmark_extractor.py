@@ -30,6 +30,7 @@ class Extractor(Thread):
         self.processing_per_second: int = 0
 
         self.pm = pluggy.PluginManager("Extractor")
+        self.pm.add_hookspecs(self.__class__)
 
     def register(self, object) -> None:
         self.pm.register(object)
