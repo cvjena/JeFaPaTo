@@ -112,32 +112,32 @@ def summarize(
     statistics["Partial_Blink_threshold_left"] = partial_threshold_l
     statistics["Partial_Blink_threshold_right"] = partial_threshold_r
 
-    # get all prominances
-    prom_l = matched_blinks["left"]["prominance"]
-    prom_r = matched_blinks["right"]["prominance"]
-    prom = np.concatenate([prom_l, prom_r])
+    def add_stats(stat_name: str, values_l: pd.Series, values_r: pd.Series, prefix: str = ""):
+        p = f"{prefix}_" if prefix else ""
+        statistics[f"{p}{stat_name}_min_left"] = np.nanmin(values_l) if len(values_l) > 0 else np.nan
+        statistics[f"{p}{stat_name}_max_left"] = np.nanmax(values_l) if len(values_l) > 0 else np.nan
+        statistics[f"{p}{stat_name}_avg_left"] = np.nanmean(values_l) if len(values_l) > 0 else np.nan
+        statistics[f"{p}{stat_name}_min_right"] = np.nanmin(values_r) if len(values_r) > 0 else np.nan
+        statistics[f"{p}{stat_name}_max_right"] = np.nanmax(values_r) if len(values_r) > 0 else np.nan
+        statistics[f"{p}{stat_name}_avg_right"] = np.nanmean(values_r) if len(values_r) > 0 else np.nan
 
-    statistics["Prominance_min"] = np.nanmin(prom)
-    statistics["Prominance_max"] = np.nanmax(prom)
-    statistics["Prominance_avg"] = np.nanmean(prom)
+        if stat_name == "Width":
+            bl_l = values_l * 1000 / fps
+            bl_r = values_r * 1000 / fps
+            statistics[f"{p}Blink_Length_left_ms_avg"] = np.nanmean(bl_l) if len(bl_l) > 0 else np.nan
+            statistics[f"{p}Blink_Length_left_ms_std"] = np.nanstd(bl_l) if len(bl_l) > 0 else np.nan
+            statistics[f"{p}Blink_Length_right_ms_avg"] = np.nanmean(bl_r) if len(bl_r) > 0 else np.nan
+            statistics[f"{p}Blink_Length_right_ms_std"] = np.nanstd(bl_r) if len(bl_r) > 0 else np.nan
 
-    # get all widths
-    width_l = matched_blinks["left"]["peak_internal_width"]
-    width_r = matched_blinks["right"]["peak_internal_width"]
-    width = np.concatenate([width_l, width_r])
+    partial_l = matched_blinks["left"][matched_blinks["left"]["blink_type"] == "partial"]
+    partial_r = matched_blinks["right"][matched_blinks["right"]["blink_type"] == "partial"]
+    complete_l = matched_blinks["left"][matched_blinks["left"]["blink_type"] == "complete"]
+    complete_r = matched_blinks["right"][matched_blinks["right"]["blink_type"] == "complete"]
 
-    statistics["Width_min"] = np.nanmin(width)
-    statistics["Width_max"] = np.nanmax(width)
-    statistics["Width_avg"] = np.nanmean(width)
-
-    # get all heights
-    height_l = matched_blinks["left"]["peak_height"]
-    height_r = matched_blinks["right"]["peak_height"]
-    height = np.concatenate([height_l, height_r])
-
-    statistics["Height_min"] = np.nanmin(height)
-    statistics["Height_max"] = np.nanmax(height)
-    statistics["Height_avg"] = np.nanmean(height)
+    for prefix, df_l, df_r in [("", matched_blinks["left"], matched_blinks["right"]), ("Partial", partial_l, partial_r), ("Complete", complete_l, complete_r)]:
+        add_stats("Prominance", df_l["prominance"], df_r["prominance"], prefix)
+        add_stats("Width", df_l["peak_internal_width"], df_r["peak_internal_width"], prefix)
+        add_stats("Height", df_l["peak_height"], df_r["peak_height"], prefix)
 
     # partial blinks counting
     partial_l = matched_blinks["left"][matched_blinks["left"]["blink_type"] == "partial"]
@@ -145,17 +145,8 @@ def summarize(
 
     statistics["Partial_Blink_Total_left"] = len(partial_l)
     statistics["Partial_Blink_Total_right"] = len(partial_r)
-    statistics["Partial_Frequency_left_bpm"] = statistics["Partial_Blink_Total_left"] / length_l_min
-    statistics["Partial_Frequency_right_bpm"] = statistics["Partial_Blink_Total_right"] / length_r_min
-
-    # blink lengths in ms
-    blink_lengths_l_ms = matched_blinks["left"]["peak_internal_width"] * 1000 / fps  # in ms
-    blink_lengths_r_ms = matched_blinks["right"]["peak_internal_width"] * 1000 / fps  # in ms
-
-    statistics["Blink_Length_left_ms_avg"] = np.nanmean(blink_lengths_l_ms)
-    statistics["Blink_Length_left_ms_std"] = np.nanstd(blink_lengths_l_ms)
-    statistics["Blink_Length_right_ms_avg"] = np.nanmean(blink_lengths_r_ms)
-    statistics["Blink_Length_right_ms_std"] = np.nanstd(blink_lengths_r_ms)
+    statistics["Partial_Frequency_left_bpm"] = statistics["Partial_Blink_Total_left"] / length_l_min if length_l_min > 0 else np.nan
+    statistics["Partial_Frequency_right_bpm"] = statistics["Partial_Blink_Total_right"] / length_r_min if length_r_min > 0 else np.nan
 
     statistics.update(blinks_per_min(partial_l, length_l_min, fps, "left", "Partial"))
     statistics.update(blinks_per_min(partial_r, length_r_min, fps, "right", "Partial"))
@@ -166,8 +157,8 @@ def summarize(
 
     statistics["Complete_Blink_Total_left"] = len(complete_l)
     statistics["Complete_Blink_Total_right"] = len(complete_r)
-    statistics["Complete_Frequency_left_bpm"] = statistics["Complete_Blink_Total_left"] / length_l_min
-    statistics["Complete_Frequency_right_bpm"] = statistics["Complete_Blink_Total_right"] / length_r_min
+    statistics["Complete_Frequency_left_bpm"] = statistics["Complete_Blink_Total_left"] / length_l_min if length_l_min > 0 else np.nan
+    statistics["Complete_Frequency_right_bpm"] = statistics["Complete_Blink_Total_right"] / length_r_min if length_r_min > 0 else np.nan
 
     statistics.update(blinks_per_min(complete_l, length_l_min, fps, "left", "Complete"))
     statistics.update(blinks_per_min(complete_r, length_r_min, fps, "right", "Complete"))
@@ -176,6 +167,23 @@ def summarize(
     # make the index a column
     out_df.reset_index(inplace=True)
     out_df.columns = ["statistics", "value"]
+
+    def get_unit(stat_name: str) -> str:
+        lower = stat_name.lower()
+        if "ear" in lower or "prominance" in lower or "height" in lower or "threshold" in lower:
+            return "EAR"
+        elif "width" in lower:
+            return "frames"
+        elif "ms" in lower:
+            return "ms"
+        elif "bpm" in lower:
+            return "bpm"
+        elif "total" in lower or "blinks_min" in lower:
+            return "count"
+        return ""
+
+    out_df["unit"] = out_df["statistics"].apply(get_unit)
+
     # compute the statistics for the left eye
     return out_df
 
